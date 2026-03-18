@@ -11,7 +11,7 @@ Replaces: asbru-cm
 Conflicts: asbru-cm
 Depends: perl, libvte-2.91-0, libcairo-perl, libglib-perl, libpango-perl, libsocket6-perl, libexpect-perl, libyaml-perl, libcrypt-cbc-perl, libcrypt-blowfish-perl, libgtk3-perl, libnet-arp-perl, libossp-uuid-perl, openssh-client, libcrypt-rijndael-perl, libxml-parser-perl, libcanberra-gtk-module, dbus-x11 | dbus-broker, libgtk3-simplelist-perl, gir1.2-wnck-3.0, gir1.2-vte-2.91, ncat | nmap
 Recommends: keepassxc
-Suggests: telnet, ftp, freerdp2-x11 | freerdp3-x11 | rdesktop, tigervnc-viewer | xtightvncviewer, mosh, cu | remote-tty, libx11-guitest-perl
+Suggests: telnet, ftp, freerdp2-x11 | freerdp3-x11 | rdesktop, tigervnc-viewer | xtightvncviewer, mosh, cu | remote-tty, libx11-guitest-perl, putty-tools
 Description: A free and open-source connection manager (fork of Asbrú CM)
  Ásbrú Plus is a community-maintained fork of Ásbrú Connection Manager.
  It provides a graphical interface for organizing and automating remote

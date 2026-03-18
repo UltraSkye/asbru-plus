@@ -62,6 +62,7 @@ Suggests:   cu
 Suggests:   telnet
 Suggests:   ftp
 Suggests:   perl-X11-GUITest
+Suggests:   putty
 BuildRequires: pkgconfig
 BuildRequires: bash-completion
 BuildRequires: desktop-file-utils

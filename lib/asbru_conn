@@ -258,6 +258,25 @@ $$CFG{'defaults'}{'proxy ip'}   = subst($$CFG{'defaults'}{'proxy ip'});
 $$CFG{'defaults'}{'proxy user'} = subst($$CFG{'defaults'}{'proxy user'});
 $$CFG{'defaults'}{'proxy pass'} = subst($$CFG{'defaults'}{'proxy pass'});
 
+# PPK key conversion: PuTTY .ppk → temporary OpenSSH key
+my $_ppk_tmp;
+if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
+    if (system('which puttygen >/dev/null 2>&1') == 0) {
+        $_ppk_tmp = "/tmp/asbru_key_$$.pem";
+        if (system('puttygen', $PUBKEY, '-O', 'private-openssh', '-o', $_ppk_tmp) == 0) {
+            chmod 0600, $_ppk_tmp;
+            $PUBKEY = $_ppk_tmp;
+        } else {
+            unlink $_ppk_tmp if -f $_ppk_tmp;
+            $_ppk_tmp = undef;
+            print "$COLOR{'err'}WARNING: PPK conversion failed for $PUBKEY$COLOR{'norm'}\n";
+        }
+    } else {
+        print "$COLOR{'err'}WARNING: .ppk key selected but puttygen not found — install putty-tools$COLOR{'norm'}\n";
+    }
+}
+END { unlink $_ppk_tmp if defined $_ppk_tmp && -f $_ppk_tmp }
+
 # Build initial SSH connection command
 my $CONNECT_OPTS = $$CFG{'environments'}{$UUID}{'options'} || '';
 
