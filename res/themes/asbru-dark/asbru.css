@@ -1,58 +1,77 @@
+/* ── Ásbrú dark theme ─────────────────────────────────────────────────────────
+   Designed for use with GTK3 dark variant (Adwaita:dark or similar).
+   gtk-application-prefer-dark-theme is set programmatically in PACMain.pm
+   when this theme is active. The rules here handle asbru-specific widgets
+   and correct readability issues that GTK dark variant alone doesn't fix.
+*/
+
 button {
-    border: 1px solid rgba(1,1,1,0);
-    margin: 1px;
+  border: 1px solid rgba(1, 1, 1, 0);
+  margin: 1px;
 }
-radiobutton, checkbutton {
-    border: 1px solid rgba(1,1,1,0);
-    margin: 1px;
+radiobutton,
+checkbutton {
+  border: 1px solid rgba(1, 1, 1, 0);
+  margin: 1px;
 }
 button:hover {
-    border: 1px solid #555555;
-    color: #000000;
-    background-color: #ffffff;
+  border: 1px solid #666666;
+  color: #eeeeee;
+  background-color: #4a4a4a;
 }
+/* Focus highlight: light text on mid-grey so text stays readable */
 button:focus,
 entry:focus {
-    background-color:#555555;
+  color: #eeeeee;
+  background-color: #4a4a6a;
+  border-color: #7a7aaa;
+}
+/* Entry default: explicit colors so text is always visible */
+entry {
+  color: #e8e8e8;
+  background-color: #2d2d2d;
 }
 spinbutton {
-    border: 1px solid rgba(1,1,1,0);
-    font-size: 0.9em;
-    border-radius: 0px;
-    padding: 0px;
-    margin: 0px;
+  color: #e8e8e8;
+  background-color: #2d2d2d;
+  border: 1px solid #444444;
+  font-size: 0.9em;
+  border-radius: 0px;
+  padding: 0px;
+  margin: 0px;
 }
 spinbutton:hover {
-    border: 1px solid #555555;
-    background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #666666;
+  background-color: #f0f0f0;
 }
-checkbutton:hover, radiobutton:hover {
-    border: 1px solid #aaaaaa;
+checkbutton:hover,
+radiobutton:hover {
+  border: 1px solid #aaaaaa;
 }
 .button-cp {
-    border: 1px solid rgba(1,1,1,0);
-    border-radius: 0px;
-    padding: 0px;
-    margin: 0px;
+  border: 1px solid rgba(1, 1, 1, 0);
+  border-radius: 0px;
+  padding: 0px;
+  margin: 0px;
 }
 tooltip {
-    font-size: 0.8em;
+  font-size: 0.8em;
 }
 .dnd-icon {
-  border: 1px solid #000000;
+  border: 1px solid #888888;
 }
-
 .banner-fill {
-  background-image: linear-gradient(to right, #007aff, #2fedde);
+  background-image: linear-gradient(to right, #1155cc, #1a9aaa);
   padding: 0.25em 0;
 }
 .banner-text {
-  color: #EEE;
-  text-shadow: 0px 0px 8px rgba(17, 17, 17, 0.75);
+  color: #eeeeee;
+  text-shadow: 0px 0px 8px rgba(0, 0, 0, 0.8);
   font-size: 2.5em;
 }
 messagedialog {
-  border: 1px solid #888888;
+  border: 1px solid #666666;
 }
 messagedialog > box {
   margin: 2px;
@@ -62,14 +81,17 @@ messagedialog > box {
 }
 .w-renamenode {
 }
+/* Warning: amber tint — clearly distinguishable, text readable */
 .w-warning {
-    background-color: #616124;
+  background-color: #3d3300;
+  color: #f0d050;
 }
+/* Error: red tint — clearly distinguishable, text readable */
 .w-error {
-    background-color: #42050A;
+  background-color: #3d0808;
+  color: #ff8080;
 }
 .w-info {
 }
 .w-confirm {
 }
-

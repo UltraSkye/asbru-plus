@@ -1,36 +1,37 @@
-# Contributing
+# Contributing to Ásbrú Plus
 
-Thanks for reading this document and showing your interest in contributing to this project.
-Contributing is very easy however we have some very basic rules we kindly ask to follow.
+Thanks for your interest in contributing. This is a small community fork —
+contributions are welcome and the bar is low.
 
-When contributing to this repository, please first discuss the change you wish to make via issue.
-This ensures that everybody can see what you are actually working on and will prevent unnecessary work for everybody.
+## Before you start
 
-Please note we have a code of conduct, please follow it in all your interactions with the project.
+Open an issue first to discuss what you want to change. This avoids
+duplicate work and lets us align on the approach before you write code.
 
-## Contributor Agreement
+## Ground rules
 
-By contributing code to Ásbrú Connection Manager, you assert that:
+- Be respectful. This is a volunteer project.
+- You assert that you have the rights to any code you submit.
+- By submitting a PR you agree your contribution is released under GPL-3.
 
-* You have the rights to include the code, either as its original author, or due to it being released to you under a compatible license.
-* You are not aware of any third party claims on the code, including copyright, patent, trademark, or any other legal claim.
+## Making changes
 
-To agree with these assertions, when you submit your first pull request you will be asked after submitting to sign the CLA, you do this by following the link provided in the PR and agreeing to the CLA using your GitHub account.
+1. Fork the repo and create a branch (`fix/my-bug`, `feat/my-feature`).
+2. Make your change. Keep it focused — one thing per PR.
+3. Run the test suite: `docker compose run --rm test`
+4. If your change affects packaging, also run: `docker compose run --rm build-deb`
+5. Update `README.md` if you're changing user-visible behaviour.
+6. Open a PR with a clear title describing what changed and why.
 
-## Pull Request Process
+## Versioning
 
-1. Please ensure to test the work you have done and the build process prior to making the pull request.
-2. If enhancing or changing any interfaces, environment variables or requirements please update the README.md or any other document.
-3. The versioning scheme we use is [SemVer](http://semver.org/).
+We use [SemVer](https://semver.org/). Patch for bug fixes, minor for
+new features, major for breaking changes.
 
-## Pull request title
+## PR title format
 
-Try to be as more descriptive as you can in your Pull Request title.
-
-Particularly if you are submitting a new script or guide, include in the title,
-information about version, OS tested on and any other relevant info.
-
-For example some good titles would be:
-
-[Bugfix] - Fixed connection issue for old SSH versions
-[Doc] - Correct typo in installation docs
+```
+Fix: short description of what was broken
+Add: short description of new feature
+Refactor: what changed and why
+```
