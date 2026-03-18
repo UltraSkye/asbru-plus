@@ -76,6 +76,9 @@ jobs:
       - name: Run variable substitution tests
         run: perl t/09-subst.t
 
+      - name: Run Wayland support tests
+        run: perl t/10-wayland.t
+
   shellcheck-scripts:
     runs-on: ubuntu-latest
 
