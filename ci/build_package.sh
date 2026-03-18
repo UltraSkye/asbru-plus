@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PRODUCT=${PRODUCT:-asbru-cm}
+PRODUCT=${PRODUCT:-asbru-plus}
 
 if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ -n "${GITHUB_REF_NAME:-}" ]; then
   RAW_TAG="${GITHUB_REF_NAME}"
@@ -9,7 +9,7 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ -n "${GITHUB_REF_NAME:-}" ]; then
   CHANNEL="release"
   echo "Detected tag build. RAW_VERSION=${RAW_VERSION}, CHANNEL=${CHANNEL}"
 else
-  eval "$(egrep -o 'APPVERSION.*=.*' lib/PACUtils.pm | tr -d '[:space:]')"
+  eval "$(grep -o 'APPVERSION.*=.*' lib/PACUtils.pm | tr -d '[:space:]')"
   SHORT_SHA="$(git rev-parse --short HEAD)"
   BRANCH_NAME="${GITHUB_REF_NAME:-build}"
   RAW_VERSION="${APPVERSION}+${BRANCH_NAME}.${SHORT_SHA}"
