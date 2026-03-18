@@ -1486,7 +1486,8 @@ sub _watchConnectionData {
             }
 
         } elsif ($data =~ /^EXPLORER:(.+)/go) {
-            system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} xdg-open '$1' &");
+            my $path = $1; $path =~ s/'/'\\''/g;
+            system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} xdg-open '$path' &");
         } elsif ($data =~ /^PIPE_WAIT\[(.+?)\]\[(.+)\]/go) {
             my $time = $1;
             my $prompt = $2;
@@ -2460,6 +2461,11 @@ sub _setTabColour {
 
         my $conn_color = $$self{_NEW_DATA} ? $$self{_CFG}{defaults}{'new data color'} : $$self{_CFG}{defaults}{'connected color'};
         my $disconn_color = $$self{_CFG}{defaults}{'disconnected color'};
+        # Lighten default colors for dark themes so they remain visible
+        if ($PACMain::FUNCS{_MAIN}{_THEME} =~ /dark/i) {
+            $conn_color    = '#5FE05F' if $conn_color    eq '#0CBA00';
+            $disconn_color = '#FF6666' if $disconn_color eq '#FF0000';
+        }
         my $rem_conn_color = $PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_NEW_DATA} ? $$self{_CFG}{defaults}{'new data color'} : $$self{_CFG}{defaults}{'connected color'} if $$self{_SPLIT};
 
         if ($$self{_SPLIT}) {
@@ -2467,7 +2473,7 @@ sub _setTabColour {
             my $fore1 = 'foreground="' . ($$self{CONNECTED} ? $conn_color : $disconn_color) . '"';
             my $back2 = $$self{_CFG}{'environments'}{$PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_UUID}}{'terminal options'}{'use personal settings'} && $$self{_CFG}{'environments'}{$PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_UUID}}{'terminal options'}{'use tab back color'} ? "background=\"$$self{_CFG}{'environments'}{$PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_UUID}}{'terminal options'}{'tab back color'}\"" : '';
             my $fore2 = 'foreground="' . ($PACMain::RUNNING{$$self{_SPLIT}}{terminal}{CONNECTED} ? $rem_conn_color : $disconn_color) . '"';
-            $$self{_GUI}{_TABLBL}{_LABEL}->set_markup("<span $back1 $fore1>@{[__($$self{_TITLE})]}</span> + <span $back2 $fore2>__($PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_TITLE})</span>");
+            $$self{_GUI}{_TABLBL}{_LABEL}->set_markup("<span $back1 $fore1>@{[__($$self{_TITLE})]}</span> + <span $back2 $fore2>@{[__($PACMain::RUNNING{$$self{_SPLIT}}{terminal}{_TITLE})]}</span>");
             if ($i) {
                 $PACMain::RUNNING{$$self{_SPLIT}}{terminal}->_setTabColour(--$i);
             }

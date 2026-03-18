@@ -266,7 +266,9 @@ sub _setupCallbacks {
         _($self, 'hboxWidthHeight')->set_sensitive(_($self, 'cbCfgNewInWindow')->get_active());
     });
     _($self, 'btnCfgOpenSessionLogs')->signal_connect('clicked' => sub {
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-open " . (_($self, 'btnCfgSaveSessionLogs')->get_current_folder()));
+        my $folder = _($self, 'btnCfgSaveSessionLogs')->get_current_folder();
+        $folder =~ s/'/'\\''/g;
+        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-open '$folder'");
     });
     _($self, 'btnCloseConfig')->signal_connect('clicked' => sub {
         $self->_closeConfiguration();
