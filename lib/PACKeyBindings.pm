@@ -87,9 +87,9 @@ sub GetKeyMask {
     my $keyval  = Gtk3::Gdk::keyval_name($event->keyval) // '';
     my $unicode = Gtk3::Gdk::keyval_to_unicode($event->keyval); # 0 if not a character
     my $state   = $event->get_state();
-    my $shift   = $state * ['shift-mask']   ? 'Shift' : '';
-    my $ctrl    = $state * ['control-mask'] ? 'Ctrl'  : '';
-    my $alt     = $state * ['mod1-mask']    ? 'Alt'   : '';
+    my $shift   = $state->{'shift-mask'}   ? 'Shift' : '';
+    my $ctrl    = $state->{'control-mask'} ? 'Ctrl'  : '';
+    my $alt     = $state->{'mod1-mask'}    ? 'Alt'   : '';
 
     if ($self->{verbose}) {
         print "INFO: GETKEYMASK: $keyval, $unicode, $ctrl / $shift\n";

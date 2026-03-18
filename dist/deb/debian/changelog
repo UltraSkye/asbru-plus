@@ -1,3 +1,15 @@
+asbru-plus (6.5.0-1) noble; urgency=medium
+
+  * Fork: renamed project to asbru-plus
+  * Fix: keyboard shortcuts modifier key detection (PACKeyBindings.pm)
+  * Fix: proxy credentials no longer exposed in process list
+  * Fix: updated package dependencies for Ubuntu 24.04 Noble / Debian Bookworm
+  * Fix: freerdp-x11 replaced with freerdp2-x11 | freerdp3-x11 in Suggests
+  * Fix: dbus-x11 | dbus-broker dependency for Wayland compatibility
+  * Package: adds Replaces/Conflicts against asbru-cm for clean upgrades
+
+ -- DemonSkye <31297354+UltraSkye@users.noreply.github.com>  Tue, 18 Mar 2026 15:00:00 +0300
+
 asbru-cm (6.4.0-1) stable; urgency=medium
 
   * Upstream 6.4.0
