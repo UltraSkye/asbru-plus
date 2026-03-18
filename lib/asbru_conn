@@ -269,6 +269,7 @@ $$CFG{'defaults'}{'proxy pass'} = subst($$CFG{'defaults'}{'proxy pass'});
 # The converted key has no passphrase; SSH won't ask for one — safe for automation.
 # Uses File::Temp for secure temp file creation (mode 0600, no TOCTOU window).
 my $_ppk_tmp;
+my $_vnc_pfile;
 if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
     if (PACWayland::_bin_in_path('puttygen')) {
         # Secure temp file: File::Temp creates it with mode 0600 atomically
@@ -303,7 +304,17 @@ if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
         print "$COLOR{'err'}WARNING: .ppk key selected but puttygen not found — install putty-tools$COLOR{'norm'}\n";
     }
 }
-END { unlink $_ppk_tmp if defined $_ppk_tmp && -f $_ppk_tmp }
+END {
+    # Zero sensitive variables before process exits
+    $PASS          = "\0" x length($PASS)          if defined $PASS          && length $PASS;
+    $PASSPHRASE    = "\0" x length($PASSPHRASE)    if defined $PASSPHRASE    && length $PASSPHRASE;
+    $SUDO_PASSWORD = "\0" x length($SUDO_PASSWORD) if defined $SUDO_PASSWORD && length $SUDO_PASSWORD;
+    $proxy_pass    = "\0" x length($proxy_pass)    if defined $proxy_pass    && length $proxy_pass;
+    delete $ENV{'ASBRU_PROXY_AUTH'};
+    # Clean up temp files
+    unlink $_ppk_tmp  if defined $_ppk_tmp  && -f $_ppk_tmp;
+    unlink $_vnc_pfile if defined $_vnc_pfile && -f $_vnc_pfile;
+}
 
 # Build initial SSH connection command
 my $CONNECT_OPTS = $$CFG{'environments'}{$UUID}{'options'} || '';
@@ -973,8 +984,8 @@ sub _openSocksTunnel {
     }
 
     unlink($pipe);
-    system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} mkfifo $pipe");
-    system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} nc -l -p $LPORT <$pipe | $proxy_cmd $IP $PORT >$pipe &");
+    system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} mkfifo \"$pipe\"");
+    system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} nc -l -p $LPORT <\"$pipe\" | $proxy_cmd $IP $PORT >\"$pipe\" &");
     $IP = '127.0.0.1';
     $PORT = $LPORT;
 }
@@ -1345,6 +1356,7 @@ if (defined $METHOD) {
             # Create temp file with 0600 mode BEFORE shell redirects into it,
             # so the VNC password file is never world-readable even momentarily.
             my (undef, $pfile) = tempfile('asbru_vnc_XXXXXX', DIR => "$CFG_DIR/tmp", UNLINK => 0);
+            $_vnc_pfile = $pfile;
             system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} echo \"" . _doShellEscape($PASS) . "\" | vncpasswd -f > \"$pfile\"");
             if (defined $$CFG{'tmp'}{'xid'}) {
                 $connection_cmd = "$vncviewer_cmd $CONNECT_OPTS -PasswordFile=\"$pfile\" -Parent=$$CFG{'tmp'}{'xid'} $IP:$PORT";
