@@ -16,6 +16,10 @@ my $keybindings = read_file('lib/PACKeyBindings.pm');
 my $asbru_conn  = read_file('lib/asbru_conn');
 my $pac_main    = read_file('lib/PACMain.pm');
 my $pac_utils   = read_file('lib/PACUtils.pm');
+my $pac_terminal = read_file('lib/PACTerminal.pm');
+my $pac_edit    = read_file('lib/PACEdit.pm');
+my $pac_config  = read_file('lib/PACConfig.pm');
+my $pac_scripts = read_file('lib/PACScripts.pm');
 
 # ── #1091: Keybinding modifier detection ─────────────────────────────────────
 
@@ -124,6 +128,75 @@ subtest 'PPK key auto-conversion (PuTTY → OpenSSH)' => sub {
         'tempfile() used instead of /tmp/$$  (no TOCTOU)');
     unlike($asbru_conn, qr|/tmp/asbru_key_\$\$|,
         'No direct /tmp/$$ path construction for key file');
+};
+
+# ── Security: password zeroing in END block ───────────────────────────────────
+
+subtest 'Security — password zeroing in END block' => sub {
+    like($asbru_conn, qr/END\s*\{/,
+        'END block defined');
+    like($asbru_conn, qr/\$PASS\s*=\s*"\\0" x length/,
+        'PASS zeroed in END block');
+    like($asbru_conn, qr/\$PASSPHRASE\s*=\s*"\\0" x length/,
+        'PASSPHRASE zeroed in END block');
+    like($asbru_conn, qr/\$SUDO_PASSWORD\s*=\s*"\\0" x length/,
+        'SUDO_PASSWORD zeroed in END block');
+    like($asbru_conn, qr/\$proxy_pass\s*=\s*"\\0" x length/,
+        'proxy_pass zeroed in END block');
+    like($asbru_conn, qr/delete \$ENV\{'ASBRU_PROXY_AUTH'\}/,
+        'ASBRU_PROXY_AUTH deleted in END block');
+};
+
+# ── Security: VNC pfile cleanup ───────────────────────────────────────────────
+
+subtest 'Security — VNC pfile cleaned up in END block' => sub {
+    like($asbru_conn, qr/my \$_vnc_pfile/,
+        '_vnc_pfile variable declared');
+    like($asbru_conn, qr/unlink \$_vnc_pfile/,
+        '_vnc_pfile unlinked in END block');
+};
+
+# ── Security: FIFO pipe quoting ───────────────────────────────────────────────
+
+subtest 'Security — FIFO pipe path is double-quoted in shell' => sub {
+    like($asbru_conn, qr/mkfifo\s+\\"\$pipe\\"/,
+        'mkfifo argument is quoted');
+    unlike($asbru_conn, qr/mkfifo\s+\$pipe\b/,
+        'mkfifo does not use unquoted $pipe');
+};
+
+# ── Security: Pango markup escape ────────────────────────────────────────────
+
+subtest 'Security — Pango markup uses @{[__()]} interpolation' => sub {
+    like($pac_terminal, qr/\@\{\[__\(.*_TITLE.*\)\]\}/,
+        'Title interpolated via @{[__(...)]} in tab label markup');
+    unlike($pac_terminal, qr/>\s*__\(\$PACMain::RUNNING.*_TITLE.*\)\s*</,
+        'No bare __() call outside @{[]} in Pango markup');
+};
+
+# ── Security: xdg-open path quoting ──────────────────────────────────────────
+
+subtest 'Security — xdg-open in PACEdit quotes folder path' => sub {
+    like($pac_edit, qr/\$folder\s*=~\s*s\/'/,
+        'PACEdit: single-quote escape applied to folder');
+    like($pac_edit, qr/xdg-open\s+'\\?\$folder'/,
+        'PACEdit: folder wrapped in single quotes for xdg-open');
+};
+
+subtest 'Security — xdg-open in PACConfig quotes folder path' => sub {
+    like($pac_config, qr/\$folder\s*=~\s*s\/'/,
+        'PACConfig: single-quote escape applied to folder');
+    like($pac_config, qr/xdg-open\s+'\\?\$folder'/,
+        'PACConfig: folder wrapped in single quotes for xdg-open');
+};
+
+# ── Security: PACScripts tmpfile quoting ─────────────────────────────────────
+
+subtest 'Security — PACScripts tmpfile is quoted in backtick call' => sub {
+    like($pac_scripts, qr/'\$\^X'\s+-cw\s+'[^']/,
+        'PACScripts: perl syntax-check uses quoted tmpfile path');
+    unlike($pac_scripts, qr/'\$\^X'\s+-cw\s+\$tmpfile\b/,
+        'PACScripts: unquoted $tmpfile no longer used directly');
 };
 
 done_testing();
