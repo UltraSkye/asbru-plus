@@ -67,6 +67,15 @@ jobs:
       - name: Run dark mode tests
         run: perl t/06-dark-mode.t
 
+      - name: Run extended utils tests
+        run: perl t/07-utils-extended.t
+
+      - name: Run crypto roundtrip tests
+        run: perl t/08-crypto.t
+
+      - name: Run variable substitution tests
+        run: perl t/09-subst.t
+
   shellcheck-scripts:
     runs-on: ubuntu-latest
 
