@@ -110,7 +110,13 @@ subtest 'PPK key auto-conversion (PuTTY → OpenSSH)' => sub {
     like($asbru_conn, qr/putty-tools/,
         'Missing puttygen warning mentions putty-tools');
     like($asbru_conn, qr/unlink.*_ppk_tmp/,
-        'Temp file cleanup registered');
+        'Temp key file cleanup registered via END block');
+    like($asbru_conn, qr/old-passphrase/,
+        'Passphrase-protected PPK: --old-passphrase flag used');
+    like($asbru_conn, qr/_ppk_pass_tmp/,
+        'PPK passphrase written to temp file (not exposed on command line)');
+    like($asbru_conn, qr/\$PASSPHRASE\s*=\s*''/,
+        'PASSPHRASE cleared after conversion (converted key is unencrypted)');
 };
 
 done_testing();

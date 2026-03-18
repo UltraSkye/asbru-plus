@@ -258,18 +258,40 @@ $$CFG{'defaults'}{'proxy ip'}   = subst($$CFG{'defaults'}{'proxy ip'});
 $$CFG{'defaults'}{'proxy user'} = subst($$CFG{'defaults'}{'proxy user'});
 $$CFG{'defaults'}{'proxy pass'} = subst($$CFG{'defaults'}{'proxy pass'});
 
-# PPK key conversion: PuTTY .ppk → temporary OpenSSH key
+# PPK key conversion: PuTTY .ppk → temporary unencrypted OpenSSH key
+# Handles passphrase-protected PPK via --old-passphrase (no interactive prompt).
+# The converted key has no passphrase; SSH won't ask for one — safe for automation.
 my $_ppk_tmp;
 if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
     if (system('which puttygen >/dev/null 2>&1') == 0) {
         $_ppk_tmp = "/tmp/asbru_key_$$.pem";
-        if (system('puttygen', $PUBKEY, '-O', 'private-openssh', '-o', $_ppk_tmp) == 0) {
+        my @conv = ('puttygen', $PUBKEY, '-O', 'private-openssh', '-o', $_ppk_tmp);
+
+        # If key has a passphrase, pass it via a temp file (avoids ps exposure)
+        my $_ppk_pass_tmp;
+        if ($PASSPHRASE) {
+            $_ppk_pass_tmp = "/tmp/asbru_pass_$$.txt";
+            if (open my $pfh, '>', $_ppk_pass_tmp) {
+                chmod 0600, $_ppk_pass_tmp;
+                print $pfh $PASSPHRASE;
+                close $pfh;
+                push @conv, ('--old-passphrase', $_ppk_pass_tmp);
+            }
+        }
+
+        if (system(@conv) == 0) {
             chmod 0600, $_ppk_tmp;
-            $PUBKEY = $_ppk_tmp;
+            $PUBKEY      = $_ppk_tmp;
+            $PASSPHRASE  = '';   # unencrypted key — no passphrase prompt from SSH
         } else {
             unlink $_ppk_tmp if -f $_ppk_tmp;
             $_ppk_tmp = undef;
             print "$COLOR{'err'}WARNING: PPK conversion failed for $PUBKEY$COLOR{'norm'}\n";
+        }
+
+        # Passphrase temp file no longer needed after puttygen exits
+        if (defined $_ppk_pass_tmp) {
+            unlink $_ppk_pass_tmp;
         }
     } else {
         print "$COLOR{'err'}WARNING: .ppk key selected but puttygen not found — install putty-tools$COLOR{'norm'}\n";
