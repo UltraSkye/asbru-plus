@@ -87,9 +87,10 @@ subtest 'rdp_client_for_wayland — rdesktop upgrade logic on Wayland' => sub {
 subtest 'wayland_rdesktop_opts — performance flags on Wayland' => sub {
     local $ENV{WAYLAND_DISPLAY} = 'wayland-0';
     my $opts = PACWayland::wayland_rdesktop_opts();
-    like($opts, qr/-P/,   'rdesktop -P (caching) present on Wayland');
-    like($opts, qr/-z/,   'rdesktop -z (compression) present on Wayland');
-    like($opts, qr/-x l/, 'rdesktop -x l (LAN quality) present on Wayland');
+    like($opts, qr/-P/,    'rdesktop -P (caching) present on Wayland');
+    like($opts, qr/-z/,    'rdesktop -z (compression) present on Wayland');
+    like($opts, qr/-x l/,  'rdesktop -x l (LAN quality) present on Wayland');
+    like($opts, qr/-a 24/, 'rdesktop -a 24 (24-bit colour) present on Wayland');
 };
 
 subtest 'wayland_rdesktop_opts — empty on X11' => sub {
@@ -119,14 +120,16 @@ subtest 'status_line — X11' => sub {
 # ── asbru_conn integration — ASBRU_DEBUG and Wayland code present ────────────
 
 subtest 'asbru_conn: ASBRU_DEBUG env var support' => sub {
-    open my $fh, '<', 'lib/asbru_conn' or BAIL_OUT("Cannot read asbru_conn: $!");
+    my $conn_file = "$RealBin/../lib/asbru_conn";
+    open my $fh, '<', $conn_file or BAIL_OUT("Cannot read asbru_conn: $!");
     my $src = do { local $/; <$fh> }; close $fh;
     like($src, qr/ASBRU_DEBUG/,          'ASBRU_DEBUG referenced in asbru_conn');
     like($src, qr/ENV.*ASBRU_DEBUG/,     'read from %ENV');
 };
 
 subtest 'asbru_conn: Wayland integration' => sub {
-    open my $fh, '<', 'lib/asbru_conn' or BAIL_OUT("Cannot read asbru_conn: $!");
+    my $conn_file = "$RealBin/../lib/asbru_conn";
+    open my $fh, '<', $conn_file or BAIL_OUT("Cannot read asbru_conn: $!");
     my $src = do { local $/; <$fh> }; close $fh;
     like($src, qr/PACWayland/,                        'PACWayland module used');
     like($src, qr/rdp_client_for_wayland/,            'rdesktop auto-upgrade present');
@@ -136,12 +139,38 @@ subtest 'asbru_conn: Wayland integration' => sub {
 };
 
 subtest 'PACMain.pm: Wayland startup detection' => sub {
-    open my $fh, '<', 'lib/PACMain.pm' or BAIL_OUT("Cannot read PACMain.pm: $!");
+    my $main_file = "$RealBin/../lib/PACMain.pm";
+    open my $fh, '<', $main_file or BAIL_OUT("Cannot read PACMain.pm: $!");
     my $src = do { local $/; <$fh> }; close $fh;
     like($src, qr/use PACWayland/,             'PACMain imports PACWayland');
     like($src, qr/PACWayland::status_line/,    'PACMain logs Wayland status');
     like($src, qr/PACWayland::is_wayland/,     'PACMain checks Wayland at startup');
     like($src, qr/GDK_BACKEND.*x11/,           'GDK_BACKEND=x11 warning present');
+};
+
+subtest 'asbru-cm: Wayland auto-restart' => sub {
+    my $launcher = "$RealBin/../asbru-cm";
+    open my $fh, '<', $launcher or BAIL_OUT("Cannot read asbru-cm: $!");
+    my $src = do { local $/; <$fh> }; close $fh;
+    like($src, qr/ASBRU_NO_WAYLAND_RESTART/,  'restart guard env var present');
+    like($src, qr/GDK_BACKEND.*=.*x11/,        'GDK_BACKEND=x11 set before restart');
+    like($src, qr/exec.*\$\^X/,                'exec re-launches with correct interpreter');
+};
+
+subtest 'PACWayland: ASBRU_FORCE_XFREERDP support' => sub {
+    local $ENV{WAYLAND_DISPLAY}      = undef; delete $ENV{WAYLAND_DISPLAY};
+    local $ENV{XDG_SESSION_TYPE}     = 'x11';
+    local $ENV{ASBRU_FORCE_XFREERDP} = '1';
+    my $result = PACWayland::rdp_client_for_wayland('rdesktop');
+    # Either upgraded to xfreerdp (if installed) or kept as rdesktop
+    ok($result eq 'rdesktop' || $result =~ /xfreerdp/,
+        "ASBRU_FORCE_XFREERDP on X11: got rdesktop or xfreerdp (got: $result)");
+};
+
+subtest 'PACWayland: wayland_rdesktop_opts includes -a 24' => sub {
+    local $ENV{WAYLAND_DISPLAY} = 'wayland-0';
+    my $opts = PACWayland::wayland_rdesktop_opts();
+    like($opts, qr/-a 24/, 'rdesktop -a 24 (24-bit colour) present on Wayland');
 };
 
 done_testing();

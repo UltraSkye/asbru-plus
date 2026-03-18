@@ -117,6 +117,13 @@ subtest 'PPK key auto-conversion (PuTTY → OpenSSH)' => sub {
         'PPK passphrase written to temp file (not exposed on command line)');
     like($asbru_conn, qr/\$PASSPHRASE\s*=\s*''/,
         'PASSPHRASE cleared after conversion (converted key is unencrypted)');
+    # Security: temp files must use File::Temp, not /tmp/$$
+    like($asbru_conn, qr/use File::Temp/,
+        'File::Temp imported for secure temp file creation');
+    like($asbru_conn, qr/tempfile\(/,
+        'tempfile() used instead of /tmp/$$  (no TOCTOU)');
+    unlike($asbru_conn, qr|/tmp/asbru_key_\$\$|,
+        'No direct /tmp/$$ path construction for key file');
 };
 
 done_testing();

@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -38,13 +39,18 @@ jobs:
             libcrypt-rijndael-perl \
             libgtk3-simplelist-perl \
             shellcheck \
-            xvfb
+            xvfb \
+            x11-utils
 
       - name: Start virtual display
         run: |
           Xvfb :99 -screen 0 1024x768x24 -ac &
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
-          sleep 1
+          # Wait until Xvfb is ready (up to 10 seconds)
+          for i in $(seq 1 10); do
+            xdpyinfo -display :99 >/dev/null 2>&1 && break
+            sleep 1
+          done
 
       - name: Run packaging consistency tests
         run: perl t/02-packaging.t

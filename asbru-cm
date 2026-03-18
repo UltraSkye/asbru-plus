@@ -92,6 +92,21 @@ BEGIN {
     }
 }
 
+# Wayland: GtkSocket/XID embedding requires the X11 GDK backend (via Xwayland).
+# If running on Wayland without GDK_BACKEND=x11, re-exec ourselves with it set.
+# Guard via ASBRU_NO_WAYLAND_RESTART to prevent infinite restart loops.
+BEGIN {
+    if (   !$ENV{'ASBRU_NO_WAYLAND_RESTART'}
+        && ($ENV{'WAYLAND_DISPLAY'} || ($ENV{'XDG_SESSION_TYPE'} // '') eq 'wayland')
+        && ($ENV{'GDK_BACKEND'} // '') ne 'x11')
+    {
+        $ENV{'GDK_BACKEND'}             = 'x11';
+        $ENV{'ASBRU_NO_WAYLAND_RESTART'} = '1';
+        exec { $^X } $^X, $0, @ARGV
+            or warn "WARN: Cannot re-exec with GDK_BACKEND=x11: $!\n";
+    }
+}
+
 ###################################################################
 # START: Import Modules
 

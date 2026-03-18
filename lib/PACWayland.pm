@@ -23,6 +23,18 @@ our @EXPORT_OK = qw(
 );
 
 # ---------------------------------------------------------------------------
+# _bin_in_path($bin)
+# Returns 1 if $bin is executable somewhere in $PATH — no subprocess needed.
+# ---------------------------------------------------------------------------
+sub _bin_in_path {
+    my ($bin) = @_;
+    for my $dir (split /:/, $ENV{PATH} // '/usr/bin:/usr/local/bin:/usr/sbin') {
+        return 1 if -x "$dir/$bin";
+    }
+    return 0;
+}
+
+# ---------------------------------------------------------------------------
 # is_wayland()
 # Returns 1 when the current session is a Wayland session (either native
 # or XWayland).  Detection order:
@@ -51,17 +63,16 @@ sub wayland_env_for_x11 {
 # On Wayland, rdesktop's X embedding path is unreliable — auto-upgrade to
 # xfreerdp when it is available.  Falls back to the preferred client if
 # xfreerdp is not found.
+# ASBRU_FORCE_XFREERDP=1 forces the upgrade even on plain X11.
 # ---------------------------------------------------------------------------
 sub rdp_client_for_wayland {
     my ($preferred) = @_;
-    return $preferred unless is_wayland();
     return $preferred unless $preferred eq 'rdesktop';
+    return $preferred unless is_wayland() || $ENV{ASBRU_FORCE_XFREERDP};
 
-    # Try to find xfreerdp or xfreerdp3
+    # Try to find xfreerdp3 first (newer), then xfreerdp
     for my $bin (qw(xfreerdp3 xfreerdp)) {
-        if (system("which $bin >/dev/null 2>&1") == 0) {
-            return $bin;
-        }
+        return $bin if _bin_in_path($bin);
     }
     return $preferred;   # xfreerdp not found — keep rdesktop
 }
@@ -69,10 +80,11 @@ sub rdp_client_for_wayland {
 # ---------------------------------------------------------------------------
 # wayland_rdesktop_opts()
 # Returns extra rdesktop flags that improve performance/compatibility when
-# running rdesktop through Xwayland.
+# running rdesktop through Xwayland.  Includes 24-bit colour (-a 24) to
+# avoid colour depth mismatches under Xwayland compositing.
 # ---------------------------------------------------------------------------
 sub wayland_rdesktop_opts {
-    return is_wayland() ? '-P -z -x l' : '';
+    return is_wayland() ? '-P -z -x l -a 24' : '';
 }
 
 # ---------------------------------------------------------------------------
