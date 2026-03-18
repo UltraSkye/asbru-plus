@@ -806,7 +806,7 @@ sub _setProxy {
         $proxy_user = $$CFG{'environments'}{$UUID}{'jump user'};
         $proxy_pass = $$CFG{'environments'}{$UUID}{'jump pass'};
         open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
-        print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\nPreferredAuthentications publickey,hostbased,keyboard-interactive,password\n";
+        print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
         print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
         if ($$CFG{'environments'}{$UUID}{'jump key'}) {
             print CFG "IdentityFile $$CFG{'environments'}{$UUID}{'jump key'}\n";
@@ -832,7 +832,7 @@ sub _setProxy {
             $proxy_user = $$CFG{'defaults'}{'jump user'};
             $proxy_pass = $$CFG{'defaults'}{'jump pass'};
             open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
-            print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\nPreferredAuthentications publickey,hostbased,keyboard-interactive,password\n";
+            print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
             print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
             if ($$CFG{'defaults'}{'jump key'}) {
                 print CFG "IdentityFile $$CFG{'defaults'}{'jump key'}\n";
@@ -871,7 +871,9 @@ sub _getProxyCmd {
 
     if ($proxy_user ne '') {
         if (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which ncat 1>/dev/null 2>&1") eq 0) {
-            return "ncat --proxy $proxy_ip:$proxy_port --proxy-type $proxy_type --proxy-auth $proxy_user:\"$proxy_pass\"";
+            # Pass credentials via environment variable to avoid exposure in process list
+            $ENV{'ASBRU_PROXY_AUTH'} = "$proxy_user:$proxy_pass";
+            return "sh -c 'ncat --proxy $proxy_ip:$proxy_port --proxy-type $proxy_type --proxy-auth \"\$ASBRU_PROXY_AUTH\" \"\$@\"' -- ";
         }
         print("$COLOR{'err'}ERROR$COLOR{'norm'}: ncat is required if using proxy user/password.\nncat is part of the nmap project (https://nmap.org/ncat/).\n");
         die();
@@ -1228,16 +1230,19 @@ if (defined $METHOD) {
             if ($$CFG{'tmp'}{'height'} <= 1) {
                 $$CFG{'tmp'}{'height'} = 768;
             }
-            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$PASS'") . " /v:$IP:$PORT";
+            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
+            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$rdp_pass'") . " /v:$IP:$PORT";
             $connection_txt = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'<<hidden_password>>'") . " /v:$IP:$PORT";
         } elsif (defined $$CFG{'tmp'}{'xid'}) {
-            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$PASS'") . " /v:$IP:$PORT";
+            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
+            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$rdp_pass'") . " /v:$IP:$PORT";
             $connection_txt = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'<<hidden_password>>'") . " /v:$IP:$PORT";
         } elsif ($METHOD eq 'rdesktop') {
             $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " -u $USER -p -") . " -T \"$TITLE\" $IP:$PORT";
             $connection_txt = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " -u $USER -p -") . " -T \"$TITLE\" $IP:$PORT";
         } elsif (($METHOD =~ /^.*freerdp$/) && (defined $PASS)) {
-            $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER /p:'$PASS'") . " /t:\"$TITLE\" /v:$IP:$PORT";
+            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
+            $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER /p:'$rdp_pass'") . " /t:\"$TITLE\" /v:$IP:$PORT";
             $connection_txt = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER /p:'<<hidden_password>>'") . " /t:\"$TITLE\" /v:$IP:$PORT";
         } elsif ($METHOD =~ /^.*freerdp$/) {
             $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER") . " /t:\"$TITLE\" /v:$IP:$PORT";
@@ -1360,18 +1365,18 @@ if ($GETCMD) {
     exit 0;
 }
 
-# Set log file
-# Only if the target directory is writable; if not writable, we can silently ignore the erroneous log file since the warning has already been raised in the main application
-
-if (open(LOG,">:raw",$LOG_FILE)) {
-    if ($LOG_TIMESTAMP) {
-        $EXP->log_file(\&logTime);
+# Set log file only when session logging is enabled
+if ($$CFG{'environments'}{$UUID}{'save session logs'} && $LOG_FILE && $LOG_FILE ne '/dev/null') {
+    if (open(LOG, ">:raw", $LOG_FILE)) {
+        if ($LOG_TIMESTAMP) {
+            $EXP->log_file(\&logTime);
+        } else {
+            close LOG;
+            $EXP->log_file($LOG_FILE);
+        }
     } else {
-        close LOG;
-        $EXP->log_file($LOG_FILE);
+        print "\n$COLOR{'err'}ERROR: could not open log file: $LOG_FILE$COLOR{'norm'}\n(check path and permissions)\n\n";
     }
-} else {
-    print "\n$COLOR{'err'}ERROR: could not open log file :$LOG_FILE$COLOR{'norm'}\n(check path and permissions)\n\n";
 }
 
 # Prepare command file that is only accessible to the user
@@ -1379,7 +1384,7 @@ my $do_connection_cmd = $connection_cmd;
 my $cmd_file = "$CFG_DIR/tmp/cmd_${UUID}_" . int(rand(123456789)) . ".run";
 if ($METHOD ne 'PACShell') {
     if (open(my $CMD, ">:utf8", $cmd_file)) {
-        chmod(0400, $CMD);
+        chmod(0400, $cmd_file);
         print { $CMD } "rm -f \"$cmd_file\"\n"; # deleting the temporary file immediately after it has been started
         print { $CMD } $connection_cmd;
         close($CMD);
@@ -1439,7 +1444,7 @@ if (($METHOD =~ /^.*rdesktop$/) || ($METHOD =~ /^.*freerdp.*/) || ($METHOD eq 'R
             $USER_COUNT++;
             $USER = subst($USER);
             ctrl("LOGIN:$USER");
-            send_slow($EXP, "$USER\n");
+            send_slow($EXP, $USER . (($METHOD eq 'telnet') ? "\r" : "\n"));
             exp_continue();
         }],
 
@@ -1455,7 +1460,7 @@ if (($METHOD =~ /^.*rdesktop$/) || ($METHOD =~ /^.*freerdp.*/) || ($METHOD eq 'R
                 if (defined $PASS) {
                     $EXP->log_stdout(0);
                     $PASS = subst($PASS);
-                    send_slow($EXP, "$PASS\n", 'hide');
+                    send_slow($EXP, $PASS . (($METHOD eq 'telnet') ? "\r" : "\n"), 'hide');
                     $EXP->log_stdout(1);
                     ctrl("PASSWORD:Sent (not shown)");
                     exp_continue();
@@ -1528,7 +1533,7 @@ elsif (($METHOD =~ /^.*vncviewer$/) || ($METHOD eq 'VNC')) {
             $USER_COUNT++;
             $USER = subst($USER);
             ctrl("LOGIN:$USER");
-            send_slow($EXP, "$USER\n");
+            send_slow($EXP, $USER . (($METHOD eq 'telnet') ? "\r" : "\n"));
             exp_continue();
         }],
 
@@ -1544,7 +1549,7 @@ elsif (($METHOD =~ /^.*vncviewer$/) || ($METHOD eq 'VNC')) {
             if (defined $PASS) {
                 $EXP->log_stdout(0);
                 $PASS = subst($PASS);
-                send_slow($EXP, "$PASS\n", 'hide');
+                send_slow($EXP, $PASS . (($METHOD eq 'telnet') ? "\r" : "\n"), 'hide');
                 $EXP->log_stdout(1);
                 ctrl("PASSWORD:Sent (not shown)");
                 exp_continue();
@@ -1759,13 +1764,14 @@ elsif (!$MANUAL) {
             $CONNECTED = 0;
             if ($ACCEPT_KEY) {
                 ctrl("HOSTKEY:deleting offending hostkey by configuration and Restarting connection");
-                open(F, `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} echo $known_hosts 2>&1`) or die "ERROR: could not open for reading '$known_hosts' ($!)";
-                my @data = <F>;
-                close F;
+                $known_hosts =~ s/^\s+|\s+$//g;
+                open(my $fh_in, '<:utf8', $known_hosts) or die "ERROR: could not open for reading '$known_hosts' ($!)";
+                my @data = <$fh_in>;
+                close $fh_in;
                 splice(@data, $line - 1, 1);
-                open(F, '>' . `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} echo $known_hosts 2>&1`) or die "ERROR: could not open for writing '$known_hosts' ($!)";
-                print F @data;
-                close F;
+                open(my $fh_out, '>:utf8', $known_hosts) or die "ERROR: could not open for writing '$known_hosts' ($!)";
+                print $fh_out @data;
+                close $fh_out;
                 ctrl('RESTART');
             } else {
                 ctrl("CLOSE:HOSTKEY:ignoring offending hostkey by configuration");
@@ -1782,7 +1788,7 @@ elsif (!$MANUAL) {
             $USER_COUNT++;
             $USER = subst($USER);
             ctrl("LOGIN:$USER");
-            send_slow($EXP, "$USER\n");
+            send_slow($EXP, $USER . (($METHOD eq 'telnet') ? "\r" : "\n"));
             exp_continue();
         }],
 

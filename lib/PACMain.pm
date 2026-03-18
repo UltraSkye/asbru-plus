@@ -3137,13 +3137,13 @@ sub _showAboutWindow {
         "program_name" => '',  # name is shown in the logo
         "version" => "v$APPVERSION",
         "logo" => _pixBufFromFile("$RES_DIR/asbru-logo-400.png"),
-        "copyright" => "Copyright (C) 2017-2022 Ásbrú Connection Manager team\nCopyright 2010-2016 David Torrejón Vaquerizas",
-        "website" => 'https://asbru-cm.net/',
+        "copyright" => "Ásbrú Plus — fork of Ásbrú Connection Manager\nCopyright (C) 2017-2022 Ásbrú Connection Manager team\nCopyright 2010-2016 David Torrejón Vaquerizas",
         "license" => "
-Ásbrú Connection Manager
+Ásbrú Plus (fork of Ásbrú Connection Manager)
 
-Copyright (C) 2017-2022 Ásbrú Connection Manager team <https://asbru-cm.net>
+Copyright (C) 2017-2022 Ásbrú Connection Manager team
 Copyright (C) 2010-2016 David Torrejón Vaquerizas
+Ásbrú Plus fork: https://github.com/UltraSkye/asbru-plus
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -3408,6 +3408,8 @@ sub _saveConfiguration {
     _cfgSanityCheck($cfg);
     # Do not keep passwords in plain text in the configuration
     _cipherCFG($cfg);
+    # Do not attempt to write when in read-only mode
+    return 1 if $$self{_READONLY};
     # Do store the configuration on disk
     nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
     if ($R_CFG_FILE) {
@@ -3766,7 +3768,7 @@ sub _updateGUIWithUUID {
    2- 'click' on the second most left icon over the connections tree (or right-click over selected GROUP)
    3- Follow instructions
 
- - For the latest news, check the project website (https://asbru-cm.net/).
+ - For the latest news, check the project page on GitHub.
 
 ");
     } else {

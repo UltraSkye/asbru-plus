@@ -120,8 +120,8 @@ require Exporter;
 ###################################################################
 # Define GLOBAL CLASS variables
 
-our $APPNAME = 'Ásbrú Connection Manager';
-our $APPVERSION = '6.4.1';
+our $APPNAME = 'Ásbrú Plus';
+our $APPVERSION = '6.5.0';
 our $DEBUG_LEVEL = 1;
 our $ARCH = '';
 my $ARCH_TMP = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /bin/uname -m 2>&1`;
@@ -217,14 +217,14 @@ our @DONATORS_LIST = (
 );
 our @PACDESKTOP = (
     '[Desktop Entry]',
-    'Name=Ásbrú Connection Manager',
+    'Name=Ásbrú Plus',
     'Comment=A user interface that helps organizing remote terminal sessions and automating repetitive tasks',
     'Terminal=false',
     'Icon=pac',
     'Type=Application',
     'Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm --no-splash',
     'StartupNotify=false',
-    'Name[en_US]=Ásbrú Connection Manager',
+    'Name[en_US]=Ásbrú Plus',
     'Comment[en_US]=A user interface that helps organizing remote terminal sessions and automating repetitive tasks',
     'Categories=Applications;Network;',
     'X-GNOME-Autostart-enabled=true',
@@ -2827,7 +2827,8 @@ sub _substCFG {
         }
 
         if ($$list{$key}{'regexp'} // 0) {
-            $$cfg{$key} =~ s/$$list{$key}{'match'}/"'\"$$list{$key}{value}\"'"/eeeg;
+            my $val = $$list{$key}{'value'};
+            $$cfg{$key} =~ s/$$list{$key}{'match'}/$val/g;
         } else {
             $$cfg{$key} = $$list{$key}{'value'};
         }
@@ -2836,7 +2837,8 @@ sub _substCFG {
     if ((defined $$list{'EXPECT:expect'}) && ($$list{'EXPECT:expect'}{'change'})){
         foreach my $exp (@{$$cfg{'expect'}}) {
             if ($$list{'EXPECT:expect'}{'regexp'} // 0) {
-                $$exp{'expect'} =~ s/$$list{'EXPECT:expect'}{'match'}/"'\"$$list{'EXPECT:expect'}{value}\"'"/eeeg;
+                my $val = $$list{'EXPECT:expect'}{'value'};
+                $$exp{'expect'} =~ s/$$list{'EXPECT:expect'}{'match'}/$val/g;
             } else {
                 $$exp{'expect'} = $$list{'EXPECT:expect'}{'value'};
             }
@@ -2846,7 +2848,8 @@ sub _substCFG {
     if ((defined $$list{'EXPECT:send'}) && ($$list{'EXPECT:send'}{'change'})){
         foreach my $exp (@{$$cfg{'expect'}}) {
             if ($$list{'EXPECT:send'}{'regexp'} // 0) {
-                $$exp{'send'} =~ s/$$list{'EXPECT:send'}{'match'}/"'\"$$list{'EXPECT:send'}{value}\"'"/eeeg;
+                my $val = $$list{'EXPECT:send'}{'value'};
+                $$exp{'send'} =~ s/$$list{'EXPECT:send'}{'match'}/$val/g;
             } else {
                 $$exp{'send'} = $$list{'EXPECT:send'}{'value'};
             }

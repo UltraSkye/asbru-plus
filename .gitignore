@@ -1,5 +1,49 @@
+# Editor swap files
 *.sw?
 *.*~
+
+# Build output
+/out
+/build
+/packpack
+
+# Compiled/generated
 lib/lib
 lib/res
-/out
+
+# Debian build artifacts
+*.deb
+*.rpm
+*.changes
+*.buildinfo
+*.dsc
+*.tar.gz
+*.tar.xz
+debian/files
+debian/tmp/
+debian/*.debhelper
+debian/*.substvars
+debian/debhelper-build-stamp
+
+# Claude Code
+.claude/
+tasks/
+CLAUDE.md
+*.claude
+
+# IDE / editors
+.idea/
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+*.bak
+*.orig
