@@ -6,11 +6,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Debian stable
           - os: debian
             dist: bullseye
             package: deb
@@ -19,10 +21,13 @@ jobs:
             dist: bookworm
             package: deb
 
+          # Debian testing — may fail on packpack image availability
           - os: debian
             dist: trixie
             package: deb
+            experimental: true
 
+          # Ubuntu LTS
           - os: ubuntu
             dist: jammy
             package: deb
@@ -33,13 +38,16 @@ jobs:
             package: deb
             repack_deb: "yes"
 
+          # Enterprise Linux
           - os: el
             dist: "8"
             package: rpm
 
+          # Fedora
           - os: fedora
             dist: "43"
             package: rpm
+            experimental: true
 
     env:
       PRODUCT: "asbru-plus"
@@ -64,10 +72,11 @@ jobs:
       - name: Make build script executable
         run: chmod +x ci/build_package.sh
 
-      - name: Build packages
+      - name: Build package
         run: ci/build_package.sh
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: "${{ matrix.os }}-${{ matrix.dist }}-${{ matrix.package }}"

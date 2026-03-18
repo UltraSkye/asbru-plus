@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: asbru-cm
-Source: https://www.asbru-cm.net
+Upstream-Name: asbru-plus
+Source: https://github.com/UltraSkye/asbru-plus
 
 Files: *
 Copyright: 2017 Ásbrú Connection Manager team <contact@asbru-cm.net>
