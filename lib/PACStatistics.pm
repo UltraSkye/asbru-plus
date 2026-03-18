@@ -88,7 +88,7 @@ sub update {
     $$self{uuid} = $uuid;
     my $name = $$cfg{environments}{$uuid}{name};
 
-    my $font = 'font="monospace 9"';
+    my $font = 'font="sans 9"';
 
     $$self{frame}{lblPR}->set_markup('');
     $$self{frame}{lblPG}->set_markup('');

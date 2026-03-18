@@ -868,7 +868,7 @@ sub _initGUI {
     $$self{_GUI}{descView}->set_wrap_mode('GTK_WRAP_WORD');
     $$self{_GUI}{descView}->set_sensitive(1);
     $$self{_GUI}{descView}->drag_dest_unset();
-    $$self{_GUI}{descView}->modify_font(Pango::FontDescription::from_string('monospace'));
+    $$self{_GUI}{descView}->modify_font(Pango::FontDescription::from_string('sans 10'));
 
     # Create a frameStatistics for statistics
     $$self{_GUI}{frameStatistics} = Gtk3::Frame->new('STATISTICS ');
