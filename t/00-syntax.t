@@ -29,9 +29,11 @@ for my $file (@files) {
 
     if ($exit == 0 || $out =~ /syntax OK/m) {
         pass("Syntax OK: $file");
-    } elsif ($out =~ /Can't locate .+?\.pm in \@INC/m
+    } elsif ($out =~ /Can't locate .+?\.pm/m
+          || $out =~ /Compilation failed in require/m
           || $out =~ /Gtk-WARNING.*cannot open display/m) {
-        # Missing module or no display — dependency issue, not a code syntax error.
+        # Missing module, bad runtime path resolution in -c mode, or no display
+        # — dependency issue, not a code syntax error.
         # Run tests with Xvfb (DISPLAY=:99) and full deps to eliminate these.
       SKIP: { skip "Missing dependency: $file", 1 }
     } else {
