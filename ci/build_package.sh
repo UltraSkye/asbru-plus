@@ -9,7 +9,7 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ -n "${GITHUB_REF_NAME:-}" ]; then
   CHANNEL="release"
   echo "Detected tag build. RAW_VERSION=${RAW_VERSION}, CHANNEL=${CHANNEL}"
 else
-  eval "$(grep -o 'APPVERSION.*=.*' lib/PACUtils.pm | tr -d '[:space:]')"
+  APPVERSION="$(perl -ne "print \$1 if /our\s+\\\$APPVERSION\s*=\s*'([^']+)'/" lib/PACUtils.pm)"
   SHORT_SHA="$(git rev-parse --short HEAD)"
   BRANCH_NAME="${GITHUB_REF_NAME:-build}"
   RAW_VERSION="${APPVERSION}+${BRANCH_NAME}.${SHORT_SHA}"
