@@ -1,0 +1,41 @@
+name: asbru-plus
+
+services:
+
+  # ── Unit tests & static analysis ────────────────────────────────────────────
+  # Runs the full t/ suite: syntax, unit, packaging, critical-fix checks,
+  # shellcheck, and workflow lint. No display server required (GTK3 mocked).
+  #
+  # Usage: docker compose run --rm test
+  test:
+    build:
+      context: .
+      dockerfile: docker/test/Dockerfile
+    command: ["prove", "-lrv", "t/"]
+
+  # ── Debian package build + install test ─────────────────────────────────────
+  # Builds a real .deb on Ubuntu 24.04, validates package metadata and
+  # contents, installs it inside the container, then runs post-install checks.
+  # Built artifact is saved to ./build/ on the host.
+  #
+  # Usage: docker compose run --rm build-deb
+  build-deb:
+    build:
+      context: .
+      dockerfile: docker/build-deb/Dockerfile
+    volumes:
+      - ./build:/output
+    command: ["/test.sh"]
+
+  # ── RPM package build + contents test ───────────────────────────────────────
+  # Builds a real .rpm on Fedora 40, validates package metadata and
+  # file list. Built artifact is saved to ./build/ on the host.
+  #
+  # Usage: docker compose run --rm build-rpm
+  build-rpm:
+    build:
+      context: .
+      dockerfile: docker/build-rpm/Dockerfile
+    volumes:
+      - ./build:/output
+    command: ["/test.sh"]
