@@ -14,7 +14,9 @@ unless ($shellcheck) {
 
 my @scripts = (
     'ci/build_package.sh',
-    'build.sh',
+    'docker/build-deb/test.sh',
+    'docker/build-rpm/test.sh',
+    'docker/test/entrypoint.sh',
 );
 
 plan tests => scalar @scripts;
