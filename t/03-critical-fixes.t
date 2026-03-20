@@ -98,4 +98,19 @@ subtest 'Fix #1113 — RDP password single-quote escaped' => sub {
         'RDP password has single-quote escape applied');
 };
 
+# ── PPK key conversion ───────────────────────────────────────────────────────
+
+subtest 'PPK key auto-conversion (PuTTY → OpenSSH)' => sub {
+    like($asbru_conn, qr/\.ppk/i,
+        'PPK extension detection present');
+    like($asbru_conn, qr/puttygen/,
+        'puttygen invocation present');
+    like($asbru_conn, qr/private-openssh/,
+        'Converts to OpenSSH format');
+    like($asbru_conn, qr/putty-tools/,
+        'Missing puttygen warning mentions putty-tools');
+    like($asbru_conn, qr/unlink.*_ppk_tmp/,
+        'Temp file cleanup registered');
+};
+
 done_testing();
