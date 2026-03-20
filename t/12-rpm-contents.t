@@ -12,6 +12,15 @@ unless ($rpm && -f $rpm) {
     plan skip_all => 'RPM_FILE not set or not found — run inside build-rpm container';
 }
 
+# Read version dynamically from PACUtils.pm
+my $version = do {
+    my $v;
+    open my $f, '<', 'lib/PACUtils.pm' or die "Cannot open lib/PACUtils.pm: $!";
+    while (<$f>) { if (/^\s*our\s+\$APPVERSION\s*=\s*'([^']+)'/) { $v = $1; last } }
+    close $f;
+    $v or die "Could not find \$APPVERSION in lib/PACUtils.pm";
+};
+
 plan tests => 14;
 
 ok(-f $rpm,      "RPM file exists: $rpm");
@@ -23,7 +32,7 @@ is($?, 0, 'rpm -qip exits cleanly');
 
 like($info, qr/Name\s*:\s*asbru-plus\b/,   'Package name is asbru-plus');
 like($info, qr/Architecture\s*:\s*noarch/, 'Architecture is noarch');
-like($info, qr/Version\s*:\s*6\.5\.0/,     'Version is 6.5.0');
+like($info, qr/Version\s*:\s*\Q$version\E/, "Version is $version");
 like($info, qr/License\s*:\s*GPLv3\+/,     'License is GPLv3+');
 like($info, qr/Obsoletes\s*:.*asbru-cm/i,  'Obsoletes: asbru-cm');
 

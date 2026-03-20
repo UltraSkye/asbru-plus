@@ -18,6 +18,15 @@ unless ($deb && -f $deb) {
     plan skip_all => 'DEB_FILE not set or not found — run inside build-deb container';
 }
 
+# Read version dynamically from PACUtils.pm
+my $version = do {
+    my $v;
+    open my $f, '<', 'lib/PACUtils.pm' or die "Cannot open lib/PACUtils.pm: $!";
+    while (<$f>) { if (/^\s*our\s+\$APPVERSION\s*=\s*'([^']+)'/) { $v = $1; last } }
+    close $f;
+    $v or die "Could not find \$APPVERSION in lib/PACUtils.pm";
+};
+
 plan tests => 16;
 
 # --- Basic file check ---
@@ -30,7 +39,7 @@ is($?, 0, 'dpkg-deb --info exits cleanly');
 
 like($info, qr/Package:\s+asbru-plus\b/, 'Package name is asbru-plus');
 like($info, qr/Architecture:\s+all\b/,   'Architecture is all');
-like($info, qr/Version:\s+6\.5\.0/,      'Version starts with 6.5.0');
+like($info, qr/Version:\s+\Q$version\E/, "Version is $version");
 like($info, qr/Maintainer:/,             'Maintainer field present');
 like($info, qr/Depends:.*perl/i,         'Depends includes perl');
 

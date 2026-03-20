@@ -77,6 +77,3 @@ jobs:
 
       - name: ShellCheck ci/build_package.sh
         run: shellcheck --severity=error ci/build_package.sh
-
-      - name: ShellCheck build.sh
-        run: shellcheck --severity=warning build.sh || true
