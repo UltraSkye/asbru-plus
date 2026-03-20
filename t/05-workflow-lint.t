@@ -19,7 +19,7 @@ if (!@workflows) {
     plan skip_all => 'No workflow YAML files found';
 }
 
-plan tests => scalar(@workflows) * 3;
+plan tests => scalar(@workflows) * 5;
 
 for my $wf (@workflows) {
     open my $fh, '<', $wf or BAIL_OUT("Cannot open $wf: $!");
@@ -32,4 +32,12 @@ for my $wf (@workflows) {
     unlike($content,
         qr/asbru-cm\/asbru-cm\.git/,
         "$wf: does not reference upstream repo URL");
+
+    # No deleted files referenced
+    unlike($content, qr/build\.sh\b/,
+        "$wf: does not reference deleted build.sh");
+
+    # All actions pinned to v4+ (no deprecated v1/v2/v3)
+    unlike($content, qr/uses:\s+actions\/\w+\@v[123]\b/,
+        "$wf: no deprecated actions v1/v2/v3");
 }
