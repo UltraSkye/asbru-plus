@@ -75,7 +75,7 @@ terminal sessions over SSH, RDP, VNC, Telnet and SFTP.
 Targets Ubuntu 24.04+ and modern Fedora/EL systems.
 
 %prep
-%autosetup -n asbru-plus-%{_github_version} -p1
+%autosetup -n asbru-plus-%{version} -p1
 sed -ri -e "s|\\\$RealBin[ ]*\.[ ]*'|'%{_datadir}/%{name}/lib|g" lib/asbru_conn
 sed -ri -e "s|\\\$RealBin,|'%{_datadir}/%{name}/lib',|g" lib/asbru_conn
 sed -ri -e "s|\\\$RealBin/\.\./|%{_datadir}/%{name}/|g" lib/asbru_conn
