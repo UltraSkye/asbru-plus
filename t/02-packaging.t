@@ -120,4 +120,45 @@ for my $f (@removed) {
     ok(-f 'asbru-cm', 'asbru-cm binary exists in repo root');
 }
 
+# ── .desktop file ─────────────────────────────────────────────────────────────
+
+{
+    open my $fh, '<', 'res/asbru-cm.desktop' or BAIL_OUT("Cannot open asbru-cm.desktop: $!");
+    my $desktop = do { local $/; <$fh> };
+    close $fh;
+
+    like($desktop, qr/^\[Desktop Entry\]/m,     '.desktop has [Desktop Entry] section');
+    like($desktop, qr/^Type=Application/m,      '.desktop Type=Application');
+    like($desktop, qr/^Exec=.*asbru-cm/m,       '.desktop Exec references asbru-cm');
+    like($desktop, qr/^Icon=/m,                 '.desktop has Icon field');
+    like($desktop, qr/^Categories=.*GTK/m,      '.desktop Categories includes GTK');
+    unlike($desktop, qr/asbru-cm\.net/,         '.desktop has no old website reference');
+}
+
+# ── debian/asbru-plus.links symlink targets ───────────────────────────────────
+
+{
+    open my $fh, '<', 'dist/deb/debian/asbru-plus.links'
+        or BAIL_OUT("Cannot open asbru-plus.links: $!");
+    my @links = <$fh>;
+    close $fh;
+
+    ok(scalar @links > 0, 'links file is not empty');
+
+    my ($bin_link) = grep { m|asbru-cm\s.*/usr/bin/asbru-cm| } @links;
+    ok(defined $bin_link, 'links file maps asbru-cm → /usr/bin/asbru-cm');
+
+    for my $line (@links) {
+        chomp $line;
+        next unless $line =~ /\S/;
+        my ($src, $dst) = split /\s+/, $line, 2;
+        ok(defined $src && defined $dst, "link line has source and destination: $line");
+        # source path must exist in the repo (after install, path is /opt/asbru/...)
+        my $local = $src;
+        $local =~ s{^/opt/asbru/}{};
+        ok(-e $local || -e "opt/asbru/$local", "link source exists: $src")
+            if -d 'opt';  # only check if tree is built
+    }
+}
+
 done_testing();
