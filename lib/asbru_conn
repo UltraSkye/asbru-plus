@@ -853,16 +853,20 @@ sub _setProxy {
         $proxy_user = $$CFG{'environments'}{$UUID}{'jump user'};
         $proxy_pass = $$CFG{'environments'}{$UUID}{'jump pass'};
         open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
+        chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
         print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
         print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
         if ($$CFG{'environments'}{$UUID}{'jump key'}) {
-            print CFG "IdentityFile $$CFG{'environments'}{$UUID}{'jump key'}\n";
+            # Strip newlines to prevent SSH config directive injection
+            (my $_jkey = $$CFG{'environments'}{$UUID}{'jump key'}) =~ s/[\r\n]//g;
+            print CFG "IdentityFile $_jkey\n";
         }
         if ($method =~ /ssh/i) {
             # Second server is only important for SSH JumpHost
             print CFG qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
             if (($PUBKEY)&&($$CFG{'environments'}{$UUID}{'auth type'} eq 'publickey')) {
-                print CFG "IdentityFile $PUBKEY\n";
+                (my $_pkey = $PUBKEY) =~ s/[\r\n]//g;
+                print CFG "IdentityFile $_pkey\n";
             }
         }
         close CFG;
@@ -879,16 +883,19 @@ sub _setProxy {
             $proxy_user = $$CFG{'defaults'}{'jump user'};
             $proxy_pass = $$CFG{'defaults'}{'jump pass'};
             open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
+            chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
             print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
             print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
             if ($$CFG{'defaults'}{'jump key'}) {
-                print CFG "IdentityFile $$CFG{'defaults'}{'jump key'}\n";
+                (my $_jkey = $$CFG{'defaults'}{'jump key'}) =~ s/[\r\n]//g;
+                print CFG "IdentityFile $_jkey\n";
             }
             if ($method =~ /ssh/i) {
                 # Second server is only important for SSH JumpHost
                 print CFG qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
                 if (($PUBKEY)&&($$CFG{'environments'}{$UUID}{'auth type'} eq 'publickey')) {
-                    print CFG "IdentityFile $PUBKEY\n";
+                    (my $_pkey = $PUBKEY) =~ s/[\r\n]//g;
+                    print CFG "IdentityFile $_pkey\n";
                 }
             }
             close CFG;
@@ -1335,7 +1342,9 @@ if (defined $METHOD) {
         }
         _setProxy($method);
         if ($method eq 'TigerVNC') {
-            my $pfile = "$CFG_DIR/tmp/asbru_conn_{$$}_$UUID";
+            # Create temp file with 0600 mode BEFORE shell redirects into it,
+            # so the VNC password file is never world-readable even momentarily.
+            my (undef, $pfile) = tempfile('asbru_vnc_XXXXXX', DIR => "$CFG_DIR/tmp", UNLINK => 0);
             system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} echo \"" . _doShellEscape($PASS) . "\" | vncpasswd -f > \"$pfile\"");
             if (defined $$CFG{'tmp'}{'xid'}) {
                 $connection_cmd = "$vncviewer_cmd $CONNECT_OPTS -PasswordFile=\"$pfile\" -Parent=$$CFG{'tmp'}{'xid'} $IP:$PORT";
