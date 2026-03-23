@@ -362,7 +362,8 @@ sub show {
         my $tmpfile = $CFG_DIR . '/tmp/' . $name . '.check';
         $self->_saveFile($sel[0], $tmpfile);
 
-        my @lines = `'$^X' -cw $tmpfile 2>&1`;
+        (my $quoted_tmp = $tmpfile) =~ s/'/'\\''/g;
+        my @lines = `'$^X' -cw '$quoted_tmp' 2>&1`;
         my $err = $?;
         my $result = pop(@lines); chomp $result;
         $result =~ s/^\Q$tmpfile\E\s+(.+)$/$1/g;
