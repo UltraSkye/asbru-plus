@@ -38,6 +38,7 @@ jobs:
             libossp-uuid-perl \
             libcrypt-rijndael-perl \
             libgtk3-simplelist-perl \
+            libsocket6-perl \
             shellcheck \
             xvfb \
             x11-utils
