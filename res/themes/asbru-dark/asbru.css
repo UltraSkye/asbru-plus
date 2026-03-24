@@ -1,56 +1,74 @@
 /* ── Ásbrú dark theme ─────────────────────────────────────────────────────────
-   Designed for use with GTK3 dark variant (Adwaita:dark or similar).
-   gtk-application-prefer-dark-theme is set programmatically in PACMain.pm
-   when this theme is active. The rules here handle asbru-specific widgets
-   and correct readability issues that GTK dark variant alone doesn't fix.
+   Neutral GNOME Adwaita-dark grey palette. No blue/purple tints — surfaces
+   are uniform greys so the app blends with the system dark theme.
+
+   Palette:
+     #2d2d2d  window background
+     #353535  elevated surface (frames, panels)
+     #1d1d1d  base / text views
+     #3a3a3a  buttons
+     #4a4a4a  button hover
+     #ffffff  primary text
+     #d6d6d6  secondary text
+     #1b1b1b  borders
+     #3584e4  accent / selection (Adwaita blue)
 */
 
 button {
-  border: 1px solid rgba(1, 1, 1, 0);
-  margin: 1px;
+  border: 1px solid #1b1b1b;
+  border-radius: 6px;
+  background-color: #3a3a3a;
+  color: #ffffff;
+  padding: 4px 10px;
+  margin: 2px;
 }
 radiobutton,
 checkbutton {
-  border: 1px solid rgba(1, 1, 1, 0);
-  margin: 1px;
+  border: 1px solid rgba(0, 0, 0, 0);
+  margin: 2px;
+  padding: 2px;
 }
 button:hover {
-  border: 1px solid #666666;
-  color: #eeeeee;
+  border: 1px solid #5a5a5a;
+  color: #ffffff;
   background-color: #4a4a4a;
 }
-/* Focus highlight: light text on mid-grey so text stays readable */
+button:active {
+  background-color: #2a2a2a;
+}
 button:focus,
 entry:focus {
-  color: #eeeeee;
-  background-color: #4a4a6a;
-  border-color: #7a7aaa;
+  color: #ffffff;
+  background-color: #3a3a3a;
+  border-color: #3584e4;
 }
-/* Entry default: explicit colors so text is always visible */
 entry {
-  color: #e8e8e8;
-  background-color: #2d2d2d;
+  color: #ffffff;
+  background-color: #1d1d1d;
+  border: 1px solid #1b1b1b;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 2px;
 }
 spinbutton {
-  color: #e8e8e8;
-  background-color: #2d2d2d;
-  border: 1px solid #444444;
+  color: #ffffff;
+  background-color: #1d1d1d;
+  border: 1px solid #1b1b1b;
   font-size: 0.9em;
   border-radius: 0px;
   padding: 0px;
   margin: 0px;
 }
 spinbutton:hover {
-  color: #000000;
-  border: 1px solid #666666;
-  background-color: #f0f0f0;
+  border: 1px solid #5a5a5a;
+  background-color: #2d2d2d;
 }
 checkbutton:hover,
 radiobutton:hover {
-  border: 1px solid #aaaaaa;
+  border: 1px solid #5a5a5a;
 }
 .button-cp {
-  border: 1px solid rgba(1, 1, 1, 0);
+  border: 1px solid rgba(0, 0, 0, 0);
   border-radius: 0px;
   padding: 0px;
   margin: 0px;
@@ -59,95 +77,268 @@ tooltip {
   font-size: 0.8em;
 }
 .dnd-icon {
-  border: 1px solid #888888;
+  border: 1px solid #5a5a5a;
 }
 .banner-fill {
-  background-image: linear-gradient(to right, #1155cc, #1a9aaa);
+  background-image: linear-gradient(to right, #3a3a3a, #4a4a4a);
   padding: 0.25em 0;
 }
 .banner-text {
-  color: #eeeeee;
+  color: #ffffff;
   text-shadow: 0px 0px 8px rgba(0, 0, 0, 0.8);
   font-size: 2.5em;
 }
+
+/* ── Message dialogs ────────────────────────────────────────────────────────*/
 messagedialog {
-  border: 1px solid #666666;
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border: 1px solid #1b1b1b;
+  border-radius: 8px;
+  padding: 8px;
 }
 messagedialog > box {
-  margin: 2px;
-  margin-top: 16px;
+  background-color: #2d2d2d;
+  margin: 8px;
+  padding: 8px;
+}
+messagedialog .dialog-action-area {
+  padding: 8px;
+  margin-top: 12px;
+}
+messagedialog label {
+  margin: 4px 0;
 }
 .w-entervalue {
+  background-color: #2d2d2d;
+  color: #ffffff;
 }
 .w-renamenode {
+  background-color: #2d2d2d;
+  color: #ffffff;
 }
-/* Warning: amber tint — clearly distinguishable, text readable */
 .w-warning {
-  background-color: #3d3300;
-  color: #f0d050;
+  background-color: #2d2d2d;
+  color: #ffd479;
 }
-/* Error: red tint — clearly distinguishable, text readable */
 .w-error {
-  background-color: #3d0808;
-  color: #ff8080;
+  background-color: #2d2d2d;
+  color: #ff8a80;
 }
 .w-info {
+  background-color: #2d2d2d;
+  color: #ffffff;
 }
 .w-confirm {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  border: 1px solid #1b1b1b;
+}
+.w-confirm label,
+.w-warning label,
+.w-error label,
+.w-info label {
+  color: #ffffff;
 }
 
-treeview {
-  color: #e0e0e0;
+/* Buttons inside message dialogs */
+messagedialog button,
+.w-confirm button,
+.w-warning button,
+.w-error button,
+.w-info button {
+  color: #ffffff;
+  background-color: #3a3a3a;
+  background-image: none;
+  border: 1px solid #1b1b1b;
+  border-radius: 6px;
+  padding: 6px 16px;
+  margin: 4px;
+  min-height: 28px;
+}
+messagedialog button:hover,
+.w-confirm button:hover,
+.w-warning button:hover,
+.w-error button:hover,
+.w-info button:hover {
+  background-color: #4a4a4a;
+  border-color: #5a5a5a;
+}
+messagedialog button label,
+.w-confirm button label,
+.w-warning button label,
+.w-error button label,
+.w-info button label {
+  color: #ffffff;
+}
+
+/* ── Splash window ─────────────────────────────────────────────────────────*/
+window.asbru-splash,
+.asbru-splash,
+.asbru-splash box {
   background-color: #2d2d2d;
+  color: #ffffff;
+}
+.asbru-splash progressbar text,
+.asbru-splash progressbar trough {
+  color: #ffffff;
+  background-color: #1d1d1d;
+}
+.asbru-splash progressbar progress {
+  background-color: #3584e4;
+}
+
+/* ── Tree view ─────────────────────────────────────────────────────────────*/
+treeview {
+  color: #ffffff;
+  background-color: #2d2d2d;
+  padding: 2px;
 }
 treeview:hover {
-  background-color: #3a3a4a;
+  background-color: #3a3a3a;
 }
-treeview:selected {
+treeview:selected,
+treeview row:selected {
   color: #ffffff;
-  background-color: #3465a4;
+  background-color: #3584e4;
+  border-radius: 3px;
+}
+treeview row {
+  padding: 2px 4px;
 }
 treeview header button {
-  color: #cccccc;
-  background-color: #383838;
-  border-bottom: 1px solid #555;
+  color: #d6d6d6;
+  background-color: #353535;
+  border: 0;
+  border-bottom: 1px solid #1b1b1b;
+  padding: 4px 8px;
+  border-radius: 0;
+}
+/* Generic selection look for selectable widgets */
+*:selected,
+selection {
+  background-color: #3584e4;
+  color: #ffffff;
 }
 
-/* ── Info/description text area ─────────────────────────────────────────────*/
+/* ── Text views (description / info) ───────────────────────────────────────*/
 textview {
-  color: #d0d0d0;
-  background-color: #1e1e2a;
-}
-textview text {
-  color: #d0d0d0;
-  background-color: #1e1e2a;
-}
-
-/* ── Section frames (STATISTICS, SCREENSHOTS) ───────────────────────────────*/
-frame > border {
-  border: 1px solid #3a3a50;
+  color: #ffffff;
+  background-color: #1d1d1d;
+  padding: 6px;
   border-radius: 4px;
 }
-frame label {
-  color: #7aacdc;
-  font-weight: bold;
-  padding: 0 6px;
-  letter-spacing: 1px;
+textview text {
+  color: #ffffff;
+  background-color: #1d1d1d;
+}
+textview text selection {
+  background-color: #3584e4;
+  color: #ffffff;
 }
 
-/* ── Bottom toolbar buttons ─────────────────────────────────────────────────*/
+/* ── Section frames (STATISTICS, SCREENSHOTS) ──────────────────────────────*/
+frame {
+  margin: 6px;
+  padding: 6px;
+}
+frame > border {
+  border: 1px solid #1b1b1b;
+  border-radius: 6px;
+}
+frame label {
+  color: #d6d6d6;
+  font-weight: bold;
+  padding: 0 8px;
+  letter-spacing: 1px;
+  background-color: transparent;
+  margin-bottom: 4px;
+}
+
+/* ── Bottom toolbar buttons ────────────────────────────────────────────────*/
 .button-cp {
-  border: 1px solid #3a3a3a;
-  border-radius: 3px;
-  padding: 2px 4px;
-  margin: 1px;
+  border: 1px solid #1b1b1b;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 3px;
+  background-color: #3a3a3a;
+  color: #ffffff;
 }
 .button-cp:hover {
-  border: 1px solid #5a7aaa;
-  background-color: #2a3a4a;
+  border: 1px solid #5a5a5a;
+  background-color: #4a4a4a;
 }
 
-/* ── Scrolled window shadow ─────────────────────────────────────────────────*/
+/* ── Scrolled window ───────────────────────────────────────────────────────*/
 scrolledwindow {
-  border: 1px solid #3a3a50;
+  border: 1px solid #1b1b1b;
+  border-radius: 4px;
+  background-color: #2d2d2d;
+  padding: 0;
+}
+scrolledwindow viewport,
+viewport {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  padding: 4px;
+}
+
+/* ── Notebook (tabs) ───────────────────────────────────────────────────────*/
+notebook {
+  background-color: #2d2d2d;
+  padding: 4px;
+}
+notebook header {
+  background-color: #353535;
+  padding: 2px;
+}
+notebook tab {
+  background-color: #2d2d2d;
+  color: #d6d6d6;
+  padding: 6px 14px;
+  margin: 2px;
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+}
+notebook tab:checked,
+notebook tab:active {
+  background-color: #3a3a3a;
+  color: #ffffff;
+  border: 1px solid #1b1b1b;
+  border-bottom-color: #3a3a3a;
+}
+notebook tab:hover {
+  background-color: #404040;
+}
+
+/* ── Paned (resizable splitter) ────────────────────────────────────────────*/
+paned > separator {
+  background-color: #1b1b1b;
+  min-width: 4px;
+  min-height: 4px;
+}
+
+/* ── Box spacing helpers ──────────────────────────────────────────────────*/
+window > box {
+  padding: 4px;
+}
+
+/* ── Global background — every container surface is GNOME grey ─────────────*/
+window,
+box,
+hbox,
+vbox,
+grid,
+eventbox,
+viewport,
+frame,
+frame > box,
+frame > eventbox,
+frame > viewport {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+/* Labels everywhere */
+label {
+  color: #ffffff;
 }

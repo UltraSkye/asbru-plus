@@ -170,6 +170,39 @@ sub new {
     $_NO_SPLASH = grep({ /^(--no-splash)|(--list-uuids)|(--dump-uuid)/go } @{ $$self{_OPTS} });
     $_NO_SPLASH ||= $$self{_APP}->get_is_remote;
 
+    # Apply theme BEFORE the splash window is shown so even the splash
+    # picks up dark/light styling. Determine theme from (1) explicit user
+    # choice in asbru.yml, (2) GNOME color-scheme.
+    {
+        my $early_theme;
+        if (open(my $fh, '<', "$CFG_DIR/asbru.yml")) {
+            while (my $line = <$fh>) {
+                if ($line =~ /^\s*theme:\s*(\S+)\s*$/) { $early_theme = $1; last; }
+            }
+            close $fh;
+        }
+        if (!$early_theme) {
+            my $gs = `gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null`;
+            chomp $gs;
+            my $sys_dark = $gs eq "'prefer-dark'"
+                        || ($ENV{'GTK_THEME'} // '') =~ /:dark\z/i;
+            $early_theme = $sys_dark ? 'asbru-dark' : 'default';
+        }
+        my $early_dir = "$RES_DIR/themes/$early_theme";
+        if (-r "$early_dir/asbru.css") {
+            my $cp = Gtk3::CssProvider->new();
+            eval { $cp->load_from_path("$early_dir/asbru.css"); };
+            Gtk3::StyleContext::add_provider_for_screen(
+                Gtk3::Gdk::Screen::get_default, $cp, 600
+            );
+            if ($early_theme =~ /dark/) {
+                my $settings = Gtk3::Settings::get_default();
+                $settings->set_property('gtk-application-prefer-dark-theme', 1) if $settings;
+            }
+            $$self{_EARLY_THEME} = $early_theme;
+        }
+    }
+
     # Show splash-screen while loading
     PACUtils::_splash(1, "Starting $PACUtils::APPNAME (v$PACUtils::APPVERSION)", ++$PAC_START_PROGRESS, $PAC_START_TOTAL);
 
@@ -188,6 +221,13 @@ sub new {
     # Read the config/connections file...
     PACUtils::_splash(1, "Reading config...", ++$PAC_START_PROGRESS, $PAC_START_TOTAL);
     _readConfiguration($self);
+
+    # First-run prompt to set a master password — deferred until after the
+    # CSS theme has been applied above so the modal renders dark/light
+    # consistently with the rest of the UI. Persisted on user choice so
+    # the warning does not reappear on subsequent launches.
+    # Called as function (not method) because $self is not blessed yet.
+    _promptSetMasterPassword($self);
 
     # Set conflictive layout options as early as possible
     _setSafeLayoutOptions($self,$$self{_CFG}{'defaults'}{'layout'});
@@ -3668,48 +3708,73 @@ sub _readConfiguration {
         if (!$verified) {
             die "Failed to verify master password after 3 attempts. Exiting.\n";
         }
-    } elsif (!defined $$self{_CFG}{'defaults'}{'master_password_verifier'}) {
-        # First run or migration: strongly recommend setting a master password
-        my $answ = _wConfirm(undef, "<b>Security Warning — Master Password Required</b>\n\n" .
-            "Your connection passwords are encrypted with a <b>default key that is public</b>.\n" .
-            "Without a master password, anyone with access to your config files\n" .
-            "can decrypt all stored credentials.\n\n" .
-            "<b>Setting a master password is strongly recommended.</b>\n\n" .
-            "Set a master password now?");
-        if ($answ) {
-            my $new_pass = _wEnterValue(undef, '<b>Set Master Password</b>', 'Enter a new master password:', undef, 0, 'asbru-protected');
-            if (defined $new_pass && $new_pass ne '') {
-                my $confirm = _wEnterValue(undef, '<b>Confirm Master Password</b>', 'Re-enter your master password:', undef, 0, 'asbru-protected');
-                if (defined $confirm && $confirm eq $new_pass) {
-                    # Save the old cipher for migration (uses legacy hardcoded key)
-                    my $old_cipher = Crypt::CBC->new(
-                        -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
-                        -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
-                    ) or die "ERROR: $!";
-                    # Initialize new cipher with master password
-                    my $new_cipher = _initMasterCipher($new_pass);
-                    # Store verifier
-                    $$self{_CFG}{'defaults'}{'master_password_verifier'} = _createMasterVerifier($new_pass);
-                    # Migrate all encrypted fields from old key to new key
-                    _migrateCipherCFG($$self{_CFG}, $old_cipher, $new_cipher);
-                    print STDERR "INFO: Master password set. All credentials re-encrypted.\n";
-                } else {
-                    _wMessage(undef, "Passwords did not match. Skipping master password setup.");
-                    $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-                }
-            } else {
-                $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-            }
-        } else {
-            # User declined — mark as offered so we don't ask again
-            $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-        }
     }
+    # Note: the "set new master password" prompt for first-run users is
+    # deferred to _promptSetMasterPassword(), called from new() AFTER the
+    # CSS theme is applied so the modal renders correctly.
 
     _decipherCFG($$self{_CFG});
 
     $$self{_CFG}{'defaults'}{'layout'} = defined $$self{_CFG}{'defaults'}{'layout'} ? $$self{_CFG}{'defaults'}{'layout'} : 'Traditional';
     return 1;
+}
+
+sub _promptSetMasterPassword {
+    my $self = shift;
+
+    # Only prompt when verifier is undefined (true first run). Empty string
+    # means the user has been asked before and declined — do not re-ask.
+    return if defined $$self{_CFG}{'defaults'}{'master_password_verifier'};
+
+    my $answ = _wConfirm(undef, "<b>Security Warning — Master Password Required</b>\n\n" .
+        "Your connection passwords are encrypted with a <b>default key that is public</b>.\n" .
+        "Without a master password, anyone with access to your config files\n" .
+        "can decrypt all stored credentials.\n\n" .
+        "<b>Setting a master password is strongly recommended.</b>\n\n" .
+        "Set a master password now?");
+
+    if ($answ) {
+        my $new_pass = _wEnterValue(undef, '<b>Set Master Password</b>', 'Enter a new master password:', undef, 0, 'asbru-protected');
+        if (defined $new_pass && $new_pass ne '') {
+            my $confirm = _wEnterValue(undef, '<b>Confirm Master Password</b>', 'Re-enter your master password:', undef, 0, 'asbru-protected');
+            if (defined $confirm && $confirm eq $new_pass) {
+                # Save the old cipher for migration (uses legacy hardcoded key)
+                my $old_cipher = Crypt::CBC->new(
+                    -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
+                    -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
+                ) or die "ERROR: $!";
+                my $new_cipher = _initMasterCipher($new_pass);
+                $$self{_CFG}{'defaults'}{'master_password_verifier'} = _createMasterVerifier($new_pass);
+                _migrateCipherCFG($$self{_CFG}, $old_cipher, $new_cipher);
+                print STDERR "INFO: Master password set. All credentials re-encrypted.\n";
+            } else {
+                _wMessage(undef, "Passwords did not match. Skipping master password setup.");
+                $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+            }
+        } else {
+            $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+        }
+    } else {
+        # User declined — mark as offered so we don't ask again.
+        $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+    }
+
+    # Persist the decision so the warning does not reappear next launch.
+    # We CANNOT call _saveConfiguration here because it touches GUI state
+    # (_saveTreeExpanded, statistics->saveStats) that doesn't exist yet.
+    # Instead do a minimal nstore+HMAC of the encrypted cfg.
+    eval {
+        my $cfg = $$self{_CFG};
+        # Re-encrypt password fields with the (possibly new) active cipher
+        _cipherCFG($cfg);
+        nstore($cfg, $CFG_FILE_NFREEZE) or die "nstore failed: $!";
+        _writeConfigHMAC($CFG_FILE_NFREEZE);
+        # Restore plaintext for the rest of startup
+        _decipherCFG($cfg);
+    };
+    if ($@) {
+        print STDERR "WARN: Could not persist master_password_verifier state: $@\n";
+    }
 }
 
 sub _loadTreeConfiguration {

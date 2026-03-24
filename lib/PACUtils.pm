@@ -145,6 +145,7 @@ if ($ARCH_TMP =~ /x86_64/gio) {
 my $RES_DIR = "$RealBin/res";
 my $THEME_DIR = "$RES_DIR/themes/default";
 my $SPLASH_IMG = "$RES_DIR/asbru-logo-400.png";
+my $SPLASH_IMG_DARK = "$RES_DIR/asbru-logo-400-dark.png";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
 my $R_CFG_FILE = $PACMain::R_CFG_FILE;
@@ -185,8 +186,11 @@ my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => '
 my $_MASTER_PASSWORD_ACTIVE = 0;  # Flag: is a user-provided master password in use?
 
 # Initialize cipher with a user-provided master password
+# Master password is encoded to UTF-8 bytes — Crypt::CBC's PBKDF expects bytes
+# and warns "Wide character in subroutine entry" if given a wide-char string.
 sub _initMasterCipher {
     my $master_pass = shift;
+    $master_pass = encode_utf8($master_pass) if defined $master_pass;
     $CIPHER = Crypt::CBC->new(
         -key    => $master_pass,
         -cipher => 'Crypt::Rijndael',
@@ -201,6 +205,7 @@ sub _isMasterPasswordActive { return $_MASTER_PASSWORD_ACTIVE; }
 
 sub _createMasterVerifier {
     my $master_pass = shift;
+    $master_pass = encode_utf8($master_pass) if defined $master_pass;
     my $cipher = Crypt::CBC->new(
         -key    => $master_pass,
         -cipher => 'Crypt::Rijndael',
@@ -214,6 +219,7 @@ sub _createMasterVerifier {
 sub _verifyMasterPassword {
     my ($master_pass, $verifier) = @_;
     return 0 unless defined $verifier && $verifier ne '';
+    $master_pass = encode_utf8($master_pass) if defined $master_pass;
     # Try with current installation salt first
     my $cipher = Crypt::CBC->new(
         -key => $master_pass, -cipher => 'Crypt::Rijndael',
@@ -441,11 +447,19 @@ sub _splash {
         $WINDOWSPLASH{_GUI}->set_type_hint('splashscreen');
         $WINDOWSPLASH{_GUI}->set_position('center');
         $WINDOWSPLASH{_GUI}->set_keep_above(1);
+        $WINDOWSPLASH{_GUI}->get_style_context->add_class('asbru-splash');
 
-        $WINDOWSPLASH{_VBOX} = Gtk3::VBox->new(0, 0);
+        $WINDOWSPLASH{_VBOX} = Gtk3::VBox->new(0, 8);
+        $WINDOWSPLASH{_VBOX}->set_border_width(12);
         $WINDOWSPLASH{_GUI}->add($WINDOWSPLASH{_VBOX});
 
-        $WINDOWSPLASH{_IMG} = Gtk3::Image->new_from_file($SPLASH_IMG);
+        my $is_dark = 0;
+        eval {
+            my $s = Gtk3::Settings::get_default();
+            $is_dark = $s->get_property('gtk-application-prefer-dark-theme') ? 1 : 0;
+        };
+        my $img_file = ($is_dark && -r $SPLASH_IMG_DARK) ? $SPLASH_IMG_DARK : $SPLASH_IMG;
+        $WINDOWSPLASH{_IMG} = Gtk3::Image->new_from_file($img_file);
         $WINDOWSPLASH{_VBOX}->pack_start($WINDOWSPLASH{_IMG}, 1, 1, 0);
 
         $WINDOWSPLASH{_LBL} = Gtk3::ProgressBar->new();
@@ -1989,6 +2003,7 @@ sub _wMessage {
         ''
     );
     $windowConfirm->set_decorated(0);
+    $windowConfirm->set_border_width(15);
     $windowConfirm->get_style_context()->add_class($class);
     $windowConfirm->set_markup($msg);
     $windowConfirm->set_icon_name('asbru-app-big');
@@ -2107,6 +2122,7 @@ sub _wConfirm {
         ''
     );
     $windowConfirm->set_decorated(0);
+    $windowConfirm->set_border_width(15);
     $windowConfirm->get_style_context()->add_class('w-confirm');
     $windowConfirm->set_markup($msg);
     $windowConfirm->add_buttons('gtk-cancel'=> 'no', 'gtk-ok' => 'yes');
@@ -2137,6 +2153,7 @@ sub _wYesNoCancel {
         ''
     );
     $windowConfirm->set_decorated(0);
+    $windowConfirm->set_border_width(15);
     $windowConfirm->get_style_context()->add_class('w-confirm');
     $windowConfirm->set_markup($msg);
     $windowConfirm->add_buttons('gtk-cancel'=> 'cancel','gtk-no'=> 'no','gtk-yes' => 'yes');
@@ -2430,7 +2447,7 @@ sub _cfgSanityCheck {
         } elsif ($$cfg{'environments'}{$uuid}{'_is_group'}) {
             my $name = $$cfg{'environments'}{$uuid}{'name'};
             my $description = $$cfg{'environments'}{$uuid}{'description'};
-            my $children = dclone($$cfg{'environments'}{$uuid}{'children'});
+            my $children = dclone($$cfg{'environments'}{$uuid}{'children'} // {});
             my $parent = $$cfg{'environments'}{$uuid}{'parent'};
             my @screenshots = @{$$cfg{'environments'}{$uuid}{'screenshots'} // []};
             my $protected = $$cfg{'environments'}{$uuid}{'_protected'} // 0;

@@ -172,7 +172,7 @@ foreach my $arg (@ARGV) {
 }
 
 # Detect language
-print STDERR "INFO: Language detected : $ENV{'LANG'}, forcing to ${ASBRU_LANG}\n";
+print STDERR "INFO: Language detected : " . ($ENV{'LANG'} // '') . ", forcing to ${ASBRU_LANG}\n";
 $ENV{'LANG'} = $ASBRU_LANG;
 
 # Check for Unity's systray-whitelist presence of 'asbru'
