@@ -43,9 +43,9 @@ jobs:
             dist: "8"
             package: rpm
 
-          # Fedora
+          # Fedora (packpack supports up to fedora-39)
           - os: fedora
-            dist: "43"
+            dist: "39"
             package: rpm
             experimental: true
 
