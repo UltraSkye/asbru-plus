@@ -1,90 +1,345 @@
+/* ── Ásbrú default theme ──────────────────────────────────────────────────────
+   GNOME Adwaita-light palette. Mirrors the structure of asbru-dark/asbru.css
+   so dark and light modes have identical layout, padding and borders — only
+   colors differ. Use the same spacing scale: xs=4, sm=8, md=12, lg=16.
+
+   Palette:
+     #fafafa  window background
+     #f6f5f4  elevated surface
+     #ffffff  base / text views
+     #e8e8e7  buttons
+     #f0f0ef  button hover
+     #2e3436  primary text
+     #5e5c64  secondary text
+     #d6d6d6  borders
+     #3584e4  accent / selection
+*/
+
 button {
-  border: 1px solid #dddddd;
-  margin: 1px;
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+  background-color: #e8e8e7;
+  background-image: none;
+  color: #2e3436;
+  padding: 6px 12px;
+  margin: 4px;
+  min-height: 28px;
 }
 radiobutton,
 checkbutton {
-  border: 1px solid rgba(1, 1, 1, 0);
-  margin: 1px;
+  border: 1px solid rgba(0, 0, 0, 0);
+  margin: 4px;
+  padding: 4px;
 }
 button:hover {
-  border: 1px solid #555555;
-  color: #000000;
-  background-color: #ffffff;
+  border: 1px solid #b8b8b8;
+  color: #2e3436;
+  background-color: #f0f0ef;
+}
+button:active {
+  background-color: #d6d6d6;
 }
 button:focus,
 entry:focus {
-  color: #000000;
-  background-color: #ffebbb;
+  color: #2e3436;
+  border-color: #3584e4;
+}
+entry {
+  color: #2e3436;
+  background-color: #ffffff;
+  border: 1px solid #d6d6d6;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 4px;
+  min-height: 28px;
 }
 spinbutton {
-  color: #000000;
+  color: #2e3436;
+  background-color: #ffffff;
+  border: 1px solid #d6d6d6;
   font-size: 0.9em;
-  border: 1px solid #dddddd;
-  background-color: #dddddd;
-  border-radius: 0px;
-  padding: 0px;
-  margin: 0px;
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
 }
 spinbutton:hover {
-  border: 1px solid #555555;
-  background-color: #ffffff;
+  border: 1px solid #b8b8b8;
 }
 checkbutton:hover,
 radiobutton:hover {
-  border: 1px solid #555555;
+  border: 1px solid #b8b8b8;
 }
 .button-cp {
-  border: 1px solid rgba(1, 1, 1, 0);
-  border-radius: 0px;
-  padding: 0px;
-  margin: 0px;
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin: 4px;
+  background-color: #e8e8e7;
+  background-image: none;
+  color: #2e3436;
+  min-height: 28px;
+}
+.button-cp:hover {
+  border: 1px solid #b8b8b8;
+  background-color: #f0f0ef;
 }
 tooltip {
   font-size: 0.8em;
 }
 .dnd-icon {
-  border: 1px solid #000000;
+  border: 1px solid #b8b8b8;
 }
-
 .banner-fill {
-  background-image: linear-gradient(to right, #007aff, #2fedde);
+  background-image: linear-gradient(to right, #e8e8e7, #f0f0ef);
   padding: 0.25em 0;
 }
 .banner-text {
-  color: #eee;
-  text-shadow: 0px 0px 8px rgba(17, 17, 17, 0.75);
+  color: #2e3436;
+  text-shadow: 0px 0px 8px rgba(255, 255, 255, 0.8);
   font-size: 2.5em;
 }
+
+/* ── Message dialogs ────────────────────────────────────────────────────────*/
 messagedialog {
-  border: 1px solid #888888;
+  background-color: #fafafa;
+  color: #2e3436;
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  padding: 8px;
 }
 messagedialog > box {
-  margin: 2px;
-  margin-top: 16px;
+  background-color: #fafafa;
+  margin: 8px;
+  padding: 8px;
 }
-.w-entervalue {
+messagedialog .dialog-action-area {
+  padding: 8px;
+  margin-top: 12px;
 }
-.w-renamenode {
+messagedialog label {
+  margin: 4px 0;
+}
+.w-entervalue,
+.w-renamenode,
+.w-info,
+.w-confirm {
+  background-color: #fafafa;
+  color: #2e3436;
+  border: 1px solid #d6d6d6;
 }
 .w-warning {
-  background-color: #f6f877;
+  background-color: #fafafa;
+  color: #b35900;
 }
 .w-error {
-  background-color: #ffffeb;
+  background-color: #fafafa;
+  color: #c01c28;
 }
-.w-info {
-}
-.w-confirm {
+.w-confirm label,
+.w-warning label,
+.w-error label,
+.w-info label {
+  color: #2e3436;
 }
 
+messagedialog button,
+.w-confirm button,
+.w-warning button,
+.w-error button,
+.w-info button {
+  color: #2e3436;
+  background-color: #e8e8e7;
+  background-image: none;
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+  padding: 6px 16px;
+  margin: 4px;
+  min-height: 28px;
+}
+messagedialog button:hover,
+.w-confirm button:hover,
+.w-warning button:hover,
+.w-error button:hover,
+.w-info button:hover {
+  background-color: #f0f0ef;
+  border-color: #b8b8b8;
+}
+messagedialog button label,
+.w-confirm button label,
+.w-warning button label,
+.w-error button label,
+.w-info button label {
+  color: #2e3436;
+}
+
+/* ── Splash window ─────────────────────────────────────────────────────────*/
+window.asbru-splash,
+.asbru-splash,
+.asbru-splash box {
+  background-color: #fafafa;
+  color: #2e3436;
+}
+.asbru-splash progressbar text,
+.asbru-splash progressbar trough {
+  color: #2e3436;
+  background-color: #ffffff;
+}
+.asbru-splash progressbar progress {
+  background-color: #3584e4;
+}
+
+/* ── Tree view ─────────────────────────────────────────────────────────────*/
+treeview {
+  color: #2e3436;
+  background-color: #ffffff;
+  padding: 2px;
+}
 treeview:hover {
   background-color: #e8f0fe;
 }
-treeview:selected {
+treeview:selected,
+treeview row:selected {
   color: #ffffff;
-  background-color: #3465a4;
+  background-color: #3584e4;
+  border-radius: 3px;
+}
+treeview row {
+  padding: 2px 4px;
 }
 treeview header button {
-  border-bottom: 1px solid #ccc;
+  color: #2e3436;
+  background-color: #f6f5f4;
+  border: 0;
+  border-bottom: 1px solid #d6d6d6;
+  padding: 4px 8px;
+  border-radius: 0;
+}
+*:selected,
+selection {
+  background-color: #3584e4;
+  color: #ffffff;
+}
+
+/* ── Text views ───────────────────────────────────────────────────────────*/
+textview {
+  color: #2e3436;
+  background-color: #ffffff;
+  padding: 6px;
+  border-radius: 4px;
+}
+textview text {
+  color: #2e3436;
+  background-color: #ffffff;
+}
+textview text selection {
+  background-color: #3584e4;
+  color: #ffffff;
+}
+
+/* ── Section frames (STATISTICS, SCREENSHOTS) ─────────────────────────────*/
+frame {
+  margin: 8px;
+  padding: 12px;
+}
+frame > border {
+  border: 1px solid #d6d6d6;
+  border-radius: 6px;
+}
+frame > label {
+  color: #5e5c64;
+  font-weight: bold;
+  padding: 0 8px;
+  letter-spacing: 1px;
+  background-color: transparent;
+  margin: 0 8px;
+}
+
+/* ── Scrolled window ──────────────────────────────────────────────────────*/
+scrolledwindow {
+  border: 1px solid #d6d6d6;
+  border-radius: 4px;
+  background-color: #ffffff;
+  margin: 4px;
+}
+scrolledwindow viewport,
+viewport {
+  background-color: #ffffff;
+  color: #2e3436;
+  padding: 8px;
+}
+
+/* ── Notebook (tabs) ──────────────────────────────────────────────────────*/
+notebook {
+  background-color: #fafafa;
+  padding: 8px;
+}
+notebook header {
+  background-color: #f6f5f4;
+  padding: 4px;
+}
+notebook tab {
+  background-color: #fafafa;
+  color: #5e5c64;
+  padding: 8px 16px;
+  margin: 2px;
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+}
+notebook tab:checked,
+notebook tab:active {
+  background-color: #ffffff;
+  color: #2e3436;
+  border: 1px solid #d6d6d6;
+  border-bottom-color: #ffffff;
+}
+notebook tab:hover {
+  background-color: #f0f0ef;
+}
+
+paned > separator {
+  background-color: #d6d6d6;
+  min-width: 4px;
+  min-height: 4px;
+}
+
+window > box,
+window > grid {
+  padding: 8px;
+}
+toolbar,
+.inline-toolbar {
+  background-color: #fafafa;
+  padding: 4px;
+  border: 0;
+}
+toolbar button,
+.inline-toolbar button {
+  margin: 2px;
+}
+
+/* ── Global container surfaces ────────────────────────────────────────────*/
+window,
+window > box,
+window > grid,
+grid,
+eventbox,
+viewport,
+frame,
+frame > box,
+frame > eventbox,
+frame > viewport {
+  background-color: #fafafa;
+  color: #2e3436;
+}
+label {
+  color: #2e3436;
+  background-color: transparent;
+}
+button box,
+button > box,
+button label,
+button > label,
+button image {
+  background-color: transparent;
+  background-image: none;
 }

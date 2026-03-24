@@ -1,6 +1,5 @@
 /* ── Ásbrú dark theme ─────────────────────────────────────────────────────────
-   Neutral GNOME Adwaita-dark grey palette. No blue/purple tints — surfaces
-   are uniform greys so the app blends with the system dark theme.
+   Neutral GNOME Adwaita-dark grey palette. No blue/purple tints.
 
    Palette:
      #2d2d2d  window background
@@ -12,21 +11,29 @@
      #d6d6d6  secondary text
      #1b1b1b  borders
      #3584e4  accent / selection (Adwaita blue)
+
+   Spacing scale (consistent throughout the file):
+      xs =  4px   element padding
+      sm =  8px   gap between siblings
+      md = 12px   inner padding of containers
+      lg = 16px   outer container padding / dialog gutters
 */
 
 button {
   border: 1px solid #1b1b1b;
   border-radius: 6px;
   background-color: #3a3a3a;
+  background-image: none;
   color: #ffffff;
-  padding: 4px 10px;
-  margin: 2px;
+  padding: 6px 12px;     /* xs vertical, md horizontal */
+  margin: 4px;           /* xs */
+  min-height: 28px;
 }
 radiobutton,
 checkbutton {
   border: 1px solid rgba(0, 0, 0, 0);
-  margin: 2px;
-  padding: 2px;
+  margin: 4px;
+  padding: 4px;
 }
 button:hover {
   border: 1px solid #5a5a5a;
@@ -47,8 +54,9 @@ entry {
   background-color: #1d1d1d;
   border: 1px solid #1b1b1b;
   border-radius: 4px;
-  padding: 4px 6px;
-  margin: 2px;
+  padding: 6px 8px;      /* xs vertical, sm horizontal */
+  margin: 4px;
+  min-height: 28px;
 }
 spinbutton {
   color: #ffffff;
@@ -239,30 +247,32 @@ textview text selection {
 
 /* ── Section frames (STATISTICS, SCREENSHOTS) ──────────────────────────────*/
 frame {
-  margin: 6px;
-  padding: 6px;
+  margin: 8px;           /* sm gap from siblings */
+  padding: 12px;         /* md inner padding */
 }
 frame > border {
   border: 1px solid #1b1b1b;
   border-radius: 6px;
 }
-frame label {
+frame > label {
   color: #d6d6d6;
   font-weight: bold;
   padding: 0 8px;
   letter-spacing: 1px;
   background-color: transparent;
-  margin-bottom: 4px;
+  margin: 0 8px;
 }
 
-/* ── Bottom toolbar buttons ────────────────────────────────────────────────*/
+/* ── Bottom toolbar buttons (.button-cp class — Connect, Wake On Lan, etc.)─*/
 .button-cp {
   border: 1px solid #1b1b1b;
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin: 3px;
+  border-radius: 6px;
+  padding: 6px 12px;     /* same as button */
+  margin: 4px;
   background-color: #3a3a3a;
+  background-image: none;
   color: #ffffff;
+  min-height: 28px;
 }
 .button-cp:hover {
   border: 1px solid #5a5a5a;
@@ -275,27 +285,28 @@ scrolledwindow {
   border-radius: 4px;
   background-color: #2d2d2d;
   padding: 0;
+  margin: 4px;
 }
 scrolledwindow viewport,
 viewport {
   background-color: #2d2d2d;
   color: #ffffff;
-  padding: 4px;
+  padding: 8px;          /* sm */
 }
 
 /* ── Notebook (tabs) ───────────────────────────────────────────────────────*/
 notebook {
   background-color: #2d2d2d;
-  padding: 4px;
+  padding: 8px;          /* sm */
 }
 notebook header {
   background-color: #353535;
-  padding: 2px;
+  padding: 4px;
 }
 notebook tab {
   background-color: #2d2d2d;
   color: #d6d6d6;
-  padding: 6px 14px;
+  padding: 8px 16px;     /* sm vertical, lg horizontal */
   margin: 2px;
   border: 1px solid transparent;
   border-radius: 4px 4px 0 0;
@@ -318,16 +329,28 @@ paned > separator {
   min-height: 4px;
 }
 
-/* ── Box spacing helpers ──────────────────────────────────────────────────*/
-window > box {
+/* ── Window-level gutters ─────────────────────────────────────────────────*/
+window > box,
+window > grid {
+  padding: 8px;          /* sm gutter from window edges */
+}
+
+/* ── Toolbar containers (top + bottom rows of action buttons) ─────────────*/
+toolbar,
+.inline-toolbar {
+  background-color: #2d2d2d;
   padding: 4px;
+  border: 0;
+}
+toolbar button,
+.inline-toolbar button {
+  margin: 2px;
 }
 
 /* ── Global background — every container surface is GNOME grey ─────────────*/
 window,
-box,
-hbox,
-vbox,
+window > box,
+window > grid,
 grid,
 eventbox,
 viewport,
@@ -338,7 +361,18 @@ frame > viewport {
   background-color: #2d2d2d;
   color: #ffffff;
 }
-/* Labels everywhere */
+/* Labels everywhere — text only, no own background */
 label {
   color: #ffffff;
+  background-color: transparent;
+}
+/* Inner containers of buttons must not paint their own background or it
+   appears as a visible rectangle behind the button label */
+button box,
+button > box,
+button label,
+button > label,
+button image {
+  background-color: transparent;
+  background-image: none;
 }

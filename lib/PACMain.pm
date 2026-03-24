@@ -3738,14 +3738,12 @@ sub _promptSetMasterPassword {
         if (defined $new_pass && $new_pass ne '') {
             my $confirm = _wEnterValue(undef, '<b>Confirm Master Password</b>', 'Re-enter your master password:', undef, 0, 'asbru-protected');
             if (defined $confirm && $confirm eq $new_pass) {
-                # Save the old cipher for migration (uses legacy hardcoded key)
-                my $old_cipher = Crypt::CBC->new(
-                    -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
-                    -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
-                ) or die "ERROR: $!";
-                my $new_cipher = _initMasterCipher($new_pass);
+                # cfg is already plaintext (decrypted by _readConfiguration).
+                # Switch the active cipher to the new master password — the
+                # _cipherCFG call below in the persistence block will encrypt
+                # the now-plaintext fields with this new cipher.
+                _initMasterCipher($new_pass);
                 $$self{_CFG}{'defaults'}{'master_password_verifier'} = _createMasterVerifier($new_pass);
-                _migrateCipherCFG($$self{_CFG}, $old_cipher, $new_cipher);
                 print STDERR "INFO: Master password set. All credentials re-encrypted.\n";
             } else {
                 _wMessage(undef, "Passwords did not match. Skipping master password setup.");

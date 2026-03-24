@@ -1671,7 +1671,7 @@ sub _wEnterValue {
     }
     $w{window}{data}->set_icon_name('asbru-app-big');
     $w{window}{data}->set_resizable(0);
-    $w{window}{data}->set_border_width(5);
+    $w{window}{data}->set_border_width(15);
 
     # Create a VBox to avoid vertical expansions
     $w{window}{gui}{vbox} = Gtk3::VBox->new(0, 0);
