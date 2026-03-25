@@ -249,23 +249,54 @@ viewport {
 
 /* ── Notebook ─────────────────────────────────────────────────────────────*/
 notebook {
-  background-color: #2d2d2d;
+    background-color: #2d2d2d;
 }
 notebook header {
-  background-color: #2d2d2d;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+    background-color: #2d2d2d;
 }
-notebook tab {
-  color: #b6b6b6;
-  border-bottom-color: transparent;
+notebook header.top,
+notebook header.bottom {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
 }
-notebook tab:checked,
-notebook tab:active {
-  color: #ffffff;
-  border-bottom-color: #3584e4;
+notebook header.top tab,
+notebook header.bottom tab {
+    color: #b6b6b6;
+    border-bottom-color: transparent;
 }
-notebook tab:hover {
-  color: #ffffff;
+notebook header.top tab:checked,
+notebook header.bottom tab:checked,
+notebook header.top tab:active,
+notebook header.bottom tab:active {
+    color: #ffffff;
+    border-bottom-color: #3584e4;
+}
+notebook header.top tab:hover,
+notebook header.bottom tab:hover {
+    color: #ffffff;
+}
+
+/* Sidebar tabs (left/right) — like a vertical menu */
+notebook header.left,
+notebook header.right {
+    background-color: #262626;
+    border-right-color: rgba(255, 255, 255, 0.08);
+    border-left-color: rgba(255, 255, 255, 0.08);
+}
+notebook header.left tab,
+notebook header.right tab {
+    color: #b6b6b6;
+}
+notebook header.left tab:hover,
+notebook header.right tab:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+notebook header.left tab:checked,
+notebook header.right tab:checked,
+notebook header.left tab:active,
+notebook header.right tab:active {
+    background-color: rgba(53, 132, 228, 0.20);
+    color: #ffffff;
 }
 
 /* ── Toolbar ──────────────────────────────────────────────────────────────*/

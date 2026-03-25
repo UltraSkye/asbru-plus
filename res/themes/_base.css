@@ -207,26 +207,57 @@ viewport {
     padding: 8px;
 }
 
-/* Notebook */
+/* Notebook — top tabs (default orientation) */
 notebook {
     padding: 8px;
 }
 notebook header {
     padding: 4px;
     border-width: 0;
+}
+notebook header.top {
     border-bottom-width: 1px;
     border-bottom-style: solid;
 }
-notebook tab {
+notebook header.top tab,
+notebook header.bottom tab {
     padding: 10px 18px;
     margin: 2px;
     border-width: 0;
     border-bottom-width: 2px;
     border-bottom-style: solid;
+    border-bottom-color: transparent;
     border-radius: 6px 6px 0 0;
     background-color: transparent;
     background-image: none;
     transition: color 150ms ease, border-color 150ms ease;
+}
+
+/* Notebook — left/right sidebar tabs (Preferences uses tab_pos: left) */
+notebook header.left {
+    padding: 8px 4px;
+    border-right-width: 1px;
+    border-right-style: solid;
+}
+notebook header.right {
+    padding: 8px 4px;
+    border-left-width: 1px;
+    border-left-style: solid;
+}
+notebook header.left tab,
+notebook header.right tab {
+    padding: 12px 18px;
+    margin: 4px 6px;
+    min-height: 44px;
+    border-width: 0;
+    border-radius: 8px;
+    background-color: transparent;
+    background-image: none;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+notebook header.left tab box,
+notebook header.right tab box {
+    padding: 0 4px;
 }
 
 /* Splash */
