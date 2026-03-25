@@ -3212,21 +3212,11 @@ sub _treeConnections_menu {
 sub _showAboutWindow {
     my $self = shift;
 
-    # Pick dark logo when prefer-dark is active so the white background of
-    # the original logo doesn't clash with the dark dialog.
-    my $logo_path = "$RES_DIR/asbru-logo-400.png";
-    eval {
-        my $s = Gtk3::Settings::get_default();
-        if ($s && $s->get_property('gtk-application-prefer-dark-theme')
-              && -r "$RES_DIR/asbru-logo-400-dark.png") {
-            $logo_path = "$RES_DIR/asbru-logo-400-dark.png";
-        }
-    };
     Gtk3::show_about_dialog(
         $$self{_GUI}{main},(
         "program_name" => '',  # name is shown in the logo
         "version" => "v$APPVERSION",
-        "logo" => _pixBufFromFile($logo_path),
+        "logo" => _pixBufFromFile("$RES_DIR/asbru-logo-400.png"),
         "copyright" => "Ásbrú Plus — fork of Ásbrú Connection Manager\nCopyright (C) 2017-2026 Ásbrú Connection Manager team\nCopyright 2010-2016 David Torrejón Vaquerizas",
         "license" => "
 Ásbrú Plus (fork of Ásbrú Connection Manager)

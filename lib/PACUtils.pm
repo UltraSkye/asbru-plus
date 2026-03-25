@@ -145,7 +145,6 @@ if ($ARCH_TMP =~ /x86_64/gio) {
 my $RES_DIR = "$RealBin/res";
 my $THEME_DIR = "$RES_DIR/themes/default";
 my $SPLASH_IMG = "$RES_DIR/asbru-logo-400.png";
-my $SPLASH_IMG_DARK = "$RES_DIR/asbru-logo-400-dark.png";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
 my $R_CFG_FILE = $PACMain::R_CFG_FILE;
@@ -453,13 +452,7 @@ sub _splash {
         $WINDOWSPLASH{_VBOX}->set_border_width(12);
         $WINDOWSPLASH{_GUI}->add($WINDOWSPLASH{_VBOX});
 
-        my $is_dark = 0;
-        eval {
-            my $s = Gtk3::Settings::get_default();
-            $is_dark = $s->get_property('gtk-application-prefer-dark-theme') ? 1 : 0;
-        };
-        my $img_file = ($is_dark && -r $SPLASH_IMG_DARK) ? $SPLASH_IMG_DARK : $SPLASH_IMG;
-        $WINDOWSPLASH{_IMG} = Gtk3::Image->new_from_file($img_file);
+        $WINDOWSPLASH{_IMG} = Gtk3::Image->new_from_file($SPLASH_IMG);
         $WINDOWSPLASH{_VBOX}->pack_start($WINDOWSPLASH{_IMG}, 1, 1, 0);
 
         $WINDOWSPLASH{_LBL} = Gtk3::ProgressBar->new();
