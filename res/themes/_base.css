@@ -1,0 +1,280 @@
+/* Ásbrú base structural rules — shared by all themes.
+ * Defines layout (padding, margin, border, radius, sizing). Per-theme files
+ * override colors only. Spacing scale: xs=4 sm=8 md=12 lg=16 xl=24. */
+
+/* Buttons */
+button,
+.button-cp {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 8px 16px;
+    margin: 4px;
+    min-height: 32px;
+    background-image: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+button label,
+button > label,
+button box,
+button > box,
+button image {
+    background-color: transparent;
+    background-image: none;
+}
+
+/* Checkbox / radio — flat square/circle with rounded corners */
+checkbutton,
+radiobutton {
+    margin: 6px 4px;
+    padding: 4px;
+}
+checkbutton check,
+checkbutton > check,
+radiobutton radio,
+radiobutton > radio {
+    min-width: 18px;
+    min-height: 18px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 4px;
+    margin: 0 8px 0 0;
+    padding: 2px;
+    background-image: none;
+    -gtk-icon-source: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+radiobutton radio,
+radiobutton > radio {
+    border-radius: 50%;
+}
+
+/* Switch */
+switch {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 14px;
+    min-width: 48px;
+    min-height: 24px;
+    padding: 0;
+    background-image: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+switch slider {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 12px;
+    min-width: 22px;
+    min-height: 22px;
+    margin: 0;
+}
+
+/* Entries */
+entry {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 4px;
+    min-height: 32px;
+    background-image: none;
+    transition: border-color 150ms ease;
+}
+spinbutton {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 4px 8px;
+    margin: 2px;
+    min-height: 32px;
+    font-size: 0.95em;
+}
+
+/* Combo box */
+combobox button,
+combobox > button {
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+combobox arrow {
+    min-width: 12px;
+    min-height: 12px;
+    margin-left: 6px;
+}
+
+/* Message dialogs */
+messagedialog {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 12px;
+    padding: 16px;
+}
+messagedialog > box {
+    margin: 8px;
+    padding: 12px;
+}
+messagedialog .dialog-action-area {
+    padding: 8px;
+    margin-top: 16px;
+}
+messagedialog label {
+    margin: 6px 0;
+}
+messagedialog button,
+.w-confirm button,
+.w-warning button,
+.w-error button,
+.w-info button {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 10px 20px;
+    margin: 4px;
+    min-height: 36px;
+    background-image: none;
+}
+.w-entervalue,
+.w-renamenode,
+.w-info,
+.w-confirm,
+.w-warning,
+.w-error {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 12px;
+}
+
+/* Tree view */
+treeview {
+    padding: 4px;
+}
+treeview row {
+    padding: 4px 8px;
+}
+treeview:hover,
+treeview row:hover {
+    border-radius: 6px;
+}
+treeview:selected,
+treeview row:selected {
+    border-radius: 6px;
+}
+treeview header button {
+    border-width: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    padding: 6px 10px;
+    border-radius: 0;
+}
+
+/* Text views */
+textview {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* Frames */
+frame {
+    margin: 12px;
+    padding: 16px;
+}
+frame > border {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 12px;
+}
+frame > label {
+    font-weight: 600;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+    padding: 0 8px;
+    margin: 0 12px;
+    background-color: transparent;
+}
+
+/* Scrolled window */
+scrolledwindow {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 8px;
+    margin: 6px;
+    padding: 0;
+}
+scrolledwindow viewport,
+viewport {
+    padding: 8px;
+}
+
+/* Notebook */
+notebook {
+    padding: 8px;
+}
+notebook header {
+    padding: 4px;
+    border-width: 0;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+notebook tab {
+    padding: 10px 18px;
+    margin: 2px;
+    border-width: 0;
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+    border-radius: 6px 6px 0 0;
+    background-color: transparent;
+    background-image: none;
+    transition: color 150ms ease, border-color 150ms ease;
+}
+
+/* Splash */
+window.asbru-splash,
+.asbru-splash {
+    padding: 12px;
+}
+
+/* Window gutters */
+window > box,
+window > grid {
+    padding: 8px;
+}
+
+/* Toolbar */
+toolbar,
+.inline-toolbar {
+    padding: 4px;
+    border-width: 0;
+}
+toolbar button,
+.inline-toolbar button {
+    margin: 2px;
+}
+
+/* Paned splitter */
+paned > separator {
+    min-width: 4px;
+    min-height: 4px;
+}
+
+/* Tooltip */
+tooltip {
+    font-size: 0.85em;
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+/* Banner */
+.banner-fill {
+    padding: 0.25em 0;
+}
+.banner-text {
+    font-size: 2.5em;
+}
+
+/* DnD icon */
+.dnd-icon {
+    border-width: 1px;
+    border-style: solid;
+}

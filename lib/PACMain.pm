@@ -189,11 +189,22 @@ sub new {
             $early_theme = $sys_dark ? 'asbru-dark' : 'default';
         }
         my $early_dir = "$RES_DIR/themes/$early_theme";
+        my $base_css  = "$RES_DIR/themes/_base.css";
+        # Load shared structural rules first (lower priority), then theme
+        # color overrides on top. Both themes share base structure so
+        # padding/borders/radii are identical and only colors differ.
+        if (-r $base_css) {
+            my $cp = Gtk3::CssProvider->new();
+            eval { $cp->load_from_path($base_css); };
+            Gtk3::StyleContext::add_provider_for_screen(
+                Gtk3::Gdk::Screen::get_default, $cp, 600
+            );
+        }
         if (-r "$early_dir/asbru.css") {
             my $cp = Gtk3::CssProvider->new();
             eval { $cp->load_from_path("$early_dir/asbru.css"); };
             Gtk3::StyleContext::add_provider_for_screen(
-                Gtk3::Gdk::Screen::get_default, $cp, 600
+                Gtk3::Gdk::Screen::get_default, $cp, 610
             );
             if ($early_theme =~ /dark/) {
                 my $settings = Gtk3::Settings::get_default();
@@ -364,14 +375,24 @@ sub new {
         $$self{_READONLY} = 1;
     }
 
-    # Gtk style
-    my $css_provider = Gtk3::CssProvider->new();
-    $css_provider->load_from_path("$THEME_DIR/asbru.css");
-    Gtk3::StyleContext::add_provider_for_screen(Gtk3::Gdk::Screen::get_default, $css_provider, 600);
+    # Gtk style — re-apply if theme changed since the early load. Same
+    # base+theme split: shared structure first, color overrides on top.
+    if (!defined $$self{_EARLY_THEME} || $$self{_EARLY_THEME} ne $$self{_CFG}{'defaults'}{'theme'}) {
+        my $base_css = "$RES_DIR/themes/_base.css";
+        if (-r $base_css) {
+            my $bp = Gtk3::CssProvider->new();
+            eval { $bp->load_from_path($base_css); };
+            Gtk3::StyleContext::add_provider_for_screen(Gtk3::Gdk::Screen::get_default, $bp, 600);
+        }
+        my $css_provider = Gtk3::CssProvider->new();
+        $css_provider->load_from_path("$THEME_DIR/asbru.css");
+        Gtk3::StyleContext::add_provider_for_screen(Gtk3::Gdk::Screen::get_default, $css_provider, 610);
+    }
 
     # Request dark native widgets when using the dark theme
     if ($THEME_DIR =~ /dark/) {
-        Gtk3::Settings->get_default->set_property('gtk-application-prefer-dark-theme', 1);
+        my $s = Gtk3::Settings::get_default();
+        $s->set_property('gtk-application-prefer-dark-theme', 1) if $s;
     }
 
     # Setup known connection methods
@@ -3191,11 +3212,21 @@ sub _treeConnections_menu {
 sub _showAboutWindow {
     my $self = shift;
 
+    # Pick dark logo when prefer-dark is active so the white background of
+    # the original logo doesn't clash with the dark dialog.
+    my $logo_path = "$RES_DIR/asbru-logo-400.png";
+    eval {
+        my $s = Gtk3::Settings::get_default();
+        if ($s && $s->get_property('gtk-application-prefer-dark-theme')
+              && -r "$RES_DIR/asbru-logo-400-dark.png") {
+            $logo_path = "$RES_DIR/asbru-logo-400-dark.png";
+        }
+    };
     Gtk3::show_about_dialog(
         $$self{_GUI}{main},(
         "program_name" => '',  # name is shown in the logo
         "version" => "v$APPVERSION",
-        "logo" => _pixBufFromFile("$RES_DIR/asbru-logo-400.png"),
+        "logo" => _pixBufFromFile($logo_path),
         "copyright" => "Ásbrú Plus — fork of Ásbrú Connection Manager\nCopyright (C) 2017-2026 Ásbrú Connection Manager team\nCopyright 2010-2016 David Torrejón Vaquerizas",
         "license" => "
 Ásbrú Plus (fork of Ásbrú Connection Manager)
