@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: DemonSkye <31297354+UltraSkye@users.noreply.github.com>
 Build-Depends: debhelper (>= 10)
 Standards-Version: 4.6.2
+Homepage: https://github.com/UltraSkye/asbru-plus
 
 Package: asbru-plus
 Architecture: all

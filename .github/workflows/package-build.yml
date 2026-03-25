@@ -43,7 +43,13 @@ jobs:
             dist: "8"
             package: rpm
 
-          # Fedora (packpack supports up to fedora-39)
+          # AlmaLinux 9 (modern EL9 rebuild)
+          - os: almalinux
+            dist: "9"
+            package: rpm
+
+          # Fedora — packpack publishes fedora-39 as the latest available image.
+          # Fedora 40+ images are not yet in packpack; fedora-39 is used until then.
           - os: fedora
             dist: "39"
             package: rpm

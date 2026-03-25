@@ -100,6 +100,7 @@ mkdir -p %{buildroot}/{%{_mandir}/man1,%{_bindir}}
 mkdir -p %{buildroot}/%{_datadir}/{%{name}/{lib,res,utils},applications}
 mkdir -p %{buildroot}/%{_bashcompletiondir}
 mkdir -p %{buildroot}/%{_datadir}/icons/hicolor/{24x24,64x64,256x256,scalable}/apps
+mkdir -p %{buildroot}/%{_datadir}/metainfo
 
 install -m 755 asbru-cm %{buildroot}/%{_bindir}/%{name}
 
@@ -112,6 +113,7 @@ cp -a res/asbru-logo-64.png %{buildroot}/%{_datadir}/icons/hicolor/64x64/apps/%{
 cp -a res/asbru-logo-256.png %{buildroot}/%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 cp -a res/asbru-logo.svg %{buildroot}/%{_datadir}/icons/hicolor/scalable/apps/%{name}.svg
 
+cp -a res/org.asbru.cm.appdata.xml %{buildroot}/%{_datadir}/metainfo/
 cp -a res/*.{png,pl,glade,svg} %{buildroot}/%{_datadir}/%{name}/res/
 cp -ar res/themes/ %{buildroot}/%{_datadir}/%{name}/res/
 cp -a lib/* %{buildroot}/%{_datadir}/%{name}/lib/
@@ -126,6 +128,7 @@ cp -a utils/*.pl %{buildroot}/%{_datadir}/%{name}/utils/
 %{_datadir}/icons/hicolor/*/apps/%{name}.*
 %{_bashcompletiondir}/%{name}*
 %{_bindir}/%{name}*
+%{_datadir}/metainfo/org.asbru.cm.appdata.xml
 
 
 %post
