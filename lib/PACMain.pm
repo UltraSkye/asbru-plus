@@ -581,9 +581,12 @@ sub _initGUI {
         $$self{_GUI}{hpane}->pack1($$self{_GUI}{vboxCommandPanel}, 0, 0);
     }
 
-    # Create a hbuttonbox1: add, rename, delete, etc...
-    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new(1, 0);
-    $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 0);
+    # Create a hbuttonbox1: add, rename, delete, etc.
+    # spacing=4 (xs) gives buttons a small breathing gap; homogeneous on so
+    # they share width evenly across the sidebar.
+    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new(1, 4);
+    $$self{_GUI}{hbuttonbox1}->set_border_width(4);
+    $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
     # Create "Add Group" button
     $$self{_GUI}{groupAddBtn} = Gtk3::Button->new();
@@ -958,9 +961,11 @@ sub _initGUI {
     $$self{_GUI}{ebFrameScreenshots}->add($$self{_GUI}{frameScreenshots});
     $$self{_GUI}{vboxInfo}->pack_start($$self{_GUI}{ebFrameScreenshots}, 0, 1, 0);
 
-    # Create a hbuttonbox1: show/hide, WOL, Shell, Preferences, etc...
-    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new();
-    $$self{_GUI}{vboxConnectionPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 0);
+    # Create a hbuttonbox1: show/hide, WOL, Shell, Preferences, etc.
+    # spacing=6 (sm-) gives breathing room between bottom-toolbar buttons.
+    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new(0, 6);
+    $$self{_GUI}{hbuttonbox1}->set_border_width(6);
+    $$self{_GUI}{vboxConnectionPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
     # Create "Hide command panel" button
     $$self{_GUI}{showConnBtn} = Gtk3::ToggleButton->new();
