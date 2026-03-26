@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcrypt-blowfish-perl \
     libgtk3-perl \
     libnet-arp-perl \
-    libossp-uuid-perl \
+    libuuid-tiny-perl \
     openssh-client \
     libcrypt-rijndael-perl \
     libxml-parser-perl \

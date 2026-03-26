@@ -49,7 +49,7 @@ cd asbru-plus
 sudo apt-get install \
   perl libvte-2.91-0 libcairo-perl libglib-perl libpango-perl \
   libsocket6-perl libexpect-perl libyaml-perl libcrypt-cbc-perl \
-  libcrypt-blowfish-perl libgtk3-perl libnet-arp-perl libossp-uuid-perl \
+  libcrypt-blowfish-perl libgtk3-perl libnet-arp-perl libuuid-tiny-perl \
   openssh-client libcrypt-rijndael-perl libxml-parser-perl \
   libcanberra-gtk-module dbus-x11 libgtk3-simplelist-perl \
   gir1.2-wnck-3.0 gir1.2-vte-2.91 ncat
@@ -74,7 +74,7 @@ docker run -it --rm \
     apt-get update -q && apt-get install -y --no-install-recommends \
       perl libvte-2.91-0 libcairo-perl libglib-perl libpango-perl \
       libsocket6-perl libexpect-perl libyaml-perl libcrypt-cbc-perl \
-      libcrypt-blowfish-perl libgtk3-perl libnet-arp-perl libossp-uuid-perl \
+      libcrypt-blowfish-perl libgtk3-perl libnet-arp-perl libuuid-tiny-perl \
       openssh-client libcrypt-rijndael-perl libxml-parser-perl \
       libcanberra-gtk-module dbus-x11 libgtk3-simplelist-perl \
       gir1.2-wnck-3.0 gir1.2-vte-2.91 ncat git && \

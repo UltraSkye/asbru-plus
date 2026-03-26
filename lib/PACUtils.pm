@@ -43,7 +43,7 @@ use Sys::Hostname;
 use Net::ARP;
 use Net::Ping;
 use YAML;
-use OSSP::uuid;
+use UUID::Tiny ':std';
 use Encode;
 use DynaLoader; # Required for PACTerminal and PACShell modules
 
@@ -2290,11 +2290,6 @@ sub _cfgSanityCheck {
             @{$$cfg{'environments'}{$uuid}{'screenshots'}} = @screenshots;
             $$cfg{'environments'}{$uuid}{'_protected'}  = $protected;
 
-            # TODO : Remove, this is from a previous migration path
-            #foreach (@{$$cfg{'environments'}{$uuid}{'screenshots'}}) {
-            #    $_ =~ s/\/\.pac\//\/\.config\/asbru\//g;
-            #}
-
             next;
         }
 
@@ -2419,10 +2414,6 @@ sub _cfgSanityCheck {
             }
             delete $$cfg{'environments'}{$uuid}{'screenshot'};
         } else {
-            # TODO : Remove, this is from a previous migration path
-            #foreach (@{$$cfg{'environments'}{$uuid}{'screenshots'}}) {
-            #    $_ =~ s/\/\.pac\//\/\.config\/asbru\//g;
-            #}
             if (defined $$cfg{'environments'}{$uuid}{'screenshot'}) {
                 delete $$cfg{'environments'}{$uuid}{'screenshot'};
             }
@@ -3912,7 +3903,7 @@ sub mydraw {
 sub _doShellEscape {
     my $str = shift;
 
-    $str =~ s/([\$\\`"])/\\$1/g;
+    $str =~ s/([\$\\`"!])/\\$1/g;
 
     return $str;
 }

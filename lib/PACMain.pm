@@ -41,7 +41,7 @@ use Storable qw (thaw dclone nstore retrieve);
 use Encode;
 use File::Copy;
 use Net::Ping;
-use OSSP::uuid;
+use UUID::Tiny ':std';
 use POSIX ":sys_wait_h";
 use POSIX qw (strftime);
 use Crypt::CBC;
@@ -1451,9 +1451,7 @@ sub _setupCallbacks {
         }
 
         # Generate the UUID for the new Group
-        my $uuid = OSSP::uuid->new(); $uuid->make("v4");
-        my $txt_uuid = $uuid->export("str");
-        undef $uuid;
+        my $txt_uuid = create_uuid_as_string(UUID_V4);
 
         # Add this new group to the list of children of it's parent
         $$self{_CFG}{'environments'}{$group_uuid}{'children'}{$txt_uuid} = 1;
@@ -1876,9 +1874,7 @@ sub _setupCallbacks {
         if ((! defined $new_conn) || ($new_conn =~ /^\s*$/go) || ($new_conn eq '__PAC__ROOT__')) {
             return 1;
         }
-        my $uuid = OSSP::uuid->new(); $uuid->make("v4");
-        my $txt_uuid = $uuid->export("str");
-        undef $uuid;
+        my $txt_uuid = create_uuid_as_string(UUID_V4);
 
         # Create and initialize the new connection in configuration
         $$self{_CFG}{'environments'}{$txt_uuid}{'_is_group'} = 0;
@@ -4269,9 +4265,7 @@ sub __dupNodes {
     my $cut = shift // '0';
 
     # Generate a new UUID for the copied element
-    my $new_uuid = OSSP::uuid->new(); $new_uuid->make("v4");
-    my $new_txt_uuid = $new_uuid->export("str");
-    undef $new_uuid;
+    my $new_txt_uuid = create_uuid_as_string(UUID_V4);
 
     # Clone the node with the NEW UUID
     $$cfg{$new_txt_uuid} = dclone($$self{_CFG}{'environments'}{$uuid});
