@@ -833,7 +833,9 @@ sub _initGUI {
     $$self{_GUI}{connExecBtn} = Gtk3::Button->new('Connect');
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connExecBtn}, 1, 1, 0);
     $$self{_GUI}{connExecBtn}->set_image(Gtk3::Image->new_from_stock('gtk-connect', 'button'));
+    $$self{_GUI}{connExecBtn}->set_always_show_image(1);
     $$self{_GUI}{connExecBtn}->set('can-focus' => 0);
+    $$self{_GUI}{connExecBtn}->get_style_context()->add_class('suggested-action');
     $$self{_GUI}{connExecBtn}->set_tooltip_text('Start selected terminals/groups');
 
     # Create "Quick Connect" button

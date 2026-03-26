@@ -292,9 +292,9 @@ notebook header.right {
 }
 notebook header.left tab,
 notebook header.right tab {
-    padding: 12px 18px;
-    margin: 4px 6px;
-    min-height: 44px;
+    padding: 10px 16px;
+    margin: 3px 6px;
+    min-height: 40px;
     border-width: 0;
     border-radius: 8px;
     background-color: transparent;
@@ -304,6 +304,17 @@ notebook header.right tab {
 notebook header.left tab box,
 notebook header.right tab box {
     padding: 0 4px;
+}
+notebook header.left tab image,
+notebook header.right tab image {
+    min-width: 18px;
+    min-height: 18px;
+    margin-right: 8px;
+    -gtk-icon-transform: scale(1.1);
+}
+notebook header.left tab label,
+notebook header.right tab label {
+    font-weight: 500;
 }
 
 /* Splash */
