@@ -23,23 +23,24 @@ button image {
     background-image: none;
 }
 
-/* Checkbox / radio — flat square/circle with rounded corners */
+/* Checkbox / radio — modern flat with proper check/dot icon */
 checkbutton,
 radiobutton {
-    margin: 6px 4px;
+    margin: 4px 2px;
     padding: 4px;
+    min-height: 24px;
 }
 checkbutton check,
 checkbutton > check,
 radiobutton radio,
 radiobutton > radio {
-    min-width: 18px;
-    min-height: 18px;
-    border-width: 1px;
+    min-width: 16px;
+    min-height: 16px;
+    border-width: 1.5px;
     border-style: solid;
     border-radius: 4px;
     margin: 0 8px 0 0;
-    padding: 2px;
+    padding: 0;
     background-image: none;
     -gtk-icon-source: none;
     transition: background-color 150ms ease, border-color 150ms ease;
@@ -47,6 +48,17 @@ radiobutton > radio {
 radiobutton radio,
 radiobutton > radio {
     border-radius: 50%;
+}
+/* Restore native check mark / radio dot when toggled, recolor to white */
+checkbutton check:checked,
+checkbutton > check:checked {
+    -gtk-icon-source: -gtk-icontheme("object-select-symbolic");
+    -gtk-icon-transform: scale(0.85);
+}
+radiobutton radio:checked,
+radiobutton > radio:checked {
+    -gtk-icon-source: -gtk-icontheme("radio-checked-symbolic");
+    -gtk-icon-transform: scale(0.55);
 }
 
 /* Switch */
@@ -91,15 +103,49 @@ spinbutton {
 }
 
 /* Combo box */
-combobox button,
-combobox > button {
+combobox > box > button.combo {
     padding: 6px 12px;
     border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    background-image: none;
 }
 combobox arrow {
+    min-width: 14px;
+    min-height: 14px;
+    margin-left: 6px;
+    -gtk-icon-source: -gtk-icontheme("pan-down-symbolic");
+}
+combobox window menu {
+    padding: 4px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+}
+combobox menuitem {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+/* Scrollbar */
+scrollbar {
+    background-color: transparent;
+    border: 0;
     min-width: 12px;
     min-height: 12px;
-    margin-left: 6px;
+}
+scrollbar slider {
+    border-radius: 999px;
+    min-width: 8px;
+    min-height: 8px;
+    margin: 3px;
+    border: 0;
+    transition: background-color 150ms ease;
+}
+scrollbar trough {
+    background-color: transparent;
+    border: 0;
 }
 
 /* Message dialogs */

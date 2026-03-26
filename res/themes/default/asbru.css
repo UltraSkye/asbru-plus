@@ -312,6 +312,43 @@ paned > separator {
   background-color: rgba(0, 0, 0, 0.10);
 }
 
+/* ── Combobox ─────────────────────────────────────────────────────────────*/
+combobox > box > button.combo {
+    background-color: #ffffff;
+    color: #2e3436;
+    border-color: rgba(0, 0, 0, 0.12);
+}
+combobox > box > button.combo:hover {
+    background-color: #f0f0ef;
+    border-color: rgba(0, 0, 0, 0.20);
+}
+combobox arrow {
+    color: #5e5c64;
+}
+combobox window menu {
+    background-color: #fafafa;
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #2e3436;
+}
+combobox menuitem {
+    color: #2e3436;
+    background-color: transparent;
+}
+combobox menuitem:hover {
+    background-color: rgba(53, 132, 228, 0.18);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────*/
+scrollbar slider {
+    background-color: rgba(0, 0, 0, 0.20);
+}
+scrollbar slider:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+scrollbar slider:active {
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
 /* ── Tooltip ──────────────────────────────────────────────────────────────*/
 tooltip {
   background-color: #ffffff;
