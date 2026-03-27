@@ -55,13 +55,23 @@ button:focus {
   border-color: #3584e4;
 }
 button.suggested-action {
-  background-color: #3584e4;
-  color: #ffffff;
-  border-color: #3584e4;
+    background-color: #3584e4;
+    background-image: none;
+    color: #ffffff;
+    border-color: #3584e4;
+    font-weight: 600;
 }
 button.suggested-action:hover {
-  background-color: #4a90e8;
-  border-color: #4a90e8;
+    background-color: #4a90e8;
+    border-color: #4a90e8;
+}
+button.suggested-action:active {
+    background-color: #1a5fb4;
+    border-color: #1a5fb4;
+}
+button.suggested-action label,
+button.suggested-action image {
+    color: #ffffff;
 }
 button.destructive-action {
   background-color: #e01b24;

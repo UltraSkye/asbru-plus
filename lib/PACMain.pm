@@ -822,15 +822,16 @@ sub _initGUI {
     # Create a "Search" button
     $$self{_GUI}{connSearch} = Gtk3::Button->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connSearch}, 0, 1, 0);
-    $$self{_GUI}{connSearch}->set_image(Gtk3::Image->new_from_stock('gtk-find', 'button'));
+    $$self{_GUI}{connSearch}->set_image(Gtk3::Image->new_from_stock('gtk-find', 'large_toolbar'));
     $$self{_GUI}{connSearch}->set('can-focus' => 0);
     $$self{_GUI}{connSearch}->set_tooltip_text('Start interactive search for connections');
 
-    # Create "Start" button
+    # Create "Start" button — primary action, large icon, suggested-action.
     $$self{_GUI}{connExecBtn} = Gtk3::Button->new('Connect');
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connExecBtn}, 1, 1, 0);
-    $$self{_GUI}{connExecBtn}->set_image(Gtk3::Image->new_from_stock('gtk-connect', 'button'));
+    $$self{_GUI}{connExecBtn}->set_image(Gtk3::Image->new_from_stock('gtk-connect', 'large_toolbar'));
     $$self{_GUI}{connExecBtn}->set_always_show_image(1);
+    $$self{_GUI}{connExecBtn}->set_image_position('GTK_POS_LEFT');
     $$self{_GUI}{connExecBtn}->set('can-focus' => 0);
     $$self{_GUI}{connExecBtn}->get_style_context()->add_class('suggested-action');
     $$self{_GUI}{connExecBtn}->set_tooltip_text('Start selected terminals/groups');
@@ -838,14 +839,14 @@ sub _initGUI {
     # Create "Quick Connect" button
     $$self{_GUI}{connQuickBtn} = Gtk3::Button->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connQuickBtn}, 0, 1, 0);
-    $$self{_GUI}{connQuickBtn}->set_image(Gtk3::Image->new_from_stock('asbru-quick-connect', 'button'));
+    $$self{_GUI}{connQuickBtn}->set_image(Gtk3::Image->new_from_stock('asbru-quick-connect', 'large_toolbar'));
     $$self{_GUI}{connQuickBtn}->set('can-focus' => 0);
     $$self{_GUI}{connQuickBtn}->set_tooltip_text('Start a new connection, without saving it');
 
     # Create "Favourite" button
     $$self{_GUI}{connFavourite} = Gtk3::ToggleButton->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connFavourite}, 1, 1, 0);
-    $$self{_GUI}{connFavourite}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'button'));
+    $$self{_GUI}{connFavourite}->set_image(Gtk3::Image->new_from_stock('asbru-favourite-on', 'large_toolbar'));
     $$self{_GUI}{connFavourite}->set('can-focus' => 0);
     $$self{_GUI}{connFavourite}->set_tooltip_text('Add to/remove from favourites connections list');
 
@@ -3993,23 +3994,17 @@ sub _updateGUIWithUUID {
 
     if ($is_root) {
         $$self{_GUI}{descBuffer}->set_text(qq"
+Welcome to $APPNAME $APPVERSION
 
- * Welcome to $APPNAME version $APPVERSION *
+Get started by creating your first connection group:
 
- - To create a New GROUP of Connections:
+  1.  Click 'My Connections' in the tree on the left
+  2.  Click the folder-plus icon at the top of the sidebar to add a group
+  3.  Inside a group, click the file-plus icon to add a connection
 
-   1- 'click' over 'My Connections' (to create it at root) or any other GROUP
-   2- 'click' on the most left icon over the connections tree (or right-click over selected GROUP)
-   3- Follow instructions
+Tip: right-click any tree item for more actions.
 
- - To create a New CONNECTION in a selected Group or at root:
-
-   1- Select the container group to create the new connection into (or 'My Connections' to create it at root)
-   2- 'click' on the second most left icon over the connections tree (or right-click over selected GROUP)
-   3- Follow instructions
-
- - For the latest news, check the project page on GitHub.
-
+For news and updates, visit the project page on GitHub.
 ");
     } else {
         if (!$$self{_CFG}{'environments'}{$uuid}{'description'}) {
