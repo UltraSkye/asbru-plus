@@ -317,10 +317,10 @@ notebook header.right tab box {
 }
 notebook header.left tab image,
 notebook header.right tab image {
-    min-width: 18px;
-    min-height: 18px;
-    margin-right: 8px;
-    -gtk-icon-transform: scale(1.1);
+    min-width: 20px;
+    min-height: 20px;
+    margin-bottom: 4px;
+    -gtk-icon-transform: scale(1.25);
 }
 notebook header.left tab label,
 notebook header.right tab label {
