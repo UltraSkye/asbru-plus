@@ -588,41 +588,38 @@ sub _initGUI {
     $$self{_GUI}{hbuttonbox1}->set_border_width(4);
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
-    # Create "Add Group" button
+    # Top sidebar action buttons — use 'large_toolbar' icon size (24px) so
+    # the Lucide stroke icons are clearly visible.
     $$self{_GUI}{groupAddBtn} = Gtk3::Button->new();
-    $$self{_GUI}{groupAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-group-add', 'button'));
+    $$self{_GUI}{groupAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-group-add', 'large_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{groupAddBtn}, 1, 1, 0);
     $$self{_GUI}{groupAddBtn}->set('can-focus' => 0);
     $$self{_GUI}{groupAddBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{groupAddBtn}->set_tooltip_text('Add a new group in the selected node');
 
-    # Create "Add Connection" button
     $$self{_GUI}{connAddBtn} = Gtk3::Button->new();
-    $$self{_GUI}{connAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-node-add', 'button'));
+    $$self{_GUI}{connAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-node-add', 'large_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{connAddBtn}, 1, 1, 0);
     $$self{_GUI}{connAddBtn}->set('can-focus' => 0);
     $$self{_GUI}{connAddBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{connAddBtn}->set_tooltip_text('Add a new connection in the selected node');
 
-    # Create "Edit" button
     $$self{_GUI}{connEditBtn} = Gtk3::Button->new();
-    $$self{_GUI}{connEditBtn}->set_image(Gtk3::Image->new_from_stock('gtk-edit', 'button'));
+    $$self{_GUI}{connEditBtn}->set_image(Gtk3::Image->new_from_stock('gtk-edit', 'large_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{connEditBtn}, 1, 1, 0);
     $$self{_GUI}{connEditBtn}->set('can-focus' => 0);
     $$self{_GUI}{connEditBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{connEditBtn}->set_tooltip_text('Edit the currently selected node');
 
-    # Create "Rename" button
     $$self{_GUI}{nodeRenBtn} = Gtk3::Button->new();
-    $$self{_GUI}{nodeRenBtn}->set_image(Gtk3::Image->new_from_stock('gtk-spell-check', 'button'));
+    $$self{_GUI}{nodeRenBtn}->set_image(Gtk3::Image->new_from_stock('gtk-spell-check', 'large_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{nodeRenBtn}, 1, 1, 0);
     $$self{_GUI}{nodeRenBtn}->set('can-focus' => 0);
     $$self{_GUI}{nodeRenBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{nodeRenBtn}->set_tooltip_text('Rename the currently selected node');
 
-    # Create "Delete" button
     $$self{_GUI}{nodeDelBtn} = Gtk3::Button->new();
-    $$self{_GUI}{nodeDelBtn}->set_image(Gtk3::Image->new_from_stock('gtk-delete', 'button'));
+    $$self{_GUI}{nodeDelBtn}->set_image(Gtk3::Image->new_from_stock('gtk-delete', 'large_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{nodeDelBtn}, 1, 1, 0);
     $$self{_GUI}{nodeDelBtn}->set('can-focus' => 0);
     $$self{_GUI}{nodeDelBtn}->get_style_context()->add_class("button-cp");
@@ -971,7 +968,7 @@ sub _initGUI {
 
     # Create "Hide command panel" button
     $$self{_GUI}{showConnBtn} = Gtk3::ToggleButton->new();
-    $$self{_GUI}{showConnBtn}->set_image(Gtk3::Image->new_from_stock('asbru-treelist', 'GTK_ICON_SIZE_BUTTON'));
+    $$self{_GUI}{showConnBtn}->set_image(Gtk3::Image->new_from_stock('asbru-treelist', 'large_toolbar'));
     $$self{_GUI}{showConnBtn}->set_active(1);
     $$self{_GUI}{showConnBtn}->set('can-focus' => 0);
     $$self{_GUI}{showConnBtn}->set_tooltip_text('Show/Hide connections tree panel');
@@ -1026,7 +1023,7 @@ sub _initGUI {
 
     # Create "Lock/Unlock" button
     $$self{_GUI}{lockApplicationBtn} = Gtk3::ToggleButton->new();
-    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-unprotected', 'GTK_ICON_SIZE_BUTTON'));
+    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-unprotected', 'large_toolbar'));
     $$self{_GUI}{lockApplicationBtn}->set_active(0);
     $$self{_GUI}{lockApplicationBtn}->set('can-focus' => 0);
     $$self{_GUI}{lockApplicationBtn}->set_tooltip_text('Password [un]lock GUI. In order to use this functionality, check the "Protect with password" field under "Preferences"->"Main Options"');
@@ -1034,7 +1031,7 @@ sub _initGUI {
 
     # Create "About" button
     $$self{_GUI}{aboutBtn} = Gtk3::Button->new();
-    $$self{_GUI}{aboutBtn}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'GTK_ICON_SIZE_BUTTON'));
+    $$self{_GUI}{aboutBtn}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'large_toolbar'));
     $$self{_GUI}{aboutBtn}->set('can-focus' => 0);
     $$self{_GUI}{aboutBtn}->set_tooltip_text('Show the *so needed* "About" dialog');
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{aboutBtn}, 0, 1, 0);

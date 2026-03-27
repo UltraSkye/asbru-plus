@@ -162,24 +162,26 @@ sub _buildScreenshotsGUI {
     # Build 'add' button
     $w{btnadd} = Gtk3::Button->new();
 
-    $w{hboxbtnadd} = Gtk3::HBox->new(0, 5);
+    $w{hboxbtnadd} = Gtk3::HBox->new(0, 8);
+    $w{hboxbtnadd}->set_border_width(4);
     $w{btnadd}->add($w{hboxbtnadd});
     $w{btnadd}->set('can_focus', 0);
 
-    $w{hboxbtnadd}->pack_start(Gtk3::Image->new_from_stock('gtk-add', 'menu'), 0, 1, 5);
-    $w{hboxbtnadd}->pack_start(Gtk3::Label->new("Add\nScreenshot"), 0, 1, 5);
+    $w{hboxbtnadd}->pack_start(Gtk3::Image->new_from_stock('gtk-add', 'large_toolbar'), 0, 0, 0);
+    $w{hboxbtnadd}->pack_start(Gtk3::Label->new("Add"), 0, 0, 0);
 
 
     $w{bbox}->add($w{btnadd});
 
     $w{btnopenfolder} = Gtk3::Button->new();
 
-    $w{hboxbtnopenfolder} = Gtk3::HBox->new(0, 5);
+    $w{hboxbtnopenfolder} = Gtk3::HBox->new(0, 8);
+    $w{hboxbtnopenfolder}->set_border_width(4);
     $w{btnopenfolder}->add($w{hboxbtnopenfolder});
     $w{btnopenfolder}->set('can_focus', 0);
 
-    $w{hboxbtnopenfolder}->pack_start(Gtk3::Image->new_from_stock('gtk-open', 'menu'), 0, 1, 5);
-    $w{hboxbtnopenfolder}->pack_start(Gtk3::Label->new("Open Folder"), 0, 1, 5);
+    $w{hboxbtnopenfolder}->pack_start(Gtk3::Image->new_from_stock('gtk-open', 'large_toolbar'), 0, 0, 0);
+    $w{hboxbtnopenfolder}->pack_start(Gtk3::Label->new("Open"), 0, 0, 0);
 
 
     $w{bbox}->add($w{btnopenfolder});

@@ -274,15 +274,16 @@ sub _buildStatisticsGUI {
     # Build a vbox for:buttons, separator and image widgets
     $w{hbox} = Gtk3::HBox->new(0, 0);
 
-    $w{hboxReset} = Gtk3::HBox->new(0, 5);
-    $w{hboxReset}->pack_start(Gtk3::Image->new_from_stock('gtk-refresh', 'menu'), 0, 1, 5);
-    $w{hboxReset}->pack_start(Gtk3::Label->new("Reset\nStatistics"), 0, 1, 5);
+    # Reset button — single line label, auto width, large_toolbar icon
+    $w{hboxReset} = Gtk3::HBox->new(0, 8);
+    $w{hboxReset}->set_border_width(4);
+    $w{hboxReset}->pack_start(Gtk3::Image->new_from_stock('gtk-refresh', 'large_toolbar'), 0, 0, 0);
+    $w{hboxReset}->pack_start(Gtk3::Label->new("Reset"), 0, 0, 0);
     $w{btnReset} = Gtk3::Button->new();
-    $w{btnReset}->set_size_request(155, 0);
     $w{btnReset}->set_valign('GTK_ALIGN_CENTER');
     $w{btnReset}->set('can_focus', 0);
     $w{btnReset}->add($w{hboxReset});
-    $w{hbox}->pack_start($w{btnReset}, 0, 0, 5);
+    $w{hbox}->pack_start($w{btnReset}, 0, 0, 8);
 
     $w{vbox} = Gtk3::VBox->new(0, 0);
     $w{hbox}->pack_start($w{vbox}, 1, 1, 0);
