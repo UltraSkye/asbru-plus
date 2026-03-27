@@ -47,27 +47,45 @@ INIT {
 
     if ($ENV{AUTOMP_DRIVE}) {
         require Glib;
-        my $tour_secs = $ENV{AUTOMP_TOUR_SECS} // 12;
-        # Use a one-shot idle to schedule the tour after GUI is up
+        my $tour_secs = $ENV{AUTOMP_TOUR_SECS} // 18;
         Glib::Timeout->add(2000, sub {
             print STDERR "[AutoMP] tour: opening preferences\n";
             eval {
                 my $main = $PACMain::FUNCS{_MAIN};
-                if ($main && $main->{_GUI}{configBtn}) {
-                    $main->{_GUI}{configBtn}->clicked;
-                }
+                $main->{_GUI}{configBtn}->clicked if $main && $main->{_GUI}{configBtn};
             };
-            print STDERR "[AutoMP] prefs error: $@\n" if $@;
-            return 0;  # one-shot
+            return 0;
         });
         Glib::Timeout->add(5000, sub {
             print STDERR "[AutoMP] tour: opening about\n";
             eval {
                 my $main = $PACMain::FUNCS{_MAIN};
-                if ($main && $main->{_GUI}{aboutBtn}) {
-                    $main->{_GUI}{aboutBtn}->clicked;
+                $main->{_GUI}{aboutBtn}->clicked if $main && $main->{_GUI}{aboutBtn};
+            };
+            return 0;
+        });
+        Glib::Timeout->add(8000, sub {
+            print STDERR "[AutoMP] tour: opening edit on test connection\n";
+            eval {
+                my $main = $PACMain::FUNCS{_MAIN};
+                # Find a non-group connection in cfg, open edit on it
+                my $cfg = $main->{_CFG};
+                my $uuid;
+                for my $k (keys %{$cfg->{environments}}) {
+                    next if $k eq '__PAC__ROOT__';
+                    next if $cfg->{environments}{$k}{_is_group};
+                    $uuid = $k; last;
+                }
+                if ($uuid && $main->{_GUI}{connEditBtn}) {
+                    print STDERR "[AutoMP] selecting $uuid\n";
+                    require PACEdit;
+                    if (!$main->{_EDIT}) {
+                        $main->{_EDIT} = PACEdit->new($cfg, $main);
+                    }
+                    $main->{_EDIT}->show($uuid);
                 }
             };
+            print STDERR "[AutoMP] edit err: $@\n" if $@;
             return 0;
         });
         Glib::Timeout->add($tour_secs * 1000, sub {

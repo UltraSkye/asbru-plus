@@ -12,7 +12,15 @@ button,
     margin: 4px;
     min-height: 32px;
     background-image: none;
+    outline: none;
+    -gtk-outline-radius: 8px;
     transition: background-color 150ms ease, border-color 150ms ease;
+}
+button:focus,
+button:focus:hover,
+.button-cp:focus {
+    outline: none;
+    -gtk-outline-radius: 8px;
 }
 button label,
 button > label,
