@@ -122,10 +122,28 @@ switch slider {
 /* ── Entries ──────────────────────────────────────────────────────────────*/
 entry,
 spinbutton {
-  color: #2e3436;
-  background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.10);
-  caret-color: #3584e4;
+    color: #2e3436;
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    caret-color: #3584e4;
+}
+spinbutton entry {
+    color: #2e3436;
+    background-color: transparent;
+}
+spinbutton button {
+    color: #5e5c64;
+    background-color: transparent;
+}
+spinbutton button:hover {
+    color: #2e3436;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+spinbutton button:first-child {
+    border-right-color: rgba(0, 0, 0, 0.10);
+}
+spinbutton button:last-child {
+    border-left-color: rgba(0, 0, 0, 0.10);
 }
 entry:hover,
 spinbutton:hover {

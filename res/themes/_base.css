@@ -104,10 +104,32 @@ spinbutton {
     border-width: 1px;
     border-style: solid;
     border-radius: 8px;
-    padding: 4px 8px;
-    margin: 2px;
+    padding: 0;
+    margin: 4px;
     min-height: 32px;
     font-size: 0.95em;
+}
+spinbutton entry {
+    border: 0;
+    padding: 6px 10px;
+    margin: 0;
+    background-color: transparent;
+}
+spinbutton button {
+    border: 0;
+    border-radius: 0;
+    padding: 0 8px;
+    margin: 0;
+    min-width: 24px;
+    min-height: 28px;
+    background-color: transparent;
+}
+spinbutton button:first-child {
+    border-right: 1px solid transparent;
+}
+spinbutton button:last-child {
+    border-left: 1px solid transparent;
+    border-radius: 0 8px 8px 0;
 }
 
 /* Combo box */
