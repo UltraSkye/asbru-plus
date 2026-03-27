@@ -495,7 +495,6 @@ sub _getDefaultConfig {
     $$cfg{'pactabs'}{'Ctrl+Page_Down'} = ['Tabs',              'next',                'Next Tab'];
     $$cfg{'pactabs'}{'Ctrl+Page_Up'}   = ['Tabs',              'previous',            'Previous Tab'];
     $$cfg{'pactabs'}{'undef-infotab'}  = ['Tabs',              'infotab',             'Got to Info Tab'];
-    $$cfg{'pacmain'}{'Ctrl+f'}         = ['Main Window',       'find',                'Find in connection tree'];
     $$cfg{'pacmain'}{'Ctrl+q'}         = ['Main Window',       'quit',                'Exit Ásbrú'];
     $$cfg{'pacmain'}{'Ctrl+T'}         = ['Main Window',       'localshell',          'Open a local shell'];
     $$cfg{'pacmain'}{'Alt+n'}          = ['Main Window',       'showconnections',     'Show/Hide connections list'];
@@ -513,7 +512,6 @@ sub _getDefaultConfig {
     $$cfg{'terminal'}{'Ctrl+g'}        = ['Terminal',          'hostname',            'Guess hostname'];
     $$cfg{'terminal'}{'Ctrl+w'}        = ['Terminal',          'close',               'Close Terminal'];
     $$cfg{'terminal'}{'Ctrl+W'}        = ['Terminal',          'disconnect',          'Disconnect Terminal'];
-    $$cfg{'terminal'}{'Ctrl+q'}        = ['Terminal',          'quit',                'Exit Ásbrú'];
     $$cfg{'terminal'}{'Ctrl+f'}        = ['Terminal',          'find',                'Find in connection tree'];
     $$cfg{'terminal'}{'CtrlShift+F4'}  = ['Terminal',          'closealltabs',        'Close all tabs'];
     $$cfg{'terminal'}{'Ctrl+N'}        = ['Terminal',          'close-disconected',   'Close disconnected sessions'];
@@ -521,7 +519,7 @@ sub _getDefaultConfig {
     $$cfg{'terminal'}{'Ctrl+R'}        = ['Terminal',          'restart',             'Restart connection (close and start)'];
     $$cfg{'terminal'}{'Ctrl+I'}        = ['Terminal',          'infotab',             'Show the Info tab'];
     $$cfg{'terminal'}{'Ctrl+F3'}       = ['Terminal',          'find-terminal',       'Find Terminal'];
-    $$cfg{'terminal'}{'Alt+n'}         = ['Terminal',          'showconnections',     'Show/Hide connections list'];
+    # Alt+n (showconnections) and Ctrl+q (quit) handled by pacmain
     $$cfg{'terminal'}{'Alt+e'}         = ['Terminal',          'edit_node',           'Edit connection'];
     $$cfg{'terminal'}{'Ctrl+plus'}     = ['Terminal',          'zoomin',              'Zoom in text'];
     $$cfg{'terminal'}{'Ctrl+minus'}    = ['Terminal',          'zoomout',             'Zoom out text'];
