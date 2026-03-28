@@ -799,11 +799,11 @@ sub _updateGUIPreferences {
     if ($$self{_CFG}{'environments'}{$uuid}{'_protected'}) {
         _($self, 'imgProtectedEdit')->set_from_stock('asbru-protected', 'button');
         _($self, 'btnSaveEdit')->set_sensitive(0);
-        _($self, 'lblProtectedEdit')->set_markup('Connection is <b><span foreground="#E60023">PROTECTED</span></b> against changes. You <b>can not</b> save changes.');
+        _($self, 'lblProtectedEdit')->set_markup('Connection is <b><span foreground="#e01b24">PROTECTED</span></b> against changes. You <b>can not</b> save changes.');
     } else {
         _($self, 'imgProtectedEdit')->set_from_stock('asbru-unprotected', 'button');
         _($self, 'btnSaveEdit')->set_sensitive(1);
-        _($self, 'lblProtectedEdit')->set_markup('Connection is <b><span foreground="#04C100">UNPROTECTED</span></b> against changes. You <b>can</b> save changes.');
+        _($self, 'lblProtectedEdit')->set_markup('Connection is <b><span foreground="#26a269">UNPROTECTED</span></b> against changes. You <b>can</b> save changes.');
     }
 
     # Show Jump options in network settings (only for SSH method)

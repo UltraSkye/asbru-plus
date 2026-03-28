@@ -204,10 +204,15 @@ messagedialog button,
     border-width: 1px;
     border-style: solid;
     border-radius: 8px;
-    padding: 10px 20px;
+    padding: 8px 24px;
     margin: 4px;
-    min-height: 36px;
+    min-height: 32px;
+    min-width: 88px;
     background-image: none;
+}
+messagedialog .dialog-action-area {
+    min-height: 48px;
+    padding: 12px;
 }
 .w-entervalue,
 .w-renamenode,

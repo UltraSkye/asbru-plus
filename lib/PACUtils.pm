@@ -2068,6 +2068,19 @@ sub _wMessage {
 
     if ($modal) {
         $windowConfirm->add_buttons('gtk-ok' => 'ok');
+        # Constrain action area buttons so the OK button does not stretch
+        # across the dialog width.
+        eval {
+            my $area = $windowConfirm->get_action_area;
+            if ($area) {
+                $area->set_layout('end');
+                $area->set_spacing(8);
+                foreach my $child ($area->get_children) {
+                    $child->set_hexpand(0);
+                    $child->set_halign('center');
+                }
+            }
+        };
         $windowConfirm->show_all();
         my $close = $windowConfirm->run();
         $windowConfirm->destroy();
@@ -2176,6 +2189,14 @@ sub _wConfirm {
     $windowConfirm->set_icon_name('asbru-app-big');
     $windowConfirm->set_title("Confirm action : $APPNAME");
     $windowConfirm->set_default_response($default);
+    # Constrain dialog action buttons
+    eval {
+        my $area = $windowConfirm->get_action_area;
+        if ($area) {
+            $area->set_layout('end'); $area->set_spacing(8);
+            foreach my $c ($area->get_children) { $c->set_hexpand(0); $c->set_halign('center'); }
+        }
+    };
 
     $windowConfirm->show_all();
     my $close = $windowConfirm->run();
@@ -2206,6 +2227,13 @@ sub _wYesNoCancel {
     $windowConfirm->add_buttons('gtk-cancel'=> 'cancel','gtk-no'=> 'no','gtk-yes' => 'yes');
     $windowConfirm->set_icon_name('asbru-app-big');
     $windowConfirm->set_title("Confirm action : $APPNAME");
+    eval {
+        my $area = $windowConfirm->get_action_area;
+        if ($area) {
+            $area->set_layout('end'); $area->set_spacing(8);
+            foreach my $c ($area->get_children) { $c->set_hexpand(0); $c->set_halign('center'); }
+        }
+    };
 
     $windowConfirm->show_all();
     my $close = $windowConfirm->run();
