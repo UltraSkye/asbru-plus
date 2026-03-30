@@ -277,7 +277,7 @@ sub _buildStatisticsGUI {
     # Reset button — single line label, auto width, large_toolbar icon
     $w{hboxReset} = Gtk3::HBox->new(0, 8);
     $w{hboxReset}->set_border_width(4);
-    $w{hboxReset}->pack_start(Gtk3::Image->new_from_stock('gtk-refresh', 'large_toolbar'), 0, 0, 0);
+    $w{hboxReset}->pack_start(Gtk3::Image->new_from_stock('gtk-refresh', 'small_toolbar'), 0, 0, 0);
     $w{hboxReset}->pack_start(Gtk3::Label->new("Reset"), 0, 0, 0);
     $w{btnReset} = Gtk3::Button->new();
     $w{btnReset}->set_valign('GTK_ALIGN_CENTER');

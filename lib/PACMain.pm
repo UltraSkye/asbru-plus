@@ -588,38 +588,37 @@ sub _initGUI {
     $$self{_GUI}{hbuttonbox1}->set_border_width(4);
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
-    # Top sidebar action buttons — use 'large_toolbar' icon size (24px) so
-    # the Lucide stroke icons are clearly visible.
+    # Top sidebar action buttons — small_toolbar (16px) Lucide icons.
     $$self{_GUI}{groupAddBtn} = Gtk3::Button->new();
-    $$self{_GUI}{groupAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-group-add', 'large_toolbar'));
+    $$self{_GUI}{groupAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-group-add', 'small_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{groupAddBtn}, 1, 1, 0);
     $$self{_GUI}{groupAddBtn}->set('can-focus' => 0);
     $$self{_GUI}{groupAddBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{groupAddBtn}->set_tooltip_text('Add a new group in the selected node');
 
     $$self{_GUI}{connAddBtn} = Gtk3::Button->new();
-    $$self{_GUI}{connAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-node-add', 'large_toolbar'));
+    $$self{_GUI}{connAddBtn}->set_image(Gtk3::Image->new_from_stock('asbru-node-add', 'small_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{connAddBtn}, 1, 1, 0);
     $$self{_GUI}{connAddBtn}->set('can-focus' => 0);
     $$self{_GUI}{connAddBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{connAddBtn}->set_tooltip_text('Add a new connection in the selected node');
 
     $$self{_GUI}{connEditBtn} = Gtk3::Button->new();
-    $$self{_GUI}{connEditBtn}->set_image(Gtk3::Image->new_from_stock('gtk-edit', 'large_toolbar'));
+    $$self{_GUI}{connEditBtn}->set_image(Gtk3::Image->new_from_stock('gtk-edit', 'small_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{connEditBtn}, 1, 1, 0);
     $$self{_GUI}{connEditBtn}->set('can-focus' => 0);
     $$self{_GUI}{connEditBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{connEditBtn}->set_tooltip_text('Edit the currently selected node');
 
     $$self{_GUI}{nodeRenBtn} = Gtk3::Button->new();
-    $$self{_GUI}{nodeRenBtn}->set_image(Gtk3::Image->new_from_stock('gtk-spell-check', 'large_toolbar'));
+    $$self{_GUI}{nodeRenBtn}->set_image(Gtk3::Image->new_from_stock('gtk-spell-check', 'small_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{nodeRenBtn}, 1, 1, 0);
     $$self{_GUI}{nodeRenBtn}->set('can-focus' => 0);
     $$self{_GUI}{nodeRenBtn}->get_style_context()->add_class("button-cp");
     $$self{_GUI}{nodeRenBtn}->set_tooltip_text('Rename the currently selected node');
 
     $$self{_GUI}{nodeDelBtn} = Gtk3::Button->new();
-    $$self{_GUI}{nodeDelBtn}->set_image(Gtk3::Image->new_from_stock('gtk-delete', 'large_toolbar'));
+    $$self{_GUI}{nodeDelBtn}->set_image(Gtk3::Image->new_from_stock('gtk-delete', 'small_toolbar'));
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{nodeDelBtn}, 1, 1, 0);
     $$self{_GUI}{nodeDelBtn}->set('can-focus' => 0);
     $$self{_GUI}{nodeDelBtn}->get_style_context()->add_class("button-cp");
@@ -822,14 +821,14 @@ sub _initGUI {
     # Create a "Search" button
     $$self{_GUI}{connSearch} = Gtk3::Button->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connSearch}, 0, 1, 0);
-    $$self{_GUI}{connSearch}->set_image(Gtk3::Image->new_from_stock('gtk-find', 'large_toolbar'));
+    $$self{_GUI}{connSearch}->set_image(Gtk3::Image->new_from_stock('gtk-find', 'small_toolbar'));
     $$self{_GUI}{connSearch}->set('can-focus' => 0);
     $$self{_GUI}{connSearch}->set_tooltip_text('Start interactive search for connections');
 
     # Create "Start" button — primary action, large icon, suggested-action.
     $$self{_GUI}{connExecBtn} = Gtk3::Button->new('Connect');
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connExecBtn}, 1, 1, 0);
-    $$self{_GUI}{connExecBtn}->set_image(Gtk3::Image->new_from_stock('gtk-connect', 'large_toolbar'));
+    $$self{_GUI}{connExecBtn}->set_image(Gtk3::Image->new_from_stock('gtk-connect', 'small_toolbar'));
     $$self{_GUI}{connExecBtn}->set_always_show_image(1);
     $$self{_GUI}{connExecBtn}->set_image_position('GTK_POS_LEFT');
     $$self{_GUI}{connExecBtn}->set('can-focus' => 0);
@@ -839,14 +838,14 @@ sub _initGUI {
     # Create "Quick Connect" button
     $$self{_GUI}{connQuickBtn} = Gtk3::Button->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connQuickBtn}, 0, 1, 0);
-    $$self{_GUI}{connQuickBtn}->set_image(Gtk3::Image->new_from_stock('asbru-quick-connect', 'large_toolbar'));
+    $$self{_GUI}{connQuickBtn}->set_image(Gtk3::Image->new_from_stock('asbru-quick-connect', 'small_toolbar'));
     $$self{_GUI}{connQuickBtn}->set('can-focus' => 0);
     $$self{_GUI}{connQuickBtn}->set_tooltip_text('Start a new connection, without saving it');
 
     # Create "Favourite" button
     $$self{_GUI}{connFavourite} = Gtk3::ToggleButton->new();
     $$self{_GUI}{hboxsearchstart}->pack_start($$self{_GUI}{connFavourite}, 1, 1, 0);
-    $$self{_GUI}{connFavourite}->set_image(Gtk3::Image->new_from_stock('asbru-favourite-on', 'large_toolbar'));
+    $$self{_GUI}{connFavourite}->set_image(Gtk3::Image->new_from_stock('asbru-favourite-on', 'small_toolbar'));
     $$self{_GUI}{connFavourite}->set('can-focus' => 0);
     $$self{_GUI}{connFavourite}->set_tooltip_text('Add to/remove from favourites connections list');
 
@@ -969,7 +968,7 @@ sub _initGUI {
 
     # Create "Hide command panel" button
     $$self{_GUI}{showConnBtn} = Gtk3::ToggleButton->new();
-    $$self{_GUI}{showConnBtn}->set_image(Gtk3::Image->new_from_stock('asbru-treelist', 'large_toolbar'));
+    $$self{_GUI}{showConnBtn}->set_image(Gtk3::Image->new_from_stock('asbru-treelist', 'small_toolbar'));
     $$self{_GUI}{showConnBtn}->set_active(1);
     $$self{_GUI}{showConnBtn}->set('can-focus' => 0);
     $$self{_GUI}{showConnBtn}->set_tooltip_text('Show/Hide connections tree panel');
@@ -1024,7 +1023,7 @@ sub _initGUI {
 
     # Create "Lock/Unlock" button
     $$self{_GUI}{lockApplicationBtn} = Gtk3::ToggleButton->new();
-    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-unprotected', 'large_toolbar'));
+    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-unprotected', 'small_toolbar'));
     $$self{_GUI}{lockApplicationBtn}->set_active(0);
     $$self{_GUI}{lockApplicationBtn}->set('can-focus' => 0);
     $$self{_GUI}{lockApplicationBtn}->set_tooltip_text('Password [un]lock GUI. In order to use this functionality, check the "Protect with password" field under "Preferences"->"Main Options"');
@@ -1032,7 +1031,7 @@ sub _initGUI {
 
     # Create "About" button
     $$self{_GUI}{aboutBtn} = Gtk3::Button->new();
-    $$self{_GUI}{aboutBtn}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'large_toolbar'));
+    $$self{_GUI}{aboutBtn}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'small_toolbar'));
     $$self{_GUI}{aboutBtn}->set('can-focus' => 0);
     $$self{_GUI}{aboutBtn}->set_tooltip_text('Show the *so needed* "About" dialog');
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{aboutBtn}, 0, 1, 0);
@@ -3435,13 +3434,13 @@ sub _quitProgram {
     # Disconnect some events (to avoid side effects when closing/hiding)
     $$self{_GUI}{main}->signal_handler_disconnect($$self{_SIGNALS}{_WINDOWSTATEVENT}) if $$self{_SIGNALS}{_WINDOWSTATEVENT};
 
-    # Hide every GUI component has already finished
-    $$self{_TRAY}->set_passive();
-    $$self{_SCRIPTS}{_WINDOWSCRIPTS}{main}->hide();    # Hide scripts window
-    $$self{_CLUSTER}{_WINDOWCLUSTER}{main}->hide();    # Hide clusters window
-    $$self{_PCC}{_WINDOWPCC}{main}->hide();    # Hide PCC window
-    $$self{_GUI}{main}->hide();    # Hide main window
-    $$self{_GUI}{_PACTABS}->hide();    # Hide TABs window
+    # Hide every GUI component (defensive — some may not exist on early exit)
+    $$self{_TRAY}->set_passive() if $$self{_TRAY};
+    $$self{_SCRIPTS}{_WINDOWSCRIPTS}{main}->hide() if $$self{_SCRIPTS} && $$self{_SCRIPTS}{_WINDOWSCRIPTS}{main};
+    $$self{_CLUSTER}{_WINDOWCLUSTER}{main}->hide() if $$self{_CLUSTER} && $$self{_CLUSTER}{_WINDOWCLUSTER}{main};
+    $$self{_PCC}{_WINDOWPCC}{main}->hide() if $$self{_PCC} && $$self{_PCC}{_WINDOWPCC}{main};
+    $$self{_GUI}{main}->hide() if $$self{_GUI}{main};
+    $$self{_GUI}{_PACTABS}->hide() if $$self{_GUI}{_PACTABS};
 
     if ($$self{_READONLY}) {
         Gtk3->main_quit();

@@ -7,13 +7,13 @@ button,
 .button-cp {
     border-width: 1px;
     border-style: solid;
-    border-radius: 8px;
-    padding: 8px 16px;
-    margin: 4px;
-    min-height: 32px;
+    border-radius: 6px;
+    padding: 4px 12px;
+    margin: 3px;
+    min-height: 28px;
     background-image: none;
     outline: none;
-    -gtk-outline-radius: 8px;
+    -gtk-outline-radius: 6px;
     transition: background-color 150ms ease, border-color 150ms ease;
 }
 button:focus,
@@ -93,20 +93,20 @@ switch slider {
 entry {
     border-width: 1px;
     border-style: solid;
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin: 4px;
-    min-height: 32px;
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin: 3px;
+    min-height: 28px;
     background-image: none;
     transition: border-color 150ms ease;
 }
 spinbutton {
     border-width: 1px;
     border-style: solid;
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 0;
-    margin: 4px;
-    min-height: 32px;
+    margin: 3px;
+    min-height: 28px;
     font-size: 0.95em;
 }
 spinbutton entry {
@@ -182,19 +182,19 @@ scrollbar trough {
 messagedialog {
     border-width: 1px;
     border-style: solid;
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 10px;
+    padding: 12px;
 }
 messagedialog > box {
-    margin: 8px;
-    padding: 12px;
+    margin: 6px;
+    padding: 8px;
 }
 messagedialog .dialog-action-area {
     padding: 8px;
-    margin-top: 16px;
+    margin-top: 12px;
 }
 messagedialog label {
-    margin: 6px 0;
+    margin: 4px 0;
 }
 messagedialog button,
 .w-confirm button,
@@ -203,16 +203,16 @@ messagedialog button,
 .w-info button {
     border-width: 1px;
     border-style: solid;
-    border-radius: 8px;
-    padding: 8px 24px;
+    border-radius: 6px;
+    padding: 6px 18px;
     margin: 4px;
-    min-height: 32px;
-    min-width: 88px;
+    min-height: 28px;
+    min-width: 80px;
     background-image: none;
 }
 messagedialog .dialog-action-area {
-    min-height: 48px;
-    padding: 12px;
+    min-height: 40px;
+    padding: 8px;
 }
 .w-entervalue,
 .w-renamenode,
