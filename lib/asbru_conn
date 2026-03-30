@@ -934,6 +934,17 @@ sub _setProxy {
 sub _getProxyCmd {
     my ($proxy_type, $proxy_ip, $proxy_port, $proxy_user, $proxy_pass) = @_;
 
+    # Validate proxy parameters to prevent shell injection
+    if ($proxy_ip !~ /^[\w.\-:\[\]]+$/) {
+        die "ERROR: Invalid proxy host '$proxy_ip'\n";
+    }
+    if ($proxy_port !~ /^\d+$/ || $proxy_port < 1 || $proxy_port > 65535) {
+        die "ERROR: Invalid proxy port '$proxy_port'\n";
+    }
+    if ($proxy_type !~ /^(socks4|socks5|http)$/) {
+        die "ERROR: Invalid proxy type '$proxy_type' (must be socks4, socks5, or http)\n";
+    }
+
     if ($proxy_user ne '') {
         if (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which ncat 1>/dev/null 2>&1") eq 0) {
             # Pass credentials via environment variable to avoid exposure in process list
@@ -1353,11 +1364,22 @@ if (defined $METHOD) {
         }
         _setProxy($method);
         if ($method eq 'TigerVNC') {
-            # Create temp file with 0600 mode BEFORE shell redirects into it,
-            # so the VNC password file is never world-readable even momentarily.
+            # Create temp file with 0600 mode; pipe password to vncpasswd via
+            # IPC::Open3 to avoid shell interpolation of complex passwords.
             my (undef, $pfile) = tempfile('asbru_vnc_XXXXXX', DIR => "$CFG_DIR/tmp", UNLINK => 0);
             $_vnc_pfile = $pfile;
-            system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} echo \"" . _doShellEscape($PASS) . "\" | vncpasswd -f > \"$pfile\"");
+            {
+                use IPC::Open3;
+                my $pid = open3(my $in, my $out, undef, 'vncpasswd', '-f');
+                print $in $PASS;
+                close $in;
+                open(my $fh, '>:raw', $pfile) or die "Cannot write VNC password file '$pfile': $!";
+                while (my $buf = <$out>) { print $fh $buf; }
+                close $fh;
+                close $out;
+                waitpid($pid, 0);
+                chmod 0600, $pfile;
+            }
             if (defined $$CFG{'tmp'}{'xid'}) {
                 $connection_cmd = "$vncviewer_cmd $CONNECT_OPTS -PasswordFile=\"$pfile\" -Parent=$$CFG{'tmp'}{'xid'} $IP:$PORT";
                 $connection_txt = "$vncviewer_cmd $CONNECT_OPTS -PasswordFile=\"$pfile\" -Parent=$$CFG{'tmp'}{'xid'} $IP:$PORT";
