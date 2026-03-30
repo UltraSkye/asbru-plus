@@ -586,18 +586,25 @@ sub _exporter {
     my $name = 'asbru';
 
     my $suffix = '';
-    my $func = '';
+    my $export_func;
 
     if ($format eq 'yaml') {
         $suffix = '.yml';
-        $func = 'require YAML; YAML::DumpFile($file, $$self{_CFG}) or die "ERROR: Could not save file \'$file\' ($!)";';
+        $export_func = sub { require YAML; YAML::DumpFile($file, $$self{_CFG}) or die "ERROR: Could not save file '$file' ($!)"; };
     } elsif ($format eq 'perl') {
         $suffix = '.dumper';
-        $func = 'use Data::Dumper; $Data::Dumper::Indent = 1; $Data::Dumper::Purity = 1; open(F, ">:utf8",$file) or die "ERROR: Could not open file \'$file\' for writting ($!)"; print F Dumper($$self{_CFG}); close F;';
+        $export_func = sub {
+            require Data::Dumper;
+            local $Data::Dumper::Indent = 1;
+            local $Data::Dumper::Purity = 1;
+            open(my $fh, '>:utf8', $file) or die "ERROR: Could not open file '$file' for writing ($!)";
+            print $fh Data::Dumper::Dumper($$self{_CFG});
+            close $fh;
+        };
     } elsif ($format eq 'debug') {
         $name = 'debug';
         $suffix = '.yml';
-        $func = 'require YAML; YAML::DumpFile($file, $$self{_CFG}) or die "ERROR: Could not save file \'$file\' ($!)";';
+        $export_func = sub { require YAML; YAML::DumpFile($file, $$self{_CFG}) or die "ERROR: Could not save file '$file' ($!)"; };
         my $answ = _wConfirm($$self{_WINDOWCONFIG}, "You are about to create a file containing an anonymized version of your settings.\n\nThis file will contain your configuration settings without any sensitive personal data in it.  It is only useful for debugging purposes only. Do not use this file for backup purposes.\n\nCare has been taken to remove all personal information but no guarantee is given, you are the only responsible for any disclosed information.\nPlease review the exported data before sharing it with a third party.\n\n<b>Do you wish to continue?</b>");
         if (!$answ) {
             _wMessage($$self{_WINDOWCONFIG}, "Export process has been canceled.");
@@ -635,7 +642,7 @@ sub _exporter {
     _cipherCFG($$self{_CFG});
 
     $$self{_CFG}{'__PAC__EXPORTED__FULL__'} = 1;
-    eval "$func";
+    eval { $export_func->(); };
     if ((!$@) && (defined $w)) {
         if ($format eq 'debug') {
             $file = cleanUpPersonalData($file);
@@ -667,10 +674,10 @@ sub cleanUpPersonalData {
     $SIG{__WARN__} = sub{};
     print STDERR "SAVED IN : $file\nOUT: $out\n";
     # Remove all personal information
-    open(F, "<:utf8", $file);
-    open(D, ">:utf8", $out);
+    open(my $fh_in, '<:utf8', $file) or die "ERROR: Cannot open '$file' for reading: $!";
+    open(my $fh_out, '>:utf8', $out) or die "ERROR: Cannot open '$out' for writing: $!";
     my $C = 0;
-    while (my $line = <F>) {
+    while (my $line = <$fh_in>) {
         my $next = 0;
         foreach my $key ('name', 'send', 'ip', 'user', 'prepend command', 'postpend_command', 'database', 'gui password', 'sudo password') {
             if ($line =~ /^[\t ]+$key:/) {
@@ -698,17 +705,17 @@ sub cleanUpPersonalData {
             if ($line =~ /^([\t ]+)/) {
                 $indent = $1;
             }
-            print D $line;
-            while (my $l = <F>) {
+            print $fh_out $line;
+            while (my $l = <$fh_in>) {
                 if ($l =~ /^${indent}\w/) {
-                    print D $l;
+                    print $fh_out $l;
                     last;
                 } elsif ($global) {
                     next;
                 } elsif ($l =~ /description|expect|send|txt/) {
                     $l =~ s|(.+?):.+|$1: 'removed'|;
                 }
-                print D $l;
+                print $fh_out $l;
             }
             next;
         } elsif ($line =~ /^[\t ]+options:/) {
@@ -736,10 +743,10 @@ sub cleanUpPersonalData {
         }
         $line =~ s|/home/.+?/|/home/PATH/|;
         $line =~ s|$ENV{USER}|USER|;
-        print D $line;
+        print $fh_out $line;
     }
     # Add runtime information
-    print D "\n\n#$APPNAME : $APPVERSION\n\n# ENV Data\n";
+    print $fh_out "\n\n#$APPNAME : $APPVERSION\n\n# ENV Data\n";
     my $user = $ENV{USER} ? $ENV{USER} : $ENV{LOGNAME};
     foreach my $k (sort keys %ENV) {
         if ($k =~ /token|hostname|startup|KPXC|AUTH/i) {
@@ -747,11 +754,11 @@ sub cleanUpPersonalData {
         }
         my $str = $ENV{$k};
         $str =~ s|$user|USER|g;
-        print D "#$k : $str\n";
+        print $fh_out "#$k : $str\n";
     }
-    print D "\n\n";
-    close F;
-    close D;
+    print $fh_out "\n\n";
+    close $fh_in;
+    close $fh_out;
     unlink $file;
     return $out;
 }
@@ -1234,7 +1241,7 @@ sub _saveConfiguration {
 
         $PACUtils::PACDESKTOP[6] = 'Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm --no-splash' . ($$self{_CFG}{'defaults'}{'start iconified'} ? ' --iconified' : '');
         if (!-e $autostart_dir) {
-            mkdir($autostart_dir);
+            mkdir($autostart_dir, 0700);
         }
         if (-d $autostart_dir) {
             open(F, ">:utf8", "$autostart_dir/asbru_start.desktop");
