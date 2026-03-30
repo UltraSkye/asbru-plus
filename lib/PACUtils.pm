@@ -1478,6 +1478,18 @@ sub _registerPACIcons {
         'gtk-jump-to'            => "$THEME_DIR/gtk-jump-to.svg",
         'gtk-floppy'             => "$THEME_DIR/gtk-floppy.svg",
         'gtk-cdrom'              => "$THEME_DIR/gtk-cdrom.svg",
+        'gtk-select-font'        => "$THEME_DIR/gtk-select-font.svg",
+        'gtk-dialog-info'        => "$THEME_DIR/gtk-dialog-info.svg",
+        # Preferences sidebar tab icons (consistent Lucide set)
+        'asbru-prefs-main'        => "$THEME_DIR/asbru-prefs-main.svg",
+        'asbru-prefs-terminal'    => "$THEME_DIR/asbru-prefs-terminal.svg",
+        'asbru-prefs-shell'       => "$THEME_DIR/asbru-prefs-shell.svg",
+        'asbru-prefs-network'     => "$THEME_DIR/asbru-prefs-network.svg",
+        'asbru-prefs-vars'        => "$THEME_DIR/asbru-prefs-vars.svg",
+        'asbru-prefs-localcmd'    => "$THEME_DIR/asbru-prefs-localcmd.svg",
+        'asbru-prefs-remotecmd'   => "$THEME_DIR/asbru-prefs-remotecmd.svg",
+        'asbru-prefs-keepass'     => "$THEME_DIR/asbru-prefs-keepass.svg",
+        'asbru-prefs-keybindings' => "$THEME_DIR/asbru-prefs-keybindings.svg",
     );
 
     my $icon_factory = Gtk3::IconFactory->new();

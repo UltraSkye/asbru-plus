@@ -5686,7 +5686,8 @@ sudo -p sudo_prompt_string ...</property>
                   <object class="GtkImage" id="image1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="pixbuf">asbru-logo-24.png</property>
+                    <property name="stock">asbru-prefs-main</property>
+                    <property name="icon_size">3</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -8259,7 +8260,7 @@ If you don't use transparency, leave ths option unchecked as it will slightly im
                   <object class="GtkImage" id="image2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="pixbuf">asbru_terminal16x16.png</property>
+                    <property name="stock">asbru-prefs-terminal</property>
                     <property name="icon_size">3</property>
                   </object>
                   <packing>
@@ -8570,7 +8571,7 @@ If you don't use transparency, leave ths option unchecked as it will slightly im
                   <object class="GtkImage" id="image3">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-home</property>
+                    <property name="stock">asbru-prefs-shell</property>
                     <property name="icon_size">3</property>
                   </object>
                   <packing>
@@ -9181,7 +9182,7 @@ For all other types of connection, this setting will be ignored.
                   <object class="GtkImage" id="image4">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-network</property>
+                    <property name="stock">asbru-prefs-network</property>
                     <property name="icon_size">3</property>
                   </object>
                   <packing>
@@ -9252,7 +9253,8 @@ For all other types of connection, this setting will be ignored.
                   <object class="GtkImage" id="image6">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-dialog-question</property>
+                    <property name="stock">asbru-prefs-vars</property>
+                    <property name="icon_size">3</property>
                     <property name="pixel_size">0</property>
                     <property name="icon_size">3</property>
                   </object>
@@ -9322,7 +9324,7 @@ For all other types of connection, this setting will be ignored.
                   <object class="GtkImage" id="image5">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-media-play</property>
+                    <property name="stock">asbru-prefs-localcmd</property>
                     <property name="pixel_size">0</property>
                     <property name="icon_size">3</property>
                   </object>
@@ -9392,7 +9394,7 @@ For all other types of connection, this setting will be ignored.
                   <object class="GtkImage" id="image14">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-media-play</property>
+                    <property name="stock">asbru-prefs-remotecmd</property>
                     <property name="pixel_size">0</property>
                     <property name="icon_size">3</property>
                   </object>
@@ -9466,8 +9468,8 @@ to read any KeePass database file and use any entry to automate connection insid
                   <object class="GtkImage" id="imgKeePassOpts">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-dialog-question</property>
-                    <property name="icon_size">1</property>
+                    <property name="stock">asbru-prefs-keepass</property>
+                    <property name="icon_size">3</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9530,7 +9532,8 @@ to read any KeePass database file and use any entry to automate connection insid
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="stock">gtk-select-font</property>
+                    <property name="stock">asbru-prefs-keybindings</property>
+                    <property name="icon_size">3</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

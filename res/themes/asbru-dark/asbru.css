@@ -305,28 +305,36 @@ notebook header.bottom tab:hover {
     color: #ffffff;
 }
 
-/* Sidebar tabs (left/right) — like a vertical menu */
+/* Sidebar tabs (left/right) — vertical menu look */
 notebook header.left,
 notebook header.right {
-    background-color: #262626;
-    border-right-color: rgba(255, 255, 255, 0.08);
-    border-left-color: rgba(255, 255, 255, 0.08);
+    background-color: #232323;
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-left-color: rgba(255, 255, 255, 0.10);
+    padding: 12px 8px;
 }
 notebook header.left tab,
 notebook header.right tab {
-    color: #b6b6b6;
+    color: #b0b0b0;
+    min-width: 130px;
 }
 notebook header.left tab:hover,
 notebook header.right tab:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     color: #ffffff;
 }
 notebook header.left tab:checked,
 notebook header.right tab:checked,
 notebook header.left tab:active,
 notebook header.right tab:active {
-    background-color: rgba(53, 132, 228, 0.20);
+    background-color: rgba(53, 132, 228, 0.24);
     color: #ffffff;
+    box-shadow: inset 3px 0 0 #3584e4;
+}
+notebook header.left tab label,
+notebook header.right tab label {
+    font-weight: 500;
+    font-size: 0.92em;
 }
 
 /* ── Toolbar ──────────────────────────────────────────────────────────────*/
