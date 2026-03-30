@@ -3432,7 +3432,9 @@ sub _quitProgram {
     print "INFO: Finishing ($Script) with pid $$\n";
 
     # Disconnect some events (to avoid side effects when closing/hiding)
-    $$self{_GUI}{main}->signal_handler_disconnect($$self{_SIGNALS}{_WINDOWSTATEVENT}) if $$self{_SIGNALS}{_WINDOWSTATEVENT};
+    if ($$self{_GUI}{main} && $$self{_SIGNALS}{_WINDOWSTATEVENT}) {
+        eval { $$self{_GUI}{main}->signal_handler_disconnect($$self{_SIGNALS}{_WINDOWSTATEVENT}); };
+    }
 
     # Hide every GUI component (defensive — some may not exist on early exit)
     $$self{_TRAY}->set_passive() if $$self{_TRAY};
