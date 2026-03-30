@@ -1486,8 +1486,10 @@ sub _watchConnectionData {
             }
 
         } elsif ($data =~ /^EXPLORER:(.+)/go) {
-            my $path = $1; $path =~ s/'/'\\''/g;
-            system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} xdg-open '$path' &");
+            my $path = $1;
+            if (!fork()) {
+                exec('xdg-open', $path) or exit 1;
+            }
         } elsif ($data =~ /^PIPE_WAIT\[(.+?)\]\[(.+)\]/go) {
             my $time = $1;
             my $prompt = $2;
@@ -3361,9 +3363,13 @@ sub _pipeExecOutput {
         return 1;
     }
     foreach my $cmd (@{$pipe}) {
-        open(F, ">:utf8", $$self{_TMPPIPE});
-        print F $out;
-        close F;
+        if (open(my $fh, '>:utf8', $$self{_TMPPIPE})) {
+            print $fh $out;
+            close $fh;
+        } else {
+            warn "WARNING: Could not write to pipe file '$$self{_TMPPIPE}': $!";
+            next;
+        }
         $out = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cat $$self{_TMPPIPE} | $ENV{'ASBRU_ENV_FOR_EXTERNAL'} $cmd 2>&1`;
     }
     $$self{_EXEC}{OUT} = $out;
