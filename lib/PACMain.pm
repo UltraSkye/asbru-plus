@@ -274,7 +274,7 @@ sub new {
     print STDERR "INFO: Theme directory is '$$self{_THEME}'\n";
 
     _registerPACIcons($THEME_DIR);
-    $AUTOCLUSTERICON = _pixBufFromFile("$THEME_DIR/asbru_cluster_auto.png");
+    $AUTOCLUSTERICON = _pixBufFromFile("$THEME_DIR/asbru_cluster_auto.svg");
     $CLUSTERICON = _pixBufFromFile("$THEME_DIR/asbru_cluster_connection.svg");
     $GROUPICON_ROOT = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
     $GROUPICON = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
@@ -3433,7 +3433,13 @@ sub _quitProgram {
 
     # Disconnect some events (to avoid side effects when closing/hiding)
     if ($$self{_GUI}{main} && $$self{_SIGNALS}{_WINDOWSTATEVENT}) {
-        eval { $$self{_GUI}{main}->signal_handler_disconnect($$self{_SIGNALS}{_WINDOWSTATEVENT}); };
+        my $w = $$self{_GUI}{main};
+        my $id = $$self{_SIGNALS}{_WINDOWSTATEVENT};
+        eval {
+            if ($w->signal_handler_is_connected($id)) {
+                $w->signal_handler_disconnect($id);
+            }
+        };
     }
 
     # Hide every GUI component (defensive — some may not exist on early exit)
