@@ -368,7 +368,9 @@ sub show {
         my $result = pop(@lines); chomp $result;
         $result =~ s/^\Q$tmpfile\E\s+(.+)$/$1/g;
 
-        $$self{_WINDOWSCRIPTS}{gui}{status}->set_markup('<span foreground="' . ($err ? 'red' : '#00D206') . '">' . "<b>" . __("$name: $result") . "</b>" . '</span>');
+        my $_esc_name = Glib::Markup::escape_text($name);
+        my $_esc_result = Glib::Markup::escape_text($result);
+        $$self{_WINDOWSCRIPTS}{gui}{status}->set_markup('<span foreground="' . ($err ? 'red' : '#00D206') . '">' . "<b>" . __("$_esc_name: $_esc_result") . "</b>" . '</span>');
         $$self{_WINDOWSCRIPTS}{gui}{status}->set_tooltip_text(' * ' . localtime(time) . " :\n" . ($err ? join('', @lines) : 'syntax ok') );
 
         $$self{_SYNTAX_CHANGED} = 0;
@@ -1068,15 +1070,20 @@ All $CONNECTIONS{error|out1|out2} are resetted every time a SEND command is exec
     $$self{_WINDOWSCRIPTS}{gui}{btnadd}->signal_connect('clicked' => sub {
         my $name = _wEnterValue($$self{_WINDOWSCRIPTS}{main}, "<b>Creating new Script</b>"  , "Enter a name for the new Ásbrú Script");
         return 1 if ((! defined $name) || ($name =~ /^\s*$/go) );
+        # Prevent directory traversal and shell metacharacters in script names
+        if ($name =~ m{[/\\\0]}) {
+            _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Script name must not contain path separators");
+            return 1;
+        }
         return 1 if -f "$SCRIPTS_DIR/$name.pl" && ! _wConfirm($$self{_WINDOWSCRIPTS}{main}, "File '$name.pl' already exists. Overwrite it?");
 
-        if (! open(F,">:utf8","$SCRIPTS_DIR/$name.pl")) {
+        if (! open(my $fh, '>:utf8', "$SCRIPTS_DIR/$name.pl")) {
             _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open file '$name.pl' for writting ($!)");
             return 1;
         }
 
-        print F $PAC_SCRIPTS_NEW;
-        close F;
+        print $fh $PAC_SCRIPTS_NEW;
+        close $fh;
 
         $self->_reloadDir;
         $self->_selectFile($name . '.pl');
