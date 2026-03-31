@@ -1490,6 +1490,7 @@ sub _registerPACIcons {
         'asbru-prefs-remotecmd'   => "$THEME_DIR/asbru-prefs-remotecmd.svg",
         'asbru-prefs-keepass'     => "$THEME_DIR/asbru-prefs-keepass.svg",
         'asbru-prefs-keybindings' => "$THEME_DIR/asbru-prefs-keybindings.svg",
+        'asbru-theme-toggle'      => "$THEME_DIR/asbru-theme-toggle.svg",
     );
 
     my $icon_factory = Gtk3::IconFactory->new();

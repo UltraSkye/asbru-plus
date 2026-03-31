@@ -1029,6 +1029,13 @@ sub _initGUI {
     $$self{_GUI}{lockApplicationBtn}->set_tooltip_text('Password [un]lock GUI. In order to use this functionality, check the "Protect with password" field under "Preferences"->"Main Options"');
     $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{lockApplicationBtn}, 0, 1, 0);
 
+    # Theme toggle (sun/moon) — switches asbru-dark <-> default and reloads.
+    $$self{_GUI}{themeToggleBtn} = Gtk3::Button->new();
+    $$self{_GUI}{themeToggleBtn}->set_image(Gtk3::Image->new_from_stock('asbru-theme-toggle', 'small_toolbar'));
+    $$self{_GUI}{themeToggleBtn}->set('can-focus' => 0);
+    $$self{_GUI}{themeToggleBtn}->set_tooltip_text('Toggle dark / light theme');
+    $$self{_GUI}{hbuttonbox1}->pack_start($$self{_GUI}{themeToggleBtn}, 0, 1, 0);
+
     # Create "About" button
     $$self{_GUI}{aboutBtn} = Gtk3::Button->new();
     $$self{_GUI}{aboutBtn}->set_image(Gtk3::Image->new_from_stock('gtk-about', 'small_toolbar'));
@@ -2236,6 +2243,7 @@ sub _setupCallbacks {
     $$self{_GUI}{quitBtn}->signal_connect('clicked' => sub { $self->_quitProgram(); });
     $$self{_GUI}{saveBtn}->signal_connect('clicked' => sub { $self->_saveConfiguration(); });
     $$self{_GUI}{aboutBtn}->signal_connect('clicked' => sub { $self->_showAboutWindow(); });
+    $$self{_GUI}{themeToggleBtn}->signal_connect('clicked' => sub { $self->_toggleTheme(); });
     $$self{_GUI}{wolBtn}->signal_connect('clicked' => sub { _wakeOnLan(); });
     $$self{_GUI}{lockApplicationBtn}->signal_connect('toggled' => sub {
         if ($$self{_GUI}{lockApplicationBtn}->get_active()) {
@@ -2597,12 +2605,12 @@ sub __treeBuildNodeName {
     my $bold = '';
     my $pset = '';
 
-    my $is_group = $$self{_CFG}{'environments'}{$uuid}{'_is_group'} // 0;
+    my $is_group  = $$self{_CFG}{'environments'}{$uuid}{'_is_group'} // 0;
     my $protected = ($$self{_CFG}{'environments'}{$uuid}{'_protected'} // 0) || 0;
-    my $p_set = $$self{_CFG}{defaults}{'protected set'};
-    my $p_unset = $$self{_CFG}{defaults}{'unprotected set'} // 'foreground';
-    my $p_color = $$self{_CFG}{defaults}{'protected color'};
-    my $p_uncolor = $$self{_CFG}{defaults}{'unprotected color'} // '#000000';
+    my $p_set     = $$self{_CFG}{defaults}{'protected set'};
+    my $p_unset   = $$self{_CFG}{defaults}{'unprotected set'};
+    my $p_color   = $$self{_CFG}{defaults}{'protected color'};
+    my $p_uncolor = $$self{_CFG}{defaults}{'unprotected color'};
 
     if ($name) {
         $name = __($name);
@@ -2612,12 +2620,20 @@ sub __treeBuildNodeName {
     if ($is_group) {
         $bold = " weight='bold'";
     }
+    # Only emit a foreground/background override if the user has explicitly
+    # set a non-trivial color — otherwise let the GTK theme paint the cell
+    # so tree text is readable in both dark and light modes. Treat the
+    # legacy default '#000000' as unset.
     if ($protected) {
-        $pset = "$p_set='$p_color'";
+        if ($p_set && $p_color && lc($p_color) ne '#000000' && lc($p_color) ne 'black') {
+            $pset = " $p_set='$p_color'";
+        }
     } else {
-        $pset = "$p_unset='$p_uncolor'";
+        if ($p_unset && $p_uncolor && lc($p_uncolor) ne '#000000' && lc($p_uncolor) ne 'black') {
+            $pset = " $p_unset='$p_uncolor'";
+        }
     }
-    $name = "<span $pset$bold font='$$self{_CFG}{defaults}{'tree font'}'> $name</span>";
+    $name = "<span$pset$bold font='$$self{_CFG}{defaults}{'tree font'}'> $name</span>";
 
     return $name;
 }
@@ -3210,6 +3226,33 @@ sub _treeConnections_menu {
     }
     _wPopUpMenu(\@tree_menu_items, $event);
 
+    return 1;
+}
+
+sub _toggleTheme {
+    my $self = shift;
+    my $cur = $$self{_CFG}{'defaults'}{'theme'} // 'default';
+    my $next = ($cur eq 'asbru-dark') ? 'default' : 'asbru-dark';
+    $$self{_CFG}{'defaults'}{'theme'} = $next;
+    $THEME_DIR = "$RES_DIR/themes/$next";
+    $$self{_THEME} = $THEME_DIR;
+
+    # Tell GTK to flip dark variant preference, then reload theme CSS.
+    eval {
+        my $s = Gtk3::Settings::get_default();
+        $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
+    };
+    eval {
+        my $cp = Gtk3::CssProvider->new();
+        $cp->load_from_path("$THEME_DIR/asbru.css");
+        Gtk3::StyleContext::add_provider_for_screen(
+            Gtk3::Gdk::Screen::get_default, $cp, 620
+        );
+    };
+    # Re-register icon factory so per-theme icons swap colors.
+    eval { _registerPACIcons($THEME_DIR); };
+    $self->_setCFGChanged(1);
+    print STDERR "INFO: Theme switched to '$next'\n";
     return 1;
 }
 
