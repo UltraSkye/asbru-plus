@@ -1,6 +1,6 @@
 # This Dockerfile should be ran from the project's root directory as context path.
 
-FROM alpine:3.13 AS base
+FROM alpine:3.20 AS base
 
 WORKDIR /
 
