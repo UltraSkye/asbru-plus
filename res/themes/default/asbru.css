@@ -243,18 +243,21 @@ selection {
 }
 
 /* ── Text views ───────────────────────────────────────────────────────────*/
-textview {
-  color: #2e3436;
-  background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
+textview,
+textview .view,
+textview > text,
+textview > border,
+textview > window,
+textview text,
+textview text > * {
+    color: #2e3436;
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
 }
-textview text {
-  color: #2e3436;
-  background-color: #ffffff;
-}
-textview text selection {
-  background-color: #3584e4;
-  color: #ffffff;
+textview text selection,
+textview text selection:focus {
+    background-color: #3584e4;
+    color: #ffffff;
 }
 
 /* ── Frames ───────────────────────────────────────────────────────────────*/
@@ -267,14 +270,17 @@ frame > label {
 }
 
 /* ── Scrolled window ──────────────────────────────────────────────────────*/
-scrolledwindow {
-  border-color: rgba(0, 0, 0, 0.08);
-  background-color: #ffffff;
+scrolledwindow,
+scrolledwindow > * {
+    border-color: rgba(0, 0, 0, 0.08);
+    background-color: #ffffff;
 }
 scrolledwindow viewport,
+scrolledwindow textview,
+scrolledwindow textview text,
 viewport {
-  background-color: #ffffff;
-  color: #2e3436;
+    background-color: #ffffff;
+    color: #2e3436;
 }
 
 /* ── Notebook ─────────────────────────────────────────────────────────────*/
