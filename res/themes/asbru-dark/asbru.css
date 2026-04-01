@@ -333,9 +333,9 @@ notebook header.left tab:checked,
 notebook header.right tab:checked,
 notebook header.left tab:active,
 notebook header.right tab:active {
-    background-color: rgba(53, 132, 228, 0.24);
+    background-color: rgba(53, 132, 228, 0.18);
     color: #ffffff;
-    box-shadow: inset 3px 0 0 #3584e4;
+    box-shadow: inset 2px 0 0 #3584e4;
 }
 notebook header.left tab label,
 notebook header.right tab label {

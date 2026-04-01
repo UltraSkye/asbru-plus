@@ -3243,40 +3243,46 @@ sub _toggleTheme {
     $$self{_CFG}{'defaults'}{'theme'} = $next;
     $THEME_DIR = "$RES_DIR/themes/$next";
     $$self{_THEME} = $THEME_DIR;
+    $self->_setCFGChanged(1);
 
+    # Persist the new theme so the next launch picks it up.
+    eval {
+        _cipherCFG($$self{_CFG});
+        nstore($$self{_CFG}, $CFG_FILE_NFREEZE);
+        _writeConfigHMAC($CFG_FILE_NFREEZE);
+        _decipherCFG($$self{_CFG});
+    };
+
+    # In-process toggle is best-effort: not every widget can be restyled
+    # cleanly after first realization (treeview cell renderers, GtkImage
+    # widgets cached at construction time, splash window destroyed). Show
+    # a confirmation that asks the user to restart for the full effect.
+    my $msg = sprintf(
+        "Theme switched to <b>%s</b>.\n\nRestart Ásbrú Plus for the full effect — some widgets cannot recolor at runtime.",
+        $next eq 'asbru-dark' ? 'Dark' : 'Light',
+    );
+    _wMessage($$self{_GUI}{main}, $msg);
+
+    # Best-effort live recolor: swap CSS provider + icon factory + redraw.
     my $screen = Gtk3::Gdk::Screen::get_default;
-
-    # Remove the previous theme color provider so its rules don't bleed
-    # through. Base structural rules are kept (they don't carry colors).
     if ($$self{_THEME_PROVIDER}) {
         eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $$self{_THEME_PROVIDER}); };
     }
-
-    # Flip the GTK dark-variant preference so Adwaita widgets recolor too.
     eval {
         my $s = Gtk3::Settings::get_default();
         $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
     };
-
-    # Load the new theme color CSS at high priority (610 > base 600).
-    my $cp = Gtk3::CssProvider->new();
     eval {
+        my $cp = Gtk3::CssProvider->new();
         $cp->load_from_path("$THEME_DIR/asbru.css");
         Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 610);
         $$self{_THEME_PROVIDER} = $cp;
     };
-
-    # Swap icons in the factory so per-theme strokes recolor.
     eval { _registerPACIcons($THEME_DIR); };
-
-    # Force a full restyle of every visible window.
     eval {
         $$self{_GUI}{main}->queue_draw if $$self{_GUI}{main};
-        my $sctx = $$self{_GUI}{main}->get_style_context if $$self{_GUI}{main};
-        $sctx->invalidate if $sctx && $sctx->can('invalidate');
     };
 
-    $self->_setCFGChanged(1);
     print STDERR "INFO: Theme switched to '$next'\n";
     return 1;
 }
@@ -3284,34 +3290,99 @@ sub _toggleTheme {
 sub _showAboutWindow {
     my $self = shift;
 
-    Gtk3::show_about_dialog(
-        $$self{_GUI}{main},(
-        "program_name" => '',  # name is shown in the logo
-        "version" => "v$APPVERSION",
-        "logo" => _pixBufFromFile("$RES_DIR/asbru-logo-400.png"),
-        "copyright" => "Ásbrú Plus — fork of Ásbrú Connection Manager\nCopyright (C) 2017-2026 Ásbrú Connection Manager team\nCopyright 2010-2016 David Torrejón Vaquerizas",
-        "license" => "
-Ásbrú Plus (fork of Ásbrú Connection Manager)
+    my $dlg = Gtk3::Dialog->new();
+    $dlg->set_transient_for($$self{_GUI}{main});
+    $dlg->set_modal(1);
+    $dlg->set_title("About $APPNAME");
+    $dlg->set_default_size(560, 0);
+    $dlg->set_icon_name('asbru-app-big');
+    $dlg->set_resizable(0);
+    $dlg->get_style_context->add_class('asbru-about');
 
-Copyright (C) 2017-2022 Ásbrú Connection Manager team
-Copyright (C) 2010-2016 David Torrejón Vaquerizas
-Ásbrú Plus fork: https://github.com/UltraSkye/asbru-plus
+    my $content = $dlg->get_content_area;
+    $content->set_border_width(28);
+    $content->set_spacing(16);
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+    # Logo (smaller than 400px to keep dialog compact)
+    my $logo = Gtk3::Image->new_from_file("$RES_DIR/asbru-logo-256.png");
+    $logo->set_pixel_size(120);
+    $logo->set_halign('center');
+    $content->pack_start($logo, 0, 0, 0);
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    # Title block
+    my $title = Gtk3::Label->new();
+    $title->set_markup("<span size='xx-large' weight='bold'>$APPNAME</span>");
+    $title->set_halign('center');
+    $content->pack_start($title, 0, 0, 0);
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"
-    ));
+    my $tagline = Gtk3::Label->new();
+    $tagline->set_markup("<span size='medium'>A modern fork of <b>Ásbrú Connection Manager</b></span>");
+    $tagline->set_halign('center');
+    $content->pack_start($tagline, 0, 0, 0);
 
+    my $version = Gtk3::Label->new();
+    $version->set_markup("<span size='small' alpha='65%'>Version $APPVERSION</span>");
+    $version->set_halign('center');
+    $content->pack_start($version, 0, 0, 0);
+
+    # Separator
+    my $sep = Gtk3::Separator->new('horizontal');
+    $sep->set_margin_top(8);
+    $sep->set_margin_bottom(8);
+    $content->pack_start($sep, 0, 0, 0);
+
+    # Info grid: maintainer / repo / license / based on
+    my $grid = Gtk3::Grid->new();
+    $grid->set_column_spacing(16);
+    $grid->set_row_spacing(8);
+    $grid->set_halign('center');
+
+    my @rows = (
+        ['Fork by',     '<a href="https://github.com/UltraSkye/asbru-plus">UltraSkye/asbru-plus</a>'],
+        ['Upstream',    '<a href="https://github.com/asbru-cm/asbru-cm">asbru-cm/asbru-cm</a>'],
+        ['Original',    'David Torrejón Vaquerizas (2010–2016)'],
+        ['Maintainers', 'Ásbrú Connection Manager team (2017–2026)'],
+        ['License',     'GPL-3.0-or-later'],
+        ['Platform',    'Linux · GTK 3'],
+    );
+    my $r = 0;
+    for my $row (@rows) {
+        my ($k, $v) = @$row;
+        my $key = Gtk3::Label->new();
+        $key->set_markup("<b>$k</b>");
+        $key->set_halign('end');
+        $grid->attach($key, 0, $r, 1, 1);
+        my $val = Gtk3::Label->new();
+        $val->set_markup($v);
+        $val->set_halign('start');
+        $val->set_use_markup(1);
+        $val->set_selectable(1);
+        $grid->attach($val, 1, $r, 1, 1);
+        $r++;
+    }
+    $content->pack_start($grid, 0, 0, 0);
+
+    # Action area: Close + Visit repo
+    my $area = $dlg->get_action_area;
+    $area->set_layout('end');
+    $area->set_spacing(8);
+    $area->set_border_width(12);
+
+    my $btnClose = Gtk3::Button->new_with_label('Close');
+    $btnClose->signal_connect('clicked' => sub { $dlg->destroy; });
+
+    my $btnRepo = Gtk3::Button->new_with_label('Visit Repository');
+    $btnRepo->get_style_context->add_class('suggested-action');
+    $btnRepo->signal_connect('clicked' => sub {
+        system('xdg-open', 'https://github.com/UltraSkye/asbru-plus');
+    });
+
+    $area->pack_end($btnRepo, 0, 0, 0);
+    $area->pack_end($btnClose, 0, 0, 0);
+
+    $dlg->show_all;
+    $dlg->run;
+    $dlg->destroy if Gtk3::Widget::is_visible($dlg);
     return 1;
 }
 

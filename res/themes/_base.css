@@ -12,23 +12,33 @@ button,
     margin: 3px;
     min-height: 28px;
     background-image: none;
-    outline: none;
+    outline: 0 solid transparent;
     -gtk-outline-radius: 6px;
+    -gtk-icon-shadow: none;
+    text-shadow: none;
     transition: background-color 150ms ease, border-color 150ms ease;
 }
 button:focus,
 button:focus:hover,
-.button-cp:focus {
-    outline: none;
-    -gtk-outline-radius: 8px;
+button:hover,
+button:active,
+.button-cp:focus,
+.button-cp:hover {
+    outline: 0 solid transparent;
+    -gtk-outline-radius: 6px;
+    -gtk-icon-shadow: none;
+    text-shadow: none;
 }
 button label,
 button > label,
 button box,
 button > box,
-button image {
+button image,
+.button-cp image {
     background-color: transparent;
     background-image: none;
+    -gtk-icon-shadow: none;
+    text-shadow: none;
 }
 
 /* Checkbox / radio — modern flat with proper check/dot icon */
