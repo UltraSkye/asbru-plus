@@ -3242,6 +3242,32 @@ sub _treeConnections_menu {
     return 1;
 }
 
+sub _refreshImagesRecursively {
+    my $widget = shift;
+    return unless $widget;
+    eval {
+        if ($widget->isa('Gtk3::Image')) {
+            my $stype = $widget->get_storage_type;
+            if (defined $stype && "$stype" eq 'stock') {
+                my @stk = $widget->get_stock;
+                my $id = $stk[0];
+                my $size = $stk[1] // 'small_toolbar';
+                if ($id) {
+                    $widget->set_from_stock($id, $size);
+                }
+            }
+        }
+        if ($widget->isa('Gtk3::Button') && $widget->get_image) {
+            _refreshImagesRecursively($widget->get_image);
+        }
+        if ($widget->can('get_children')) {
+            for my $c ($widget->get_children) {
+                _refreshImagesRecursively($c);
+            }
+        }
+    };
+}
+
 sub _toggleTheme {
     my $self = shift;
     my $cur = $$self{_CFG}{'defaults'}{'theme'} // 'default';
@@ -3251,7 +3277,6 @@ sub _toggleTheme {
     $$self{_THEME} = $THEME_DIR;
     $self->_setCFGChanged(1);
 
-    # Persist the new theme so the next launch picks it up.
     eval {
         _cipherCFG($$self{_CFG});
         nstore($$self{_CFG}, $CFG_FILE_NFREEZE);
@@ -3259,28 +3284,24 @@ sub _toggleTheme {
         _decipherCFG($$self{_CFG});
     };
 
-    # In-process toggle is best-effort: not every widget can be restyled
-    # cleanly after first realization (treeview cell renderers, GtkImage
-    # widgets cached at construction time, splash window destroyed). Show
-    # a confirmation that asks the user to restart for the full effect.
-    my $msg = sprintf(
-        "Theme switched to <b>%s</b>.\n\nRestart Ásbrú Plus for the full effect — some widgets cannot recolor at runtime.",
-        $next eq 'asbru-dark' ? 'Dark' : 'Light',
-    );
-    _wMessage($$self{_GUI}{main}, $msg);
-
-    # Best-effort live recolor: swap CSS provider + icon factory + redraw.
-    my $screen = Gtk3::Gdk::Screen::get_default;
-    if ($$self{_THEME_PROVIDER}) {
-        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $$self{_THEME_PROVIDER}); };
-    }
-    # Tell GTK to switch the underlying theme so Adwaita-dark backgrounds
-    # don't bleed through when we want light. This needs gtk-theme-name AND
-    # gtk-application-prefer-dark-theme — the env GTK_THEME hard-override
-    # takes precedence over both, so warn if it's set.
     if ($ENV{GTK_THEME}) {
-        print STDERR "WARN: GTK_THEME env is set ('$ENV{GTK_THEME}') and overrides theme switching. Unset it for the toggle to work fully.\n";
+        print STDERR "WARN: GTK_THEME env is set ('$ENV{GTK_THEME}') and overrides theme switching.\n";
     }
+
+    my $screen = Gtk3::Gdk::Screen::get_default;
+
+    # Remove every theme color provider we have ever added so leftover
+    # rules from previous toggles do not stack and bleed through.
+    $$self{_THEME_PROVIDERS} //= [];
+    if ($$self{_THEME_PROVIDER}) {
+        push @{ $$self{_THEME_PROVIDERS} }, $$self{_THEME_PROVIDER};
+    }
+    for my $p (@{ $$self{_THEME_PROVIDERS} }) {
+        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
+    }
+    @{ $$self{_THEME_PROVIDERS} } = ();
+
+    # Tell GTK to switch the underlying base theme.
     eval {
         my $s = Gtk3::Settings::get_default();
         if ($s) {
@@ -3288,15 +3309,26 @@ sub _toggleTheme {
             $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0);
         }
     };
+
+    # Load the new theme color CSS at high priority.
+    my $cp = Gtk3::CssProvider->new();
     eval {
-        my $cp = Gtk3::CssProvider->new();
         $cp->load_from_path("$THEME_DIR/asbru.css");
-        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 610);
+        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 620);
         $$self{_THEME_PROVIDER} = $cp;
     };
+
+    # Re-register the icon factory so the next icon lookup uses the new
+    # theme dir. Then walk every visible widget and rebuild any GtkImage
+    # that was created from a stock id, since GTK caches the pixbuf at
+    # construction time and won't pick up the new colors otherwise.
     eval { _registerPACIcons($THEME_DIR); };
     eval {
-        $$self{_GUI}{main}->queue_draw if $$self{_GUI}{main};
+        for my $win ($$self{_GUI}{main}, $$self{_CONFIG} ? $$self{_CONFIG}{_WINDOWCONFIG} : undef,
+                     $$self{_EDIT} ? $$self{_EDIT}{_WINDOWEDIT} : undef) {
+            _refreshImagesRecursively($win) if $win;
+            $win->queue_draw if $win;
+        }
     };
 
     print STDERR "INFO: Theme switched to '$next'\n";
