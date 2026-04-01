@@ -189,20 +189,19 @@ sub testMasterKey {
     } else {
         $cfg = $self->get_cfg();
     }
-    $pid = open3(*Writer, *Reader, *ErrReader, "$CLI $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
-    print Writer "$KPXC_MP\n";
-    close Writer;
-    @out = <Reader>;
-    @err = <ErrReader>;
-    # Wait so we do not create zombies
-    waitpid($pid,0);
-    close Reader;
-    close ErrReader;
+    $pid = open3(my $writer, my $reader, my $err_reader, "'$CLI' $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
+    print $writer "$KPXC_MP\n";
+    close $writer;
+    @out = <$reader>;
+    @err = <$err_reader>;
+    waitpid($pid, 0);
+    close $reader;
+    close $err_reader;
     if (@err) {
-        my $msg = join('',@err);
-        return (decode('utf8',$msg),0);
+        my $msg = join('', @err);
+        return (decode('utf8', $msg), 0);
     }
-    return ('',1);
+    return ('', 1);
 }
 
 sub getFieldValueFromString {
@@ -270,15 +269,14 @@ sub getFieldValue {
             }
         }
     }
-    $pid = open3(*Writer, *Reader, *ErrReader, "$CLI $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
-    print Writer "$KPXC_MP\n";
-    close Writer;
-    @out = <Reader>;
-    @err = <ErrReader>;
-    # Wait so we do not create zombies
+    $pid = open3(my $writer, my $reader, my $err_reader, "'$CLI' $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
+    print $writer "$KPXC_MP\n";
+    close $writer;
+    @out = <$reader>;
+    @err = <$err_reader>;
     waitpid($pid, 0);
-    close Reader;
-    close ErrReader;
+    close $reader;
+    close $err_reader;
     foreach $data (@out) {
         $data =~ s/\n//g;
         if ($data =~ /(username|password|url|title): (.*)/i) {
@@ -551,17 +549,15 @@ sub _locateEntries {
         @KPXC_LIST = ();
         $$self{'last_timestamp'} = $timestamp;
         {
-            no warnings 'once';
-            open(SAVERR,">&STDERR");
-            open(STDERR,"> /dev/null");
-            $pid = open2(*Reader,*Writer,"$CLI $$self{kpxc_cli} ${search_command} $$self{kpxc_keyfile_opt} '$$cfg{database}' '${search_term}'");
-            print Writer "$KPXC_MP\n";
-            close Writer;
-            @KPXC_LIST = <Reader>;
-            # Wait so we do not create zombies
-            waitpid($pid,0);
-            close Reader;
-            open(STDERR,">&SAVERR");
+            open(my $saverr, '>&', \*STDERR) or warn "Cannot dup STDERR: $!";
+            open(STDERR, '>', '/dev/null') or warn "Cannot redirect STDERR: $!";
+            $pid = open2(my $reader, my $writer, "'$CLI' $$self{kpxc_cli} ${search_command} $$self{kpxc_keyfile_opt} '$$cfg{database}' '${search_term}'");
+            print $writer "$KPXC_MP\n";
+            close $writer;
+            @KPXC_LIST = <$reader>;
+            waitpid($pid, 0);
+            close $reader;
+            open(STDERR, '>&', $saverr) if $saverr;
         };
     }
     @out = sort grep(/$str/i,@KPXC_LIST);
@@ -796,7 +792,7 @@ sub _setCapabilities {
     if ($$self{_VERBOSE}) {
         print "DEBUG:KEEPASS: $CLI $$self{kpxc_cli}\n";
     }
-    $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $CLI $$self{kpxc_cli} -v 2>/dev/null`;
+    $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI' $$self{kpxc_cli} -v 2>/dev/null`;
     $$self{kpxc_version} =~ s/\n//g;
     if ($$self{kpxc_version} !~ /[0-9]+\.[0-9]+\.[0-9]+/) {
         # Invalid version number, user did not select a valid KeePassXC file
@@ -814,7 +810,7 @@ sub _setCapabilities {
             # Test if we have a system wide installation
             $$self{kpxc_cli} = '';
             $CLI = 'keepassxc-cli';
-            $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $CLI -v 2>/dev/null`;
+            $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI' -v 2>/dev/null`;
             $$self{kpxc_version} =~ s/\n//g;
             if (!$$self{kpxc_version}) {
                 # We do not have keepassxc-cli available, the user defined is not working
@@ -824,7 +820,7 @@ sub _setCapabilities {
             }
         }
     }
-    $c = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $CLI $$self{kpxc_cli} -h show 2>&1`;
+    $c = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI' $$self{kpxc_cli} -h show 2>&1`;
     if ($c =~ /--key-file/) {
         $$self{kpxc_keyfile} = '--key-file';
     }
