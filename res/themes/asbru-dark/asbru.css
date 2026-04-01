@@ -18,17 +18,39 @@
 
 /* ── Surfaces ─────────────────────────────────────────────────────────────*/
 window,
+window decoration,
 window > box,
 window > grid,
+window headerbar,
+window paned,
 grid,
+box,
+hbox,
+vbox,
 eventbox,
 viewport,
 frame,
 frame > box,
 frame > eventbox,
-frame > viewport {
-  background-color: #2d2d2d;
-  color: #ffffff;
+frame > viewport,
+overlay,
+overlay > * {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+popover,
+popover.background,
+popover modelbutton,
+menu,
+menu menuitem,
+.menu,
+.menuitem {
+    background-color: #353535;
+    color: #ffffff;
+}
+menu menuitem:hover,
+.menuitem:hover {
+    background-color: rgba(53, 132, 228, 0.24);
 }
 label {
   color: #ffffff;
