@@ -207,9 +207,15 @@ sub new {
                 Gtk3::Gdk::Screen::get_default, $cp, 610
             );
             $$self{_THEME_PROVIDER} = $cp;
-            if ($early_theme =~ /dark/) {
-                my $settings = Gtk3::Settings::get_default();
-                $settings->set_property('gtk-application-prefer-dark-theme', 1) if $settings;
+            my $settings = Gtk3::Settings::get_default();
+            if ($settings) {
+                if ($early_theme =~ /dark/) {
+                    eval { $settings->set_property('gtk-theme-name', 'Adwaita-dark'); };
+                    $settings->set_property('gtk-application-prefer-dark-theme', 1);
+                } else {
+                    eval { $settings->set_property('gtk-theme-name', 'Adwaita'); };
+                    $settings->set_property('gtk-application-prefer-dark-theme', 0);
+                }
             }
             $$self{_EARLY_THEME} = $early_theme;
         }
@@ -3268,9 +3274,19 @@ sub _toggleTheme {
     if ($$self{_THEME_PROVIDER}) {
         eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $$self{_THEME_PROVIDER}); };
     }
+    # Tell GTK to switch the underlying theme so Adwaita-dark backgrounds
+    # don't bleed through when we want light. This needs gtk-theme-name AND
+    # gtk-application-prefer-dark-theme — the env GTK_THEME hard-override
+    # takes precedence over both, so warn if it's set.
+    if ($ENV{GTK_THEME}) {
+        print STDERR "WARN: GTK_THEME env is set ('$ENV{GTK_THEME}') and overrides theme switching. Unset it for the toggle to work fully.\n";
+    }
     eval {
         my $s = Gtk3::Settings::get_default();
-        $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
+        if ($s) {
+            $s->set_property('gtk-theme-name', $next eq 'asbru-dark' ? 'Adwaita-dark' : 'Adwaita');
+            $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0);
+        }
     };
     eval {
         my $cp = Gtk3::CssProvider->new();
