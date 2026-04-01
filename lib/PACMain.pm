@@ -3408,7 +3408,21 @@ sub _quitProgram {
         $$self{_CONFIG}->_exporter('yaml', $CFG_FILE);        # Export as YAML file
         $$self{_CONFIG}->_exporter('perl', $CFG_FILE_DUMPER); # Export as Perl data
     };
-    chdir(${CFG_DIR}) and system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} rm -rf sockets/* tmp/*");  # Delete temporal files
+    # Delete temporal files using File::Path (safer than shell rm -rf with globs)
+    use File::Path qw(remove_tree);
+    for my $subdir ('sockets', 'tmp') {
+        my $dir = "$CFG_DIR/$subdir";
+        if (-d $dir) {
+            opendir(my $dh, $dir) or next;
+            while (my $entry = readdir($dh)) {
+                next if $entry =~ /^\.\.?$/;
+                my $path = "$dir/$entry";
+                if (-d $path) { remove_tree($path, {safe => 1}); }
+                else          { unlink $path; }
+            }
+            closedir($dh);
+        }
+    }
 
     # And finish every GUI
     Gtk3->main_quit();
