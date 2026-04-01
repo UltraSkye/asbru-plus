@@ -23,18 +23,16 @@ window > box,
 window > grid,
 window headerbar,
 window paned,
+window > overlay,
+window > overlay > viewport,
+window > paned,
 grid,
-box,
-hbox,
-vbox,
 eventbox,
 viewport,
 frame,
 frame > box,
 frame > eventbox,
-frame > viewport,
-overlay,
-overlay > * {
+frame > viewport {
     background-color: #fafafa;
     color: #2e3436;
 }
