@@ -414,6 +414,7 @@ sub start {
         $new_cfg{'tmp'}{'randomSocksTunnel'} = $SOCKS5PORT;
     }
     nstore(\%new_cfg, $$self{_TMPCFG}) or die"ERROR: Could not save Ásbrú config file '$$self{_TMPCFG}': $!";
+    chmod 0600, $$self{_TMPCFG};
     undef %new_cfg;
 
     # Delete the oldest auto-saved session log
