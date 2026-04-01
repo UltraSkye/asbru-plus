@@ -206,6 +206,7 @@ sub new {
             Gtk3::StyleContext::add_provider_for_screen(
                 Gtk3::Gdk::Screen::get_default, $cp, 610
             );
+            $$self{_THEME_PROVIDER} = $cp;
             if ($early_theme =~ /dark/) {
                 my $settings = Gtk3::Settings::get_default();
                 $settings->set_property('gtk-application-prefer-dark-theme', 1) if $settings;
@@ -378,15 +379,21 @@ sub new {
     # Gtk style — re-apply if theme changed since the early load. Same
     # base+theme split: shared structure first, color overrides on top.
     if (!defined $$self{_EARLY_THEME} || $$self{_EARLY_THEME} ne $$self{_CFG}{'defaults'}{'theme'}) {
+        my $screen = Gtk3::Gdk::Screen::get_default;
+        # Drop the previous theme color provider before reapplying.
+        if ($$self{_THEME_PROVIDER}) {
+            eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $$self{_THEME_PROVIDER}); };
+        }
         my $base_css = "$RES_DIR/themes/_base.css";
         if (-r $base_css) {
             my $bp = Gtk3::CssProvider->new();
             eval { $bp->load_from_path($base_css); };
-            Gtk3::StyleContext::add_provider_for_screen(Gtk3::Gdk::Screen::get_default, $bp, 600);
+            Gtk3::StyleContext::add_provider_for_screen($screen, $bp, 600);
         }
         my $css_provider = Gtk3::CssProvider->new();
         $css_provider->load_from_path("$THEME_DIR/asbru.css");
-        Gtk3::StyleContext::add_provider_for_screen(Gtk3::Gdk::Screen::get_default, $css_provider, 610);
+        Gtk3::StyleContext::add_provider_for_screen($screen, $css_provider, 610);
+        $$self{_THEME_PROVIDER} = $css_provider;
     }
 
     # Request dark native widgets when using the dark theme
@@ -3237,20 +3244,38 @@ sub _toggleTheme {
     $THEME_DIR = "$RES_DIR/themes/$next";
     $$self{_THEME} = $THEME_DIR;
 
-    # Tell GTK to flip dark variant preference, then reload theme CSS.
+    my $screen = Gtk3::Gdk::Screen::get_default;
+
+    # Remove the previous theme color provider so its rules don't bleed
+    # through. Base structural rules are kept (they don't carry colors).
+    if ($$self{_THEME_PROVIDER}) {
+        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $$self{_THEME_PROVIDER}); };
+    }
+
+    # Flip the GTK dark-variant preference so Adwaita widgets recolor too.
     eval {
         my $s = Gtk3::Settings::get_default();
         $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
     };
+
+    # Load the new theme color CSS at high priority (610 > base 600).
+    my $cp = Gtk3::CssProvider->new();
     eval {
-        my $cp = Gtk3::CssProvider->new();
         $cp->load_from_path("$THEME_DIR/asbru.css");
-        Gtk3::StyleContext::add_provider_for_screen(
-            Gtk3::Gdk::Screen::get_default, $cp, 620
-        );
+        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 610);
+        $$self{_THEME_PROVIDER} = $cp;
     };
-    # Re-register icon factory so per-theme icons swap colors.
+
+    # Swap icons in the factory so per-theme strokes recolor.
     eval { _registerPACIcons($THEME_DIR); };
+
+    # Force a full restyle of every visible window.
+    eval {
+        $$self{_GUI}{main}->queue_draw if $$self{_GUI}{main};
+        my $sctx = $$self{_GUI}{main}->get_style_context if $$self{_GUI}{main};
+        $sctx->invalidate if $sctx && $sctx->can('invalidate');
+    };
+
     $self->_setCFGChanged(1);
     print STDERR "INFO: Theme switched to '$next'\n";
     return 1;

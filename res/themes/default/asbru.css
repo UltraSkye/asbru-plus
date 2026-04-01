@@ -219,22 +219,26 @@ window.asbru-splash,
 }
 
 /* ── Tree view ────────────────────────────────────────────────────────────*/
-treeview {
-  color: #2e3436;
-  background-color: #ffffff;
+treeview,
+treeview.view,
+treeview > * {
+    color: #2e3436;
+    background-color: #ffffff;
 }
 treeview:hover {
-  background-color: #e8f0fe;
+    background-color: #e8f0fe;
 }
 treeview:selected,
-treeview row:selected {
-  color: #ffffff;
-  background-color: #3584e4;
+treeview row:selected,
+treeview row:selected:focus,
+treeview.view:selected {
+    color: #ffffff;
+    background-color: #3584e4;
 }
 treeview header button {
-  color: #2e3436;
-  background-color: #f6f5f4;
-  border-bottom-color: rgba(0, 0, 0, 0.10);
+    color: #2e3436;
+    background-color: #f6f5f4;
+    border-bottom-color: rgba(0, 0, 0, 0.10);
 }
 *:selected,
 selection {

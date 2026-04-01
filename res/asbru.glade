@@ -5689,7 +5689,7 @@ sudo -p sudo_prompt_string ...</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-main</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -8263,7 +8263,7 @@ If you don't use transparency, leave ths option unchecked as it will slightly im
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-terminal</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -8574,7 +8574,7 @@ If you don't use transparency, leave ths option unchecked as it will slightly im
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-shell</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9185,7 +9185,7 @@ For all other types of connection, this setting will be ignored.
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-network</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9256,9 +9256,9 @@ For all other types of connection, this setting will be ignored.
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-vars</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                     <property name="pixel_size">0</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9328,7 +9328,7 @@ For all other types of connection, this setting will be ignored.
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-localcmd</property>
                     <property name="pixel_size">0</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9398,7 +9398,7 @@ For all other types of connection, this setting will be ignored.
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-remotecmd</property>
                     <property name="pixel_size">0</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9471,7 +9471,7 @@ to read any KeePass database file and use any entry to automate connection insid
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-keepass</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -9535,7 +9535,7 @@ to read any KeePass database file and use any entry to automate connection insid
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="stock">asbru-prefs-keybindings</property>
-                    <property name="icon_size">3</property>
+                    <property name="icon_size">1</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
