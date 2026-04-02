@@ -489,6 +489,14 @@ sub start {
         $$self{_GUI}{main}->show();
     }
 
+    # Schedule an async update check 1500ms after the UI is up so we don't
+    # block startup. Network failure is silent — banner only appears on
+    # confirmed newer release.
+    Glib::Timeout->add(1500, sub {
+        eval { $self->_checkForUpdates(); };
+        return 0;
+    });
+
     # Apply Layout as early as possible
     $self->_ApplyLayout($$self{_CFG}{'defaults'}{'layout'});
 
@@ -580,10 +588,38 @@ sub _initGUI {
         _setDefaultRGBA(240,240,240,1);
     }
 
-    # Create a main horizontal box
+    # Wrap the main pane in a VBox so we can show an update-notification
+    # InfoBar above it when a newer release is published on GitHub.
+    $$self{_GUI}{vboxRoot} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{main}->add($$self{_GUI}{vboxRoot});
+
+    # Create the (initially hidden) update banner.
+    $$self{_GUI}{updateBar} = Gtk3::InfoBar->new();
+    $$self{_GUI}{updateBar}->set_message_type('GTK_MESSAGE_INFO');
+    $$self{_GUI}{updateBar}->get_style_context->add_class('asbru-update-bar');
+    $$self{_GUI}{updateBarLabel} = Gtk3::Label->new('');
+    $$self{_GUI}{updateBarLabel}->set_use_markup(1);
+    $$self{_GUI}{updateBarLabel}->set_xalign(0.0);
+    $$self{_GUI}{updateBar}->get_content_area->pack_start($$self{_GUI}{updateBarLabel}, 1, 1, 0);
+    $$self{_GUI}{updateBar}->add_button('View release', 1);
+    $$self{_GUI}{updateBar}->add_button('×', 0);
+    $$self{_GUI}{updateBar}->set_no_show_all(1);
+    $$self{_GUI}{updateBar}->set_visible(0);
+    $$self{_GUI}{updateBar}->signal_connect('response' => sub {
+        my (undef, $rid) = @_;
+        if ($rid == 1 && $$self{_GUI}{updateBarUrl}) {
+            for my $cmd (['xdg-open', $$self{_GUI}{updateBarUrl}], ['gio', 'open', $$self{_GUI}{updateBarUrl}], ['sensible-browser', $$self{_GUI}{updateBarUrl}]) {
+                last if system(@$cmd) == 0;
+            }
+        }
+        $$self{_GUI}{updateBar}->set_visible(0);
+    });
+    $$self{_GUI}{vboxRoot}->pack_start($$self{_GUI}{updateBar}, 0, 0, 0);
+
+    # Create a main horizontal pane below the banner.
     $$self{_GUI}{hpane} = Gtk3::HPaned->new();
     $$self{_GUI}{hpane}->set_wide_handle(1);  # DevNote: if not set, text selection in a terminal will not be possible near the handle
-    $$self{_GUI}{main}->add($$self{_GUI}{hpane});
+    $$self{_GUI}{vboxRoot}->pack_start($$self{_GUI}{hpane}, 1, 1, 0);
 
     # Create a vboxCommandPanel: actions, connections and other tools
     $$self{_GUI}{vboxCommandPanel} = Gtk3::VBox->new(0, 0);
@@ -3242,6 +3278,34 @@ sub _treeConnections_menu {
     return 1;
 }
 
+sub _checkForUpdates {
+    my $self = shift;
+    return unless $$self{_GUI}{updateBar};
+    my $url = 'https://api.github.com/repos/UltraSkye/asbru-plus/releases/latest';
+    my $body;
+    eval {
+        require HTTP::Tiny;
+        my $resp = HTTP::Tiny->new(timeout => 4)->get($url);
+        $body = $resp->{content} if $resp->{success};
+    };
+    return unless $body;
+    my ($latest_tag) = $body =~ /"tag_name"\s*:\s*"([^"]+)"/;
+    my ($html_url)   = $body =~ /"html_url"\s*:\s*"([^"]+)"/;
+    return unless $latest_tag;
+
+    my $clean_latest = $latest_tag; $clean_latest =~ s/^v//i;
+    my $current      = $APPVERSION;  $current      =~ s/^v//i;
+    return unless $clean_latest gt $current;
+
+    $$self{_GUI}{updateBarUrl} = $html_url || 'https://github.com/UltraSkye/asbru-plus/releases';
+    $$self{_GUI}{updateBarLabel}->set_markup(
+        sprintf("<b>A new version is available:</b> %s  (you have %s)", $latest_tag, $APPVERSION)
+    );
+    $$self{_GUI}{updateBar}->set_visible(1);
+    $$self{_GUI}{updateBar}->show();
+    return 1;
+}
+
 sub _refreshImagesRecursively {
     my $widget = shift;
     return unless $widget;
@@ -3329,6 +3393,14 @@ sub _toggleTheme {
             _refreshImagesRecursively($win) if $win;
             $win->queue_draw if $win;
         }
+    };
+    # Reload connection-tree icons (group/folder pixbufs are cached separately
+    # from the icon factory and need to be re-pulled from the new theme dir).
+    eval {
+        $GROUPICON_ROOT = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
+        $GROUPICON      = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
+        $self->_loadTreeConfiguration if $self->can('_loadTreeConfiguration');
+        $$self{_GUI}{treeConnections}->queue_draw if $$self{_GUI}{treeConnections};
     };
 
     print STDERR "INFO: Theme switched to '$next'\n";
@@ -3422,7 +3494,12 @@ sub _showAboutWindow {
     my $btnRepo = Gtk3::Button->new_with_label('Visit Repository');
     $btnRepo->get_style_context->add_class('suggested-action');
     $btnRepo->signal_connect('clicked' => sub {
-        system('xdg-open', 'https://github.com/UltraSkye/asbru-plus');
+        my $url = 'https://github.com/UltraSkye/asbru-plus';
+        my $opened = 0;
+        for my $cmd (['xdg-open', $url], ['gio', 'open', $url], ['sensible-browser', $url], ['firefox', $url]) {
+            if (system(@$cmd) == 0) { $opened = 1; last; }
+        }
+        _wMessage($dlg, "Open this URL manually:\n$url") unless $opened;
     });
 
     $area->pack_end($btnRepo, 0, 0, 0);
