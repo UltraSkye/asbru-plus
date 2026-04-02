@@ -219,8 +219,8 @@ sub _buildScreenshotsGUI {
     });
 
     $w{btnopenfolder}->signal_connect('clicked', sub {
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-open $CFG_DIR/screenshots");}
-    );
+        if (!fork()) { exec('xdg-open', "$CFG_DIR/screenshots") or exit 1; }
+    });
 
     my @targets = (Gtk3::TargetEntry->new('STRING', [], 0) );
     $w{hbox}->drag_dest_set('all', \@targets, ['copy', 'move']);
@@ -417,7 +417,10 @@ sub _showImage {
     my $file = shift;
 
     if ($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'screenshots use external viewer'}) {
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} " . $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'screenshots external viewer'}, $file);
+        my $viewer = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'screenshots external viewer'};
+        if (!fork()) {
+            exec($viewer, $file) or exit 1;
+        }
         return 1;
     }
 
