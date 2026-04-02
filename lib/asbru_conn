@@ -129,6 +129,10 @@ $SIG{'QUIT'} = \&__disconnect;
 # Retrieve command line options
 $CFG_FILE = shift;
 $UUID = shift or die "$COLOR{'err'}ERROR: You must provide a profile to connect to!!$COLOR{'norm'}";
+# Validate UUID format to prevent path traversal/injection when used in filenames
+if ($UUID !~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/ && $UUID ne '__PAC__ROOT__') {
+    die "$COLOR{'err'}ERROR: Invalid UUID format '$UUID'$COLOR{'norm'}";
+}
 $IS_CLUSTER = shift // 0;
 $GETCMD = shift // 0;
 
