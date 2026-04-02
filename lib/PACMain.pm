@@ -207,6 +207,7 @@ sub new {
                 Gtk3::Gdk::Screen::get_default, $cp, 610
             );
             $$self{_THEME_PROVIDER} = $cp;
+            push @{ $$self{_THEME_PROVIDERS} //= [] }, $cp;
             my $settings = Gtk3::Settings::get_default();
             if ($settings) {
                 if ($early_theme =~ /dark/) {
@@ -400,6 +401,7 @@ sub new {
         $css_provider->load_from_path("$THEME_DIR/asbru.css");
         Gtk3::StyleContext::add_provider_for_screen($screen, $css_provider, 610);
         $$self{_THEME_PROVIDER} = $css_provider;
+        push @{ $$self{_THEME_PROVIDERS} //= [] }, $css_provider;
     }
 
     # Request dark native widgets when using the dark theme
@@ -3367,16 +3369,14 @@ sub _toggleTheme {
 
     my $screen = Gtk3::Gdk::Screen::get_default;
 
-    # Remove every theme color provider we have ever added so leftover
-    # rules from previous toggles do not stack and bleed through.
+    # Remove every theme color provider we have ever added (early load,
+    # late load, and any prior toggles) so leftover rules don't bleed.
     $$self{_THEME_PROVIDERS} //= [];
-    if ($$self{_THEME_PROVIDER}) {
-        push @{ $$self{_THEME_PROVIDERS} }, $$self{_THEME_PROVIDER};
-    }
     for my $p (@{ $$self{_THEME_PROVIDERS} }) {
         eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
     }
     @{ $$self{_THEME_PROVIDERS} } = ();
+    $$self{_THEME_PROVIDER} = undef;
 
     # Tell GTK to switch the underlying base theme.
     eval {
@@ -3393,6 +3393,7 @@ sub _toggleTheme {
         $cp->load_from_path("$THEME_DIR/asbru.css");
         Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 620);
         $$self{_THEME_PROVIDER} = $cp;
+        push @{ $$self{_THEME_PROVIDERS} }, $cp;
     };
 
     # Re-register the icon factory so the next icon lookup uses the new
