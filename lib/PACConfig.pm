@@ -267,8 +267,7 @@ sub _setupCallbacks {
     });
     _($self, 'btnCfgOpenSessionLogs')->signal_connect('clicked' => sub {
         my $folder = _($self, 'btnCfgSaveSessionLogs')->get_current_folder();
-        $folder =~ s/'/'\\''/g;
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-open '$folder'");
+        if (!fork()) { exec('xdg-open', $folder) or exit 1; }
     });
     _($self, 'btnCloseConfig')->signal_connect('clicked' => sub {
         $self->_closeConfiguration();

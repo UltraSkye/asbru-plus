@@ -351,8 +351,7 @@ sub _setupCallbacks {
             $folder = "$CFG_DIR/session_logs";
             _($self, 'btnEditSaveSessionLogs')->get_current_folder($folder);
         }
-        $folder =~ s/'/'\\''/g;
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-open '$folder'");
+        if (!fork()) { exec('xdg-open', $folder) or exit 1; }
     });
 
     # Capture 'Get Command line' button clicked
