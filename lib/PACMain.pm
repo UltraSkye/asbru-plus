@@ -3356,6 +3356,7 @@ sub _toggleTheme {
     $$self{_THEME} = $THEME_DIR;
     $self->_setCFGChanged(1);
 
+    # Persist to disk so next launch is consistent.
     eval {
         _cipherCFG($$self{_CFG});
         nstore($$self{_CFG}, $CFG_FILE_NFREEZE);
@@ -3363,61 +3364,71 @@ sub _toggleTheme {
         _decipherCFG($$self{_CFG});
     };
 
-    if ($ENV{GTK_THEME}) {
-        print STDERR "WARN: GTK_THEME env is set ('$ENV{GTK_THEME}') and overrides theme switching.\n";
-    }
-
     my $screen = Gtk3::Gdk::Screen::get_default;
 
-    # Remove every theme color provider we have ever added (early load,
-    # late load, and any prior toggles) so leftover rules don't bleed.
-    $$self{_THEME_PROVIDERS} //= [];
-    for my $p (@{ $$self{_THEME_PROVIDERS} }) {
-        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
-    }
-    @{ $$self{_THEME_PROVIDERS} } = ();
-    $$self{_THEME_PROVIDER} = undef;
+    # Architectural approach: keep BOTH theme providers loaded at the same
+    # priority. Toggling means *enabling* one and *disabling* the other by
+    # switching their priority — the higher one wins. We never touch
+    # gtk-theme-name (which is unreliable to change at runtime); we only
+    # toggle prefer-dark which is harmless and actually works.
+    $$self{_THEME_PROVIDERS_BY_NAME} //= {};
 
-    # Tell GTK to switch the underlying base theme.
+    for my $tname ('asbru-dark', 'default') {
+        next if $$self{_THEME_PROVIDERS_BY_NAME}{$tname};
+        my $cp = Gtk3::CssProvider->new();
+        eval { $cp->load_from_path("$RES_DIR/themes/$tname/asbru.css"); };
+        # Load both at low priority initially.
+        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 600);
+        $$self{_THEME_PROVIDERS_BY_NAME}{$tname} = $cp;
+    }
+
+    # Now demote the previous theme to LOW (590, below base.css) and
+    # promote the next one to HIGH (800 = USER priority). Priorities can
+    # only be set at add-time, so we re-add: remove + add with new prio.
+    for my $tname (keys %{ $$self{_THEME_PROVIDERS_BY_NAME} }) {
+        my $p = $$self{_THEME_PROVIDERS_BY_NAME}{$tname};
+        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
+        my $prio = ($tname eq $next) ? 800 : 590;
+        Gtk3::StyleContext::add_provider_for_screen($screen, $p, $prio);
+    }
+
+    # Drop any older single-provider tracking from previous code paths.
+    if ($$self{_THEME_PROVIDERS}) {
+        for my $p (@{ $$self{_THEME_PROVIDERS} }) {
+            next if grep { $_ == $p } values %{ $$self{_THEME_PROVIDERS_BY_NAME} };
+            eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
+        }
+        @{ $$self{_THEME_PROVIDERS} } = ();
+    }
+    $$self{_THEME_PROVIDER} = $$self{_THEME_PROVIDERS_BY_NAME}{$next};
+
+    # Adwaita variant — only flip prefer-dark, don't touch gtk-theme-name
+    # (which doesn't take effect reliably mid-session).
     eval {
         my $s = Gtk3::Settings::get_default();
-        if ($s) {
-            $s->set_property('gtk-theme-name', $next eq 'asbru-dark' ? 'Adwaita-dark' : 'Adwaita');
-            $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0);
-        }
+        $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
     };
 
-    # Load the new theme color CSS at high priority.
-    my $cp = Gtk3::CssProvider->new();
-    eval {
-        $cp->load_from_path("$THEME_DIR/asbru.css");
-        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 620);
-        $$self{_THEME_PROVIDER} = $cp;
-        push @{ $$self{_THEME_PROVIDERS} }, $cp;
-    };
-
-    # Re-register the icon factory so the next icon lookup uses the new
-    # theme dir. Then walk every visible widget and rebuild any GtkImage
-    # that was created from a stock id, since GTK caches the pixbuf at
-    # construction time and won't pick up the new colors otherwise.
+    # Re-register icon factory to swap stroke colors.
     eval { _registerPACIcons($THEME_DIR); };
 
-    # Force every widget on this screen to re-resolve its style. Without
-    # this, GtkStyleContext caches the previous theme's resolved colors
-    # and widgets keep their old background even after the provider is
-    # swapped.
+    # Globally invalidate cached resolved styles.
     eval { Gtk3::StyleContext::reset_widgets($screen); };
 
+    # Walk all open windows: refresh GtkImage widgets, recursively reset
+    # widget style cache, queue redraw.
     eval {
-        for my $win ($$self{_GUI}{main}, $$self{_CONFIG} ? $$self{_CONFIG}{_WINDOWCONFIG} : undef,
-                     $$self{_EDIT} ? $$self{_EDIT}{_WINDOWEDIT} : undef) {
-            _refreshImagesRecursively($win) if $win;
-            _resetStyleRecursively($win) if $win;
-            $win->queue_draw if $win;
+        for my $win ($$self{_GUI}{main},
+                     $$self{_CONFIG} ? $$self{_CONFIG}{_WINDOWCONFIG} : undef,
+                     $$self{_EDIT}   ? $$self{_EDIT}{_WINDOWEDIT}     : undef) {
+            next unless $win;
+            _refreshImagesRecursively($win);
+            _resetStyleRecursively($win);
+            $win->queue_draw;
         }
     };
-    # Reload connection-tree icons (group/folder pixbufs are cached separately
-    # from the icon factory and need to be re-pulled from the new theme dir).
+
+    # Reload tree group pixbufs and re-render the connection tree.
     eval {
         $GROUPICON_ROOT = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
         $GROUPICON      = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
