@@ -3306,6 +3306,19 @@ sub _checkForUpdates {
     return 1;
 }
 
+sub _resetStyleRecursively {
+    my $widget = shift;
+    return unless $widget;
+    eval {
+        $widget->reset_style if $widget->can('reset_style');
+        if ($widget->can('get_children')) {
+            for my $c ($widget->get_children) {
+                _resetStyleRecursively($c);
+            }
+        }
+    };
+}
+
 sub _refreshImagesRecursively {
     my $widget = shift;
     return unless $widget;
@@ -3387,10 +3400,18 @@ sub _toggleTheme {
     # that was created from a stock id, since GTK caches the pixbuf at
     # construction time and won't pick up the new colors otherwise.
     eval { _registerPACIcons($THEME_DIR); };
+
+    # Force every widget on this screen to re-resolve its style. Without
+    # this, GtkStyleContext caches the previous theme's resolved colors
+    # and widgets keep their old background even after the provider is
+    # swapped.
+    eval { Gtk3::StyleContext::reset_widgets($screen); };
+
     eval {
         for my $win ($$self{_GUI}{main}, $$self{_CONFIG} ? $$self{_CONFIG}{_WINDOWCONFIG} : undef,
                      $$self{_EDIT} ? $$self{_EDIT}{_WINDOWEDIT} : undef) {
             _refreshImagesRecursively($win) if $win;
+            _resetStyleRecursively($win) if $win;
             $win->queue_draw if $win;
         }
     };
