@@ -1198,12 +1198,12 @@ sub _saveFile {
     my $path = shift;
     my $file = shift // $$self{_WINDOWSCRIPTS}{treeScripts}->get_model->get_value($$self{_WINDOWSCRIPTS}{treeScripts}->get_model->get_iter($path), 0);
 
-    if (!open(F,">:utf8",$file)) {
-        _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open for writting '$file' ($!)");
+    if (!open(my $fh, '>:utf8', $file)) {
+        _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open for writing '$file' ($!)");
         return 0;
     }
-    print F $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_text($$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_start_iter, $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_end_iter, 0);
-    close F;
+    print $fh $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_text($$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_start_iter, $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_end_iter, 0);
+    close $fh;
 
     return 1;
 }
@@ -1220,12 +1220,12 @@ sub _loadFile {
 
     # Loading a file should not be undoable.
     my $content = '';
-    if (!open(F,"<:utf8",$file)) {
+    if (!open(my $fh, '<:utf8', $file)) {
         $$self{_WINDOWSCRIPTS}{gui}{btnremove}->clicked if _wConfirm($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not read file '$file' ($!)\nDelete it?");
         return 0;
     }
-    while (my $line = <F>) {$content .= $line;}
-    close F;
+    while (my $line = <$fh>) {$content .= $line;}
+    close $fh;
 
     if ($SOURCEVIEW) {
         $$self{_WINDOWSCRIPTS}{multiTextBuffer}->begin_not_undoable_action;
@@ -1573,13 +1573,13 @@ sub _execScript {
     my $file = $$self{_SCRIPTS}{$name};
 
     defined &SESSION and undef &SESSION;
-    if (! open(F,"<:utf8",$file)) {
+    if (! open(my $fh, '<:utf8', $file)) {
         _wMessage($parentWindow, "Could not open Ásbrú Script file '$file' for reading: $!");
         return 1;
     }
-    my @lines = <F>;
+    my @lines = <$fh>;
     my $txt = join('', @lines);
-    close F;
+    close $fh;
 
     no warnings ('redefine');
     eval $txt;

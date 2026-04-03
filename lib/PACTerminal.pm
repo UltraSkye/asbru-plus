@@ -3278,19 +3278,19 @@ sub _saveSessionLog {
     my $confirm = _wYesNoCancel($$self{_PARENTWINDOW}, 'Do you want to remove escape sequences from the saved log?');
 
     if ($confirm eq 'yes') {
-        if (!open(F, "$$self{_LOGFILE}")) {
+        if (!open(my $fh_in, '<', $$self{_LOGFILE})) {
             _wMessage($$self{_PARENTWINDOW}, "ERROR: Could not open file '$$self{_LOGFILE}' for reading!! ($!)");
             return 1;
         }
-        my @lines = <F>;
-        close F;
+        my @lines = <$fh_in>;
+        close $fh_in;
 
-        if (!open(F, ">$new_file")) {
-            _wMessage($$self{_PARENTWINDOW}, "ERROR: Could not open file '$new_file' for writting!! ($!)");
+        if (!open(my $fh_out, '>', $new_file)) {
+            _wMessage($$self{_PARENTWINDOW}, "ERROR: Could not open file '$new_file' for writing!! ($!)");
             return 1;
         }
-        print F _removeEscapeSeqs(join('', @lines));
-        close F;
+        print $fh_out _removeEscapeSeqs(join('', @lines));
+        close $fh_out;
     } elsif ($confirm eq 'no') {
         # Copy temporal log file to selected path
         copy($$self{_LOGFILE}, $new_file);
@@ -4045,10 +4045,10 @@ sub _wFindInTerminal {
 
     if (defined $w{window}) {
         # Load the contents of the textbuffer with the corresponding log file
-        if (open(F, "<:utf8", $$self{_LOGFILE})) {
-            @{$$self{_TEXT}} = <F>;
+        if (open(my $fh, '<:utf8', $$self{_LOGFILE})) {
+            @{$$self{_TEXT}} = <$fh>;
             $text = _removeEscapeSeqs(join('', @{$$self{_TEXT}}));
-            close F;
+            close $fh;
         } else {
             $text = "ERROR: Could not open file '$$self{_LOGFILE}': $!";
         }
@@ -4231,10 +4231,10 @@ sub _wFindInTerminal {
     $w{window}{gui}{hboxmain}->set_position(($w{window}{data}->get_size) / 2);
 
     # Load the contents of the textbuffer with the corresponding log file
-    if (open(F, "<:utf8", $$self{_LOGFILE})) {
-        @{$$self{_TEXT}} = <F>;
+    if (open(my $fh, '<:utf8', $$self{_LOGFILE})) {
+        @{$$self{_TEXT}} = <$fh>;
         $text = _removeEscapeSeqs(join('', @{$$self{_TEXT}}));
-        close F;
+        close $fh;
     } else {
         $text = "ERROR: Could not open file '$$self{_LOGFILE}': $!";
     }

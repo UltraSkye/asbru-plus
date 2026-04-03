@@ -101,9 +101,9 @@ sub new {
     #if (($$self{_WINDOWPCC}{cbAutoSave}->get_active // 1) && (open(F, "$CFG_DIR/asbru.pcc") ))
 
     my @content;
-    if (open(F,"<:utf8","$CFG_DIR/asbru.pcc") ) {
-        @content = <F>;
-        close F;
+    if (open(my $fh, '<:utf8', "$CFG_DIR/asbru.pcc")) {
+        @content = <$fh>;
+        close $fh;
 
         if ((defined $content[0]) && ($content[0] =~ /^__PAC__PCC__LANG__(.+)$/go) ) {
             my $name = $1;
@@ -728,14 +728,14 @@ sub _setupCallbacks {
 
         # Loading a file should not be undoable.
         my $content = '';
-        if (!open(F,"<:utf8",$file)) {
+        if (!open(my $fh, '<:utf8', $file)) {
             _wMessage($$self{_WINDOWPCC}{main}, "ERROR: Can not open for reading '$file' ($!)");
             return 1;
         }
-        while (my $line = <F>) {
+        while (my $line = <$fh>) {
             $content .= $line;
         }
-        close F;
+        close $fh;
 
         if ($SOURCEVIEW) {
             $$self{_WINDOWPCC}{multiTextBuffer}->begin_not_undoable_action;
@@ -778,12 +778,12 @@ sub _setupCallbacks {
         }
 
         # Loading a file should not be undoable.
-        if (!open(F,">:utf8",$file)) {
-            _wMessage($$self{_WINDOWPCC}{main}, "ERROR: Can not open for writting '$file' ($!)");
+        if (!open(my $fh, '>:utf8', $file)) {
+            _wMessage($$self{_WINDOWPCC}{main}, "ERROR: Can not open for writing '$file' ($!)");
             return 1;
         }
-        print F $$self{_WINDOWPCC}{multiTextBuffer}->get_text($$self{_WINDOWPCC}{multiTextBuffer}->get_start_iter, $$self{_WINDOWPCC}{multiTextBuffer}->get_end_iter, 0);
-        close F;
+        print $fh $$self{_WINDOWPCC}{multiTextBuffer}->get_text($$self{_WINDOWPCC}{multiTextBuffer}->get_start_iter, $$self{_WINDOWPCC}{multiTextBuffer}->get_end_iter, 0);
+        close $fh;
 
         if ($SOURCEVIEW) {
             # Guess the programming language of the file
@@ -913,19 +913,20 @@ sub _setupCallbacks {
                 $$self{_RUNNING}{$uuid}{'terminal'}{_PROPAGATE} = 1;
             }
         }
-        open(F,">:utf8","$CFG_DIR/asbru.pcc");
-        my ($x, $y) = $$self{_WINDOWPCC}{main}->get_position;
-        my ($w, $h) = $$self{_WINDOWPCC}{main}->get_size;
-        ($$self{_W}, $$self{_H}) = ($w, $h) if $$self{_WINDOWPCC}{cbShowMultiText}->get_active;
-        print F '__PAC__PCC__LANG__' . ($$self{_WINDOWPCC}{comboLang}->get_active_text // ' <NO HIGHLIGHT>') . "\n";
-        print F '__PAC__PCC__POSITION__' . $x . ':' . $y . "\n";
-        print F '__PAC__PCC__SIZE__' . $w . ':' . $h . "\n";
-        print F "__PAC__PCC__MULTILINE__\n" if $$self{_WINDOWPCC}{cbShowMultiText}->get_active;
-        $$self{_WINDOWPCC}{main}->hide;
-        if ($$self{_WINDOWPCC}{cbAutoSave}->get_active // 1) {
-            print(F $$self{_WINDOWPCC}{multiTextBuffer}->get_property('text') // '');
+        if (open(my $fh, '>:utf8', "$CFG_DIR/asbru.pcc")) {
+            my ($x, $y) = $$self{_WINDOWPCC}{main}->get_position;
+            my ($w, $h) = $$self{_WINDOWPCC}{main}->get_size;
+            ($$self{_W}, $$self{_H}) = ($w, $h) if $$self{_WINDOWPCC}{cbShowMultiText}->get_active;
+            print $fh '__PAC__PCC__LANG__' . ($$self{_WINDOWPCC}{comboLang}->get_active_text // ' <NO HIGHLIGHT>') . "\n";
+            print $fh '__PAC__PCC__POSITION__' . $x . ':' . $y . "\n";
+            print $fh '__PAC__PCC__SIZE__' . $w . ':' . $h . "\n";
+            print $fh "__PAC__PCC__MULTILINE__\n" if $$self{_WINDOWPCC}{cbShowMultiText}->get_active;
+            $$self{_WINDOWPCC}{main}->hide;
+            if ($$self{_WINDOWPCC}{cbAutoSave}->get_active // 1) {
+                print($fh $$self{_WINDOWPCC}{multiTextBuffer}->get_property('text') // '');
+            }
+            close $fh;
         }
-        close F;
         return 1;
     });
 

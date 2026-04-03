@@ -3424,15 +3424,15 @@ sub _getXWindowsList {
 
 sub _checkREADME {
     my $readme_file = "$CFG_DIR/tmp/latest_README";
-    if (!open(F,"<:utf8",$readme_file)) {
+    if (!open(my $fh, '<:utf8', $readme_file)) {
         return 0;
     }
     my @readme;
-    while(my $line = <F>) {
+    while(my $line = <$fh>) {
         chomp $line;
         push(@readme, $line);
     }
-    close F;
+    close $fh;
 
     my $version = $readme[56] // 0;
     $version =~ s/^\s+-\s+(.+):/$1/go;
@@ -3749,14 +3749,12 @@ sub _makeDesktopFile {
 #        $da .= "Exec=asbru-cm --start-uuid=$uuid\n";
 #    }
 
-    if (!open(F,">:utf8","$ENV{HOME}/.local/share/applications/asbru.desktop")) {
+    if (!open(my $fh, '>:utf8', "$ENV{HOME}/.local/share/applications/asbru.desktop")) {
         return 0;
     }
-
-    open F, ">$ENV{HOME}/.local/share/applications/asbru.desktop" or return 0;
-    print F "$d\n$dal\n$da\n";
-    close F;
-    system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-desktop-menu forceupdate &");
+    print $fh "$d\n$dal\n$da\n";
+    close $fh;
+    if (!fork()) { exec('xdg-desktop-menu', 'forceupdate') or exit 1; }
 
     return 1;
 }

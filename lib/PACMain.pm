@@ -3512,14 +3512,14 @@ sub _readConfiguration {
     }
 
     if ($continue && -f $CFG_FILE_DUMPER) {
-        if (!open(F,"<:utf8",$CFG_FILE_DUMPER)) {
+        if (!open(my $fh, '<:utf8', $CFG_FILE_DUMPER)) {
             die "ERROR: Could open for reading file '$CFG_FILE_DUMPER': $!";
         }
         my $data = '';
-        while (my $line = <F>) {
+        while (my $line = <$fh>) {
             $data .= $line;
         }
-        close F;
+        close $fh;
         my $VAR1;
         eval $data;
         if ($@) {
@@ -3651,14 +3651,14 @@ sub _saveTreeExpanded {
     my $modelsort = $tree->get_model();
     my $model = $modelsort->get_model();
 
-    open(F,">:utf8","$CFG_FILE.tree") or die "ERROR: Could not save Tree Config file '$CFG_FILE.tree': $!";
+    open(my $fh_tree, '>:utf8', "$CFG_FILE.tree") or die "ERROR: Could not save Tree Config file '$CFG_FILE.tree': $!";
     $modelsort->foreach(sub {
         my ($store, $path, $iter, $tmp) = @_;
         my $uuid = $store->get_value($iter, 2);
         if (!($tree->row_expanded($path) && $uuid ne '__PAC__ROOT__')) {
             return 0;
         }
-        print F $uuid . "\n";
+        print $fh_tree $uuid . "\n";
         return 0;
     });
 
@@ -3668,27 +3668,27 @@ sub _saveTreeExpanded {
     my $page3 = $$self{_GUI}{nbTree}->get_nth_page(3);
 
     # Connections
-    $$self{_GUI}{scroll1} eq $page0 and print F "tree_page_0:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page1 and print F "tree_page_1:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page2 and print F "tree_page_2:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page3 and print F "tree_page_3:scroll1\n";
+    $$self{_GUI}{scroll1} eq $page0 and print $fh_tree "tree_page_0:scroll1\n";
+    $$self{_GUI}{scroll1} eq $page1 and print $fh_tree "tree_page_1:scroll1\n";
+    $$self{_GUI}{scroll1} eq $page2 and print $fh_tree "tree_page_2:scroll1\n";
+    $$self{_GUI}{scroll1} eq $page3 and print $fh_tree "tree_page_3:scroll1\n";
     # Favourites
-    $$self{_GUI}{scroll2} eq $page0 and print F "tree_page_0:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page1 and print F "tree_page_1:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page2 and print F "tree_page_2:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page3 and print F "tree_page_3:scroll2\n";
+    $$self{_GUI}{scroll2} eq $page0 and print $fh_tree "tree_page_0:scroll2\n";
+    $$self{_GUI}{scroll2} eq $page1 and print $fh_tree "tree_page_1:scroll2\n";
+    $$self{_GUI}{scroll2} eq $page2 and print $fh_tree "tree_page_2:scroll2\n";
+    $$self{_GUI}{scroll2} eq $page3 and print $fh_tree "tree_page_3:scroll2\n";
     # History
-    $$self{_GUI}{scroll3} eq $page0 and print F "tree_page_0:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page1 and print F "tree_page_1:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page2 and print F "tree_page_2:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page3 and print F "tree_page_3:scroll3\n";
+    $$self{_GUI}{scroll3} eq $page0 and print $fh_tree "tree_page_0:scroll3\n";
+    $$self{_GUI}{scroll3} eq $page1 and print $fh_tree "tree_page_1:scroll3\n";
+    $$self{_GUI}{scroll3} eq $page2 and print $fh_tree "tree_page_2:scroll3\n";
+    $$self{_GUI}{scroll3} eq $page3 and print $fh_tree "tree_page_3:scroll3\n";
     # Clusters
-    $$self{_GUI}{vboxclu} eq $page0 and print F "tree_page_0:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page1 and print F "tree_page_1:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page2 and print F "tree_page_2:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page3 and print F "tree_page_3:vboxclu\n";
+    $$self{_GUI}{vboxclu} eq $page0 and print $fh_tree "tree_page_0:vboxclu\n";
+    $$self{_GUI}{vboxclu} eq $page1 and print $fh_tree "tree_page_1:vboxclu\n";
+    $$self{_GUI}{vboxclu} eq $page2 and print $fh_tree "tree_page_2:vboxclu\n";
+    $$self{_GUI}{vboxclu} eq $page3 and print $fh_tree "tree_page_3:vboxclu\n";
 
-    close F;
+    close $fh_tree;
 
     return 1;
 }
@@ -3700,8 +3700,8 @@ sub _loadTreeExpanded {
     my %TREE_TABS;
 
     if (-f "$CFG_FILE.tree") {
-        open(F,"<:utf8","$CFG_FILE.tree") or die "ERROR: Could not read Tree Config file '$CFG_FILE.tree': $!";;
-        foreach my $uuid (<F>) {
+        open(my $fh, '<:utf8', "$CFG_FILE.tree") or die "ERROR: Could not read Tree Config file '$CFG_FILE.tree': $!";
+        foreach my $uuid (<$fh>) {
 
             chomp $uuid;
             if ($uuid =~ /^tree_page_(\d):(.+)$/go) {
@@ -3711,7 +3711,7 @@ sub _loadTreeExpanded {
                 $tree->expand_row($path, 0);
             }
         }
-        close F;
+        close $fh;
     }
 
     defined $TREE_TABS{0} and $$self{_GUI}{nbTree}->reorder_child($$self{_GUI}{$TREE_TABS{0}}, 0);
@@ -3725,27 +3725,27 @@ sub _loadTreeExpanded {
 sub _saveGUIData {
     my $self = shift;
 
-    open(F,">:utf8","$CFG_FILE.gui") or die "ERROR: Could not save GUI Config file '$CFG_FILE.gui': $!";;
+    open(my $fh, '>:utf8', "$CFG_FILE.gui") or die "ERROR: Could not save GUI Config file '$CFG_FILE.gui': $!";
 
     # Save Top Window size/position
     if ($$self{_GUI}{maximized}) {
-        print F 'maximized';
+        print $fh 'maximized';
     } else {
         my ($x, $y) = $$self{_GUI}{main}->get_position();
         my ($w, $h) = $$self{_GUI}{main}->get_size();
-        print F $x . ':' . $y . ':' . $w . ':' . $h;
+        print $fh $x . ':' . $y . ':' . $w . ':' . $h;
 
         if ($$self{_VERBOSE}) {
             print STDERR "DEBUG: Saving window position = ($x, $y) ; window size ($w, $h)\n";
         }
     }
-    print F "\n";
+    print $fh "\n";
 
     # Save connections list width
     my $treepos = $$self{_GUI}{hpane}->get_position();
-    print F $treepos . "\n";
+    print $fh $treepos . "\n";
 
-    close F;
+    close $fh;
 
     return 1;
 }
@@ -3757,10 +3757,10 @@ sub _loadGUIData {
         return 1;
     }
 
-    open(F,"<:utf8","$CFG_FILE.gui") or die "ERROR: Could not read GUI Config file '$CFG_FILE.gui': $!";
+    open(my $fh, '<:utf8', "$CFG_FILE.gui") or die "ERROR: Could not read GUI Config file '$CFG_FILE.gui': $!";
 
     # Read top level window's psize/position
-    my $win = <F>;
+    my $win = <$fh>;
     chomp $win;
 
     ($$self{_GUI}{posx}, $$self{_GUI}{posy}, $$self{_GUI}{sw}, $$self{_GUI}{sh}) =
@@ -3773,11 +3773,11 @@ sub _loadGUIData {
     }
 
     # Read connections list width
-    my $tree = <F> // '-1';
+    my $tree = <$fh> // '-1';
     chomp $tree;
     $$self{_GUI}{hpanepos} = $tree;
 
-    close F;
+    close $fh;
 
     return 1;
 }
