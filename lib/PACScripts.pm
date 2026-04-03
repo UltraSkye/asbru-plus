@@ -411,11 +411,14 @@ sub _initGUI {
 
             # Create an hpane
             $$self{_WINDOWSCRIPTS}{gui}{hpane} = Gtk3::HPaned->new;
+            $$self{_WINDOWSCRIPTS}{gui}{hpane}->set_position(220);
+            $$self{_WINDOWSCRIPTS}{gui}{hpane}->set_wide_handle(1);
             $$self{_WINDOWSCRIPTS}{gui}{vbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{hpane}, 1, 1, 0);
 
                 # Terminals list
                 $$self{_WINDOWSCRIPTS}{gui}{scroll2} = Gtk3::ScrolledWindow->new;
-                $$self{_WINDOWSCRIPTS}{gui}{hpane}->pack1($$self{_WINDOWSCRIPTS}{gui}{scroll2}, 0, 0);
+                $$self{_WINDOWSCRIPTS}{gui}{scroll2}->set_size_request(200, -1);
+                $$self{_WINDOWSCRIPTS}{gui}{hpane}->pack1($$self{_WINDOWSCRIPTS}{gui}{scroll2}, 1, 0);
                 $$self{_WINDOWSCRIPTS}{gui}{scroll2}->set_policy('automatic', 'automatic');
 
                     $$self{_WINDOWSCRIPTS}{treeScripts} = Gtk3::SimpleList->new_from_treeview (
@@ -441,6 +444,8 @@ sub _initGUI {
                     $tablbl->show_all;
 
                     $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc} = Gtk3::HPaned->new;
+                    $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->set_wide_handle(1);
+                    $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->set_position(420);
                     $$self{_WINDOWSCRIPTS}{nb}->append_page($$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}, $tablbl);
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_reorderable($$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}, 0);
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_detachable($$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}, 0);
@@ -463,7 +468,13 @@ sub _initGUI {
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_auto_indent(1);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set('auto-indent', 1);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_highlight_current_line(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->modify_font(Pango::FontDescription::from_string('monospace') );
+                                    eval { $$self{_WINDOWSCRIPTS}{gui}{textScript}->modify_font(Pango::FontDescription::from_string('monospace 10')); };
+                                    # Use a dark scheme so text is readable on the dark theme.
+                                    eval {
+                                        my $sm = Gtk3::SourceView2::StyleSchemeManager::get_default();
+                                        my $sch = $sm->get_scheme('oblivion') || $sm->get_scheme('cobalt') || $sm->get_scheme('classic');
+                                        $$self{_WINDOWSCRIPTS}{multiTextBuffer}->set_style_scheme($sch) if $sch;
+                                    };
                                 } else {
                                     $$self{_WINDOWSCRIPTS}{multiTextBuffer} = Gtk3::TextBuffer->new;
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} = Gtk3::TextView->new_with_buffer($$self{_WINDOWSCRIPTS}{multiTextBuffer});
@@ -489,6 +500,7 @@ sub _initGUI {
 
                         # API functions list
                         $$self{_WINDOWSCRIPTS}{gui}{scrollfunc} = Gtk3::ScrolledWindow->new;
+                        $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_size_request(220, -1);
                         $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->pack2($$self{_WINDOWSCRIPTS}{gui}{scrollfunc}, 0, 0);
                         $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_policy('automatic', 'automatic');
 

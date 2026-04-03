@@ -262,17 +262,20 @@ selection {
   color: #ffffff;
 }
 
-/* ── Text views ───────────────────────────────────────────────────────────*/
+/* ── Text views (incl. GtkSourceView) ─────────────────────────────────────*/
 textview,
 textview .view,
 textview > text,
 textview > border,
 textview > window,
 textview text,
-textview text > * {
+textview text > *,
+sourceview,
+GtkSourceView {
     color: #ffffff;
     background-color: #242424;
     border-color: rgba(255, 255, 255, 0.06);
+    caret-color: #3584e4;
 }
 textview text selection,
 textview text selection:focus {
