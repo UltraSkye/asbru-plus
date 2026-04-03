@@ -867,24 +867,24 @@ sub _setProxy {
         $proxy_port = $$CFG{'environments'}{$UUID}{'jump port'};
         $proxy_user = $$CFG{'environments'}{$UUID}{'jump user'};
         $proxy_pass = $$CFG{'environments'}{$UUID}{'jump pass'};
-        open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
+        open(my $cfg_fh, '>:utf8', "$CFG_DIR/tmp/$UUID.conf") or die "ERROR: Cannot write SSH config: $!";
         chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
-        print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
-        print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
+        print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
+        print $cfg_fh qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
         if ($$CFG{'environments'}{$UUID}{'jump key'}) {
             # Strip newlines to prevent SSH config directive injection
             (my $_jkey = $$CFG{'environments'}{$UUID}{'jump key'}) =~ s/[\r\n]//g;
-            print CFG "IdentityFile $_jkey\n";
+            print $cfg_fh "IdentityFile $_jkey\n";
         }
         if ($method =~ /ssh/i) {
             # Second server is only important for SSH JumpHost
-            print CFG qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
+            print $cfg_fh qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
             if (($PUBKEY)&&($$CFG{'environments'}{$UUID}{'auth type'} eq 'publickey')) {
                 (my $_pkey = $PUBKEY) =~ s/[\r\n]//g;
-                print CFG "IdentityFile $_pkey\n";
+                print $cfg_fh "IdentityFile $_pkey\n";
             }
         }
-        close CFG;
+        close $cfg_fh;
         if ($method =~ /VNC|RDP/i) {
             _openSshTunnel($UUID);
         }
@@ -897,23 +897,23 @@ sub _setProxy {
             $proxy_port = $$CFG{'defaults'}{'jump port'};
             $proxy_user = $$CFG{'defaults'}{'jump user'};
             $proxy_pass = $$CFG{'defaults'}{'jump pass'};
-            open(CFG,">:utf8","$CFG_DIR/tmp/$UUID.conf");
+            open(my $cfg_fh, '>:utf8', "$CFG_DIR/tmp/$UUID.conf") or die "ERROR: Cannot write SSH config: $!";
             chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
-            print CFG qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
-            print CFG qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
+            print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
+            print $cfg_fh qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
             if ($$CFG{'defaults'}{'jump key'}) {
                 (my $_jkey = $$CFG{'defaults'}{'jump key'}) =~ s/[\r\n]//g;
-                print CFG "IdentityFile $_jkey\n";
+                print $cfg_fh "IdentityFile $_jkey\n";
             }
             if ($method =~ /ssh/i) {
                 # Second server is only important for SSH JumpHost
-                print CFG qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
+                print $cfg_fh qq"\nHost server\nHostName $IP\nUser $user\nPort $PORT\n";
                 if (($PUBKEY)&&($$CFG{'environments'}{$UUID}{'auth type'} eq 'publickey')) {
                     (my $_pkey = $PUBKEY) =~ s/[\r\n]//g;
-                    print CFG "IdentityFile $_pkey\n";
+                    print $cfg_fh "IdentityFile $_pkey\n";
                 }
             }
-            close CFG;
+            close $cfg_fh;
             if ($method =~ /VNC|RDP/i) {
                 _openSshTunnel($UUID);
             }
@@ -1481,11 +1481,11 @@ if ($GETCMD) {
 
 # Set log file only when session logging is enabled
 if ($$CFG{'environments'}{$UUID}{'save session logs'} && $LOG_FILE && $LOG_FILE ne '/dev/null') {
-    if (open(LOG, ">:raw", $LOG_FILE)) {
+    if (open(my $log_fh, '>:raw', $LOG_FILE)) {
         if ($LOG_TIMESTAMP) {
             $EXP->log_file(\&logTime);
         } else {
-            close LOG;
+            close $log_fh;
             $EXP->log_file($LOG_FILE);
         }
     } else {
@@ -2397,27 +2397,27 @@ sub close_log_file {
     if (!$LOG_FILE || !$REMOVE_CTRL_CHARS) {
         return 1;
     }
-    if (!open(FIN,"<:raw",$LOG_FILE)) {
+    if (!open(my $fin, '<:raw', $LOG_FILE)) {
         ctrl("ERROR: Could not open file '$LOG_FILE' for reading!! ($!)");
         return 1;
     }
-    if (!open(FOUT,">:raw","$LOG_FILE.$$")) {
-        ctrl("ERROR: Could not open file '$LOG_FILE.$$' for writting!! ($!)");
-        close FIN;
+    if (!open(my $fout, '>:raw', "$LOG_FILE.$$")) {
+        ctrl("ERROR: Could not open file '$LOG_FILE.$$' for writing!! ($!)");
+        close $fin;
         return 1;
     }
-    while ($line = <FIN>) {
+    while ($line = <$fin>) {
         my $l = _removeEscapeSeqs($line);
         if ($LOG_TIMESTAMP) {
             while ($l =~ s/^(\D.+?)\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} : /$1/) {}
             if ($l !~ /^\d{3,4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} : /) {
-                print FOUT ' 'x22;
+                print $fout ' 'x22;
             }
         }
-        print FOUT $l;
+        print $fout $l;
     }
-    close FIN;
-    close FOUT;
+    close $fin;
+    close $fout;
     rename("$LOG_FILE.$$", $LOG_FILE) or ctrl("ERROR: $!");
 }
 
