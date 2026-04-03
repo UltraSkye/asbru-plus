@@ -695,8 +695,8 @@ sub _initGUI {
     # Create a scrolled1 scrolled window to contain the connections tree
     $$self{_GUI}{scroll1} = Gtk3::ScrolledWindow->new();
     $$self{_GUI}{scroll1}->set_overlay_scrolling($$self{_CFG}{'defaults'}{'tree overlay scrolling'});
-    $$self{_GUI}{nbTreeTab} = Gtk3::HBox->new(0, 0);
-    $$self{_GUI}{nbTreeTabLabel} = Gtk3::Label->new();
+    $$self{_GUI}{nbTreeTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbTreeTabLabel} = Gtk3::Label->new('Connections');
     $$self{_GUI}{nbTreeTab}->pack_start(Gtk3::Image->new_from_stock('asbru-treelist', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
         $$self{_GUI}{nbTreeTab}->pack_start($$self{_GUI}{nbTreeTabLabel}, 0, 1, 0);
@@ -765,8 +765,8 @@ sub _initGUI {
 
     # Create a scrolled2 scrolled window to contain the favourites tree
     $$self{_GUI}{scroll2} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbFavTab} = Gtk3::HBox->new(0, 0);
-    $$self{_GUI}{nbFavTabLabel} = Gtk3::Label->new();
+    $$self{_GUI}{nbFavTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbFavTabLabel} = Gtk3::Label->new('Favourites');
     $$self{_GUI}{nbFavTab}->pack_start(Gtk3::Image->new_from_stock('asbru-favourite-on', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
         $$self{_GUI}{nbFavTab}->pack_start($$self{_GUI}{nbFavTabLabel}, 0, 1, 0);
@@ -798,8 +798,8 @@ sub _initGUI {
 
     # Create a scrolled3 scrolled window to contain the history tree
     $$self{_GUI}{scroll3} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbHistTab} = Gtk3::HBox->new(0, 0);
-    $$self{_GUI}{nbHistTabLabel} = Gtk3::Label->new();
+    $$self{_GUI}{nbHistTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbHistTabLabel} = Gtk3::Label->new('History');
     $$self{_GUI}{nbHistTab}->pack_start(Gtk3::Image->new_from_stock('asbru-history', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
         $$self{_GUI}{nbHistTab}->pack_start($$self{_GUI}{nbHistTabLabel}, 0, 1, 0);
@@ -836,8 +836,8 @@ sub _initGUI {
 
     # Create a scrolledclu scrolled window to contain the clusters tree
     $$self{_GUI}{scrolledclu} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbCluTab} = Gtk3::HBox->new(0, 0);
-    $$self{_GUI}{nbCluTabLabel} = Gtk3::Label->new();
+    $$self{_GUI}{nbCluTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbCluTabLabel} = Gtk3::Label->new('Clusters');
     $$self{_GUI}{nbCluTab}->pack_start(Gtk3::Image->new_from_stock('asbru-cluster-manager', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
         $$self{_GUI}{nbCluTab}->pack_start($$self{_GUI}{nbCluTabLabel}, 0, 1, 0);
@@ -4337,10 +4337,12 @@ For news and updates, visit the project page on GitHub.
 sub _clearLeftMenuTabLabels {
     my $self = shift;
 
-    $$self{_GUI}{nbTreeTabLabel}->set_text('');
-    $$self{_GUI}{nbFavTabLabel}->set_text('');
-    $$self{_GUI}{nbHistTabLabel}->set_text('');
-    $$self{_GUI}{nbCluTabLabel}->set_text('');
+    # All tab labels are kept visible at all times — earlier code only
+    # showed the active tab's label which made inactive tabs unreadable.
+    $$self{_GUI}{nbTreeTabLabel}->set_text('Connections');
+    $$self{_GUI}{nbFavTabLabel}->set_text('Favourites');
+    $$self{_GUI}{nbHistTabLabel}->set_text('History');
+    $$self{_GUI}{nbCluTabLabel}->set_text('Clusters');
 }
 
 sub _updateGUIPreferences {
