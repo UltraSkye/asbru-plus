@@ -470,7 +470,8 @@ sub _initGUI {
                                 }
 
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_border_width(5);
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_size_request(320, 200);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_hexpand(1);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_vexpand(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{scrollMultiText}->add($$self{_WINDOWSCRIPTS}{gui}{textScript});
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_wrap_mode('GTK_WRAP_WORD');
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_sensitive(1);
