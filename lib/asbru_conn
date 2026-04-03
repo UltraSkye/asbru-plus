@@ -641,11 +641,11 @@ sub _execAndCapture {
             ctrl("$$ctrl{ctrl}:$tmp");
         } elsif ($tee) {
             $tee =~ /^>{1,2}(.+)$/go or $tee = '>' . $tee;
-            if (!open(F,"<:utf8",$tee)) {
+            if (!open(my $fh, '>:utf8', $tee)) {
                 return 1;
             }
-            print F $out;
-            close F;
+            print $fh $out;
+            close $fh;
         } else {
             # Advise PAC to receive command output
             ctrl("EXEC:RECEIVE_OUT");

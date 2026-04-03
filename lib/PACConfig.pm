@@ -1243,9 +1243,10 @@ sub _saveConfiguration {
             mkdir($autostart_dir, 0700);
         }
         if (-d $autostart_dir) {
-            open(F, ">:utf8", "$autostart_dir/asbru_start.desktop");
-            print F join("\n", @PACUtils::PACDESKTOP);
-            close F;
+            if (open(my $fh, '>:utf8', "$autostart_dir/asbru_start.desktop")) {
+                print $fh join("\n", @PACUtils::PACDESKTOP);
+                close $fh;
+            }
             $$self{_CFG}{'defaults'}{'start at session startup'} = 1;
         } else {
             print("ERROR: Unable to create autostart directory [$autostart_dir]\n");
