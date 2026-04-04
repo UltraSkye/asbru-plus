@@ -163,10 +163,23 @@ my $AUTOSSH = $$CFG{'environments'}{$UUID}{'autossh'} && $autossh_bin;
 my $METHOD = $AUTOSSH ? 'autossh' : $$CFG{'environments'}{$UUID}{'method'};
 my $SUDO = $$CFG{'environments'}{$UUID}{'use sudo'};
 my $SUDO_PROMPT = $$CFG{'defaults'}{'sudo prompt'};
+# Sanitize sudo prompt — it's passed to sudo -p 'prompt'
+if (defined $SUDO_PROMPT) { $SUDO_PROMPT =~ s/['\\\n\r]//g; }
 my $SUDO_PASSWORD = encode('UTF-8', $$CFG{'defaults'}{'sudo password'});
 my $IP = $$CFG{'environments'}{$UUID}{'ip'};
 my $PORT = $$CFG{'environments'}{$UUID}{'port'};
 my $USER = $$CFG{'environments'}{$UUID}{'user'};
+
+# Validate connection parameters to prevent shell injection via config values
+if (defined $IP && $IP =~ /[;\|`\$\(\)\{\}]/) {
+    die "$COLOR{'err'}ERROR: Host/IP contains invalid characters: '$IP'$COLOR{'norm'}\n";
+}
+if (defined $PORT && $PORT !~ /^\d*$/) {
+    die "$COLOR{'err'}ERROR: Port must be numeric: '$PORT'$COLOR{'norm'}\n";
+}
+if (defined $USER && $USER =~ /[;\|`\$\(\)\{\}\s]/) {
+    die "$COLOR{'err'}ERROR: Username contains invalid characters: '$USER'$COLOR{'norm'}\n";
+}
 my $PASS = encode('UTF-8', $$CFG{'environments'}{$UUID}{'pass'});
 my $AUTH = $$CFG{'environments'}{$UUID}{'auth type'};
 my $PUBKEY = $$CFG{'environments'}{$UUID}{'public key'};
