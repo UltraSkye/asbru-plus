@@ -509,8 +509,16 @@ sub subst {
     # Different from PACUtils implementation
 
     # Replace '<CMD:#>' with the result of executing 'cmd'
+    # NOTE: This executes shell commands from config — only safe if config is trusted.
     while ($string =~ /<CMD:(.+?)>/go) {
         my $var = $1;
+        # Reject commands containing obvious injection patterns
+        if ($var =~ /[;&|].*[;&|]/ || $var =~ /\beval\b/ || $var =~ /\brm\s+-rf\b/) {
+            print "$COLOR{'err'}WARNING: Blocked suspicious <CMD:$var> substitution$COLOR{'norm'}\n";
+            $string =~ s/<CMD:\Q$var\E>//g;
+            next;
+        }
+        print "$COLOR{'log'}CMD substitution: executing '$var'$COLOR{'norm'}\n";
         my $output = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $var 2>&1`;
         chomp $output;
         $string =~ s/<CMD:\Q$var\E>/$output/g;

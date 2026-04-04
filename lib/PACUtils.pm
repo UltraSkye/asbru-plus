@@ -2972,8 +2972,16 @@ sub _subst {
         }
 
         # Replace '<CMD:.+>' with the result of executing 'cmd'
+        # NOTE: This executes shell commands from config — only safe if config is trusted.
         while ($string =~ /<CMD:(.+?)>/go) {
             my $var = $1;
+            # Reject commands containing obvious injection patterns
+            if ($var =~ /[;&|].*[;&|]/ || $var =~ /\beval\b/ || $var =~ /\brm\s+-rf\b/) {
+                warn "WARNING: Blocked suspicious <CMD:$var> substitution\n";
+                $string =~ s/<CMD:\Q$var\E>//g;
+                $ret = $string;
+                next;
+            }
             my $output = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $var`;
             chomp $output;
             if ($output =~ /\R/go) {
