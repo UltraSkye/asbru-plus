@@ -3428,11 +3428,16 @@ sub _toggleTheme {
         }
     };
 
-    # Reload tree group pixbufs and re-render the connection tree.
+    # Reload tree group pixbufs AND connection-method icons (these are
+    # stored as GdkPixbuf inside the TreeStore and aren't refreshed by
+    # the GtkImage walker), then rebuild the connection tree.
     eval {
         $GROUPICON_ROOT = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
         $GROUPICON      = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
-        $self->_loadTreeConfiguration if $self->can('_loadTreeConfiguration');
+        # Rebuild method icon cache from the new theme dir.
+        %{ $$self{_METHODS} } = PACUtils::_getMethods($self, $THEME_DIR);
+        $FUNCS{_METHODS}      = $$self{_METHODS};
+        $self->_loadTreeConfiguration('__PAC__ROOT__') if $self->can('_loadTreeConfiguration');
         $$self{_GUI}{treeConnections}->queue_draw if $$self{_GUI}{treeConnections};
     };
 
