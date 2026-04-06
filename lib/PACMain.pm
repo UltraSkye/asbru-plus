@@ -38,6 +38,7 @@ use strict;
 use warnings;
 use YAML qw (LoadFile DumpFile);
 use Storable qw (thaw dclone nstore retrieve);
+use Fcntl qw(:flock);
 use Encode;
 use File::Copy;
 use Net::Ping;
@@ -3449,8 +3450,15 @@ sub _saveConfiguration {
     _cipherCFG($cfg);
     # Do not attempt to write when in read-only mode
     return 1 if $$self{_READONLY};
-    # Do store the configuration on disk
-    nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
+    # Do store the configuration on disk (with exclusive lock to prevent corruption)
+    if (open(my $lock_fh, '>', "$CFG_FILE_NFREEZE.lock")) {
+        flock($lock_fh, LOCK_EX);
+        nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
+        flock($lock_fh, LOCK_UN);
+        close $lock_fh;
+    } else {
+        nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
+    }
     if ($R_CFG_FILE) {
         nstore($cfg, $R_CFG_FILE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$R_CFG_FILE':\n\n$!\n\nLocal copy saved at '$CFG_FILE_NFREEZE'");
     }
