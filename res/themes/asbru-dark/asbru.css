@@ -264,18 +264,35 @@ selection {
 
 /* ── Text views (incl. GtkSourceView) ─────────────────────────────────────*/
 textview,
+textview.view,
 textview .view,
 textview > text,
+textview > text > *,
 textview > border,
+textview > border-window,
 textview > window,
 textview text,
+textview text selection,
 textview text > *,
+textview text:not(:selected),
 sourceview,
-GtkSourceView {
+sourceview text,
+sourceview > text,
+sourceview .view,
+GtkSourceView,
+GtkSourceView text {
     color: #ffffff;
     background-color: #242424;
+    background-image: none;
     border-color: rgba(255, 255, 255, 0.06);
     caret-color: #3584e4;
+}
+/* Wrap textview's parents so the dark base extends across the rounded border */
+scrolledwindow undershoot,
+scrolledwindow overshoot,
+scrolledwindow junction {
+    background-color: #242424;
+    background-image: none;
 }
 textview text selection,
 textview text selection:focus {

@@ -268,15 +268,31 @@ selection {
 
 /* ── Text views ───────────────────────────────────────────────────────────*/
 textview,
+textview.view,
 textview .view,
 textview > text,
+textview > text > *,
 textview > border,
+textview > border-window,
 textview > window,
 textview text,
-textview text > * {
+textview text > *,
+textview text:not(:selected),
+sourceview,
+sourceview text,
+sourceview .view,
+GtkSourceView,
+GtkSourceView text {
     color: #2e3436;
     background-color: #ffffff;
+    background-image: none;
     border-color: rgba(0, 0, 0, 0.08);
+}
+scrolledwindow undershoot,
+scrolledwindow overshoot,
+scrolledwindow junction {
+    background-color: #ffffff;
+    background-image: none;
 }
 textview text selection,
 textview text selection:focus {
