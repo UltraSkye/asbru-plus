@@ -322,10 +322,10 @@ notebook header.top {
 }
 notebook header.top tab,
 notebook header.bottom tab {
-    padding: 10px 18px;
+    padding: 8px 14px;
     margin: 2px;
     border-width: 0;
-    border-bottom-width: 2px;
+    border-bottom-width: 1px;
     border-bottom-style: solid;
     border-bottom-color: transparent;
     border-radius: 6px 6px 0 0;

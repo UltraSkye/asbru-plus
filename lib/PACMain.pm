@@ -625,7 +625,7 @@ sub _initGUI {
 
     # Create a vboxCommandPanel: actions, connections and other tools
     $$self{_GUI}{vboxCommandPanel} = Gtk3::VBox->new(0, 0);
-    $$self{_GUI}{vboxCommandPanel}->set_size_request(260, -1);
+    $$self{_GUI}{vboxCommandPanel}->set_size_request(200, -1);
     if ($$self{_CFG}{defaults}{'tree on right side'}) {
         $$self{_GUI}{hpane}->pack2($$self{_GUI}{vboxCommandPanel}, 0, 0);
     } else {
@@ -687,13 +687,10 @@ sub _initGUI {
         $$self{_GUI}{nodeClose}->get_style_context()->add_class("button-cp");
     }
 
-    # Put a notebook for connections, favourites and history.
-    # scrollable=0 + tab_pos=bottom keeps all 4 tabs visible without
-    # collapsing them behind chevrons.
+    # Put a notebook for connections, favourites and history
     $$self{_GUI}{nbTree} = Gtk3::Notebook->new();
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{nbTree}, 1, 1, 0);
-    $$self{_GUI}{nbTree}->set_scrollable(0);
-    $$self{_GUI}{nbTree}->set_show_border(0);
+    $$self{_GUI}{nbTree}->set_scrollable(1);
 
     # Create a scrolled1 scrolled window to contain the connections tree
     $$self{_GUI}{scroll1} = Gtk3::ScrolledWindow->new();
