@@ -2148,8 +2148,9 @@ $SIG{'WINCH'} = sub {
 
 $SIG{'INT'} = undef;
 $SIG{'HUP'} = sub {
-    # Avoid more interruptions
+    # Avoid more interruptions and re-entrancy
     local $SIG{'WINCH'} = undef;
+    local $SIG{'HUP'} = 'IGNORE';
 
     my $chain_uuid = '';
     my $CHAIN_CFG;
@@ -2325,8 +2326,9 @@ $SIG{'HUP'} = sub {
 };
 
 $SIG{'USR1'} = sub {
-    # Avoid more interruptions
+    # Avoid more interruptions and re-entrancy
     local $SIG{'WINCH'} = undef;
+    local $SIG{'USR1'} = 'IGNORE';
 
     return 1 if $INT;
     $INT = 1;
@@ -2355,8 +2357,9 @@ $SIG{'USR1'} = sub {
 };
 
 $SIG{'USR2'} = sub {
-    # Avoid more interruptions
+    # Avoid more interruptions and re-entrancy
     local $SIG{'WINCH'} = undef;
+    local $SIG{'USR2'} = 'IGNORE';
 
     return 1 if $INT;
     $INT = 1;
