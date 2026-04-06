@@ -143,7 +143,24 @@ my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
 my $R_CFG_FILE = $PACMain::R_CFG_FILE;
 my $SALT = '12345678';
-my $CIPHER = Crypt::CBC->new(-key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)', -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
+# New cipher: AES-256 with proper key derivation (opensslv2 uses 10000+ iterations)
+my $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
+# Legacy cipher for reading old configs encrypted with Blowfish/opensslv1
+my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+
+# Decrypt with migration support: try new cipher first, fall back to legacy
+sub _decrypt_hex_compat {
+    my $hex = shift;
+    return '' unless defined $hex && $hex ne '';
+    my $result;
+    eval { $result = $CIPHER->decrypt_hex($hex); };
+    if ($@) {
+        eval { $result = $CIPHER_LEGACY->decrypt_hex($hex); };
+        if ($@) { return ''; }
+    }
+    return $result;
+}
 
 my %WINDOWSPLASH;
 my %WINDOWPROGRESS;
@@ -2009,7 +2026,8 @@ sub _wSetPACPassword {
             return 0;
         }
 
-        if ($CIPHER->encrypt_hex($old_pass) ne $$self{_CFG}{'defaults'}{'gui password'}) {
+        my $_stored_pass = _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'});
+        if ($old_pass ne $_stored_pass) {
             _wMessage($$self{_WINDOWCONFIG}, "ERROR: Wrong <b>OLD</b> password!!");
             return 0;
         }
@@ -2755,7 +2773,7 @@ sub _decipherCFG {
         foreach my $var (keys %{$$cfg{'defaults'}{'global variables'}}) {
             if ($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} eq '1') {
                 eval {
-                    $$cfg{'defaults'}{'global variables'}{$var}{'value'} = decode('UTF-8',$CIPHER->decrypt_hex($$cfg{'defaults'}{'global variables'}{$var}{'value'}));
+                    $$cfg{'defaults'}{'global variables'}{$var}{'value'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'global variables'}{$var}{'value'}));
                 };
             }
         }
@@ -2763,11 +2781,11 @@ sub _decipherCFG {
 
     if (defined $$cfg{'defaults'}{'keepass'}) {
         eval {
-            $$cfg{'defaults'}{'keepass'}{'password'} = decode('UTF-8',$CIPHER->decrypt_hex($$cfg{'defaults'}{'keepass'}{'password'}));
+            $$cfg{'defaults'}{'keepass'}{'password'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'keepass'}{'password'}));
         };
     }
     eval {
-        $$cfg{'defaults'}{'sudo password'} = decode('UTF-8',$CIPHER->decrypt_hex($$cfg{'defaults'}{'sudo password'}));
+        $$cfg{'defaults'}{'sudo password'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'sudo password'}));
     };
 
     foreach my $uuid (keys %{$$cfg{'environments'}}) {
@@ -2779,13 +2797,13 @@ sub _decipherCFG {
             delete $$cfg{'environments'}{$uuid}{'pass'};
             next;
         }
-        eval {$$cfg{'environments'}{$uuid}{'pass'} = decode('UTF-8',$CIPHER->decrypt_hex($$cfg{'environments'}{$uuid}{'pass'}));};
-        eval {$$cfg{'environments'}{$uuid}{'passphrase'} = decode('UTF-8',$CIPHER->decrypt_hex($$cfg{'environments'}{$uuid}{'passphrase'}));};
+        eval {$$cfg{'environments'}{$uuid}{'pass'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'environments'}{$uuid}{'pass'}));};
+        eval {$$cfg{'environments'}{$uuid}{'passphrase'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'environments'}{$uuid}{'passphrase'}));};
 
         foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'}}) {
             if ($$hash{'hidden'} eq '1') {
                 eval {
-                    $$hash{'send'} = $CIPHER->decrypt_hex(encode('UTF-8',$$hash{'send'}));
+                    $$hash{'send'} = _decrypt_hex_compat(encode('UTF-8',$$hash{'send'}));
                 };
             }
         }
@@ -2793,7 +2811,7 @@ sub _decipherCFG {
         foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
             if ($$hash{'hide'} eq '1') {
                 eval {
-                    $$hash{'txt'} = $CIPHER->decrypt_hex(encode('UTF-8',$$hash{'txt'}));
+                    $$hash{'txt'} = _decrypt_hex_compat(encode('UTF-8',$$hash{'txt'}));
                 };
             }
         }

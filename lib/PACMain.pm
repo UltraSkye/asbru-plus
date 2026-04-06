@@ -107,7 +107,9 @@ my $NEW_VERSION = 0;
 my $NEW_CHANGES = '';
 our $_NO_SPLASH = 0;
 my $SALT = '12345678';
-my $CIPHER = Crypt::CBC->new(-key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)', -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
+my $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
+my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
 
 our $UNITY = 0; # Are we in a Unity environment?
 our $STRAY = 1; # Are we using a system tray icon?
@@ -275,7 +277,7 @@ sub new {
         if (!$CIPHER->salt()) {
             $CIPHER->salt(pack('Q',$SALT));
         }
-        if ($pass ne $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'})) {
+        if ($pass ne (eval { $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // eval { $CIPHER_LEGACY->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // '')) {
             _wMessage(undef, 'ERROR: Wrong password!!');
             exit 0;
         }
@@ -2472,7 +2474,7 @@ sub _unlockAsbru {
         $CIPHER->salt(pack('Q',$SALT));
     }
     my $pass = _wEnterValue($$self{_GUI}{main}, 'GUI Unlock', 'Enter current GUI Password to remove protection...', undef, 0, 'asbru-protected');
-    if ((! defined $pass) || ($pass ne $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}))) {
+    if ((! defined $pass) || ($pass ne (eval { $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // eval { $CIPHER_LEGACY->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // ''))) {
         $$self{_GUI}{lockApplicationBtn}->set_active(1);
         _wMessage($$self{_WINDOWCONFIG}, 'ERROR: Wrong password!!');
         return 0;
