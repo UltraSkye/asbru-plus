@@ -66,8 +66,9 @@ my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $RES_DIR = "$RealBin/res";
 my $THEME_DIR = "$RES_DIR/themes/default";
 my $SALT = '12345678';
+# PACConfig delegates encryption to PACUtils::$CIPHER (supports master password)
+# These local ciphers are only used as fallback for GUI password verification
 my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
-my $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
 my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
 
 # END: Define GLOBAL CLASS variables
@@ -336,11 +337,8 @@ sub _setupCallbacks {
                 $PACMain::FUNCS{_MAIN}->_setCFGChanged(1);
             }
         } else {
-            if (!$CIPHER->salt()) {
-                $CIPHER->salt(pack('Q',$SALT));
-            }
             my $pass = _wEnterValue($$self{_WINDOWCONFIG}, 'Ásbrú GUI Password Removal', 'Enter current Ásbrú GUI Password to remove protection...', undef, 0, 'asbru-protected');
-            my $_dec_pass = eval { $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // eval { $CIPHER_LEGACY->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // '';
+            my $_dec_pass = _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'});
             if ((! defined $pass) || ($pass ne $_dec_pass)) {
                 $$self{_CFGTOGGLEPASS} = 0;
                 _($self, 'cbCfgUseGUIPassword')->set_active(1);
@@ -349,7 +347,7 @@ sub _setupCallbacks {
                 return 1;
             }
 
-            $$self{_CFG}{'defaults'}{'gui password'} = $CIPHER->encrypt_hex('');
+            $$self{_CFG}{'defaults'}{'gui password'} = $PACUtils::CIPHER->encrypt_hex('');
             _($self, 'hboxCfgPACPassword')->set_sensitive(0);
             $PACMain::FUNCS{_MAIN}->_setCFGChanged(1);
         }

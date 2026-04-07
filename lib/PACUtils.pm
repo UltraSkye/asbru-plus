@@ -110,6 +110,12 @@ require Exporter;
     _setWindowPaintable
     _setDefaultRGBA
     _doShellEscape
+    _initMasterCipher
+    _isMasterPasswordActive
+    _createMasterVerifier
+    _verifyMasterPassword
+    _migrateCipherCFG
+    _decrypt_hex_compat
 ); # Functions/variables to export
 
 @EXPORT_OK  = qw();
@@ -143,21 +149,122 @@ my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
 my $R_CFG_FILE = $PACMain::R_CFG_FILE;
 my $SALT = '12345678';
-my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
-# New cipher: AES-256 with proper key derivation (opensslv2 uses 10000+ iterations)
-my $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
-# Legacy cipher for reading old configs encrypted with Blowfish/opensslv1
-my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $_CIPHER_KEY_LEGACY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
 
-# Decrypt with migration support: try new cipher first, fall back to legacy
+# Active cipher — initialized with legacy key, upgraded when master password is set
+our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
+# Legacy ciphers for reading old configs
+my $CIPHER_LEGACY_AES = $CIPHER;  # AES with legacy key (from previous commit)
+my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $_MASTER_PASSWORD_ACTIVE = 0;  # Flag: is a user-provided master password in use?
+
+# Initialize cipher with a user-provided master password
+# Called from PACMain after the user enters their master password
+sub _initMasterCipher {
+    my $master_pass = shift;
+    $CIPHER = Crypt::CBC->new(
+        -key    => $master_pass,
+        -cipher => 'Crypt::Rijndael',
+        -salt   => pack('Q', $SALT),
+        -pbkdf  => 'opensslv2',
+    ) or die "ERROR: Could not initialize cipher: $!";
+    $_MASTER_PASSWORD_ACTIVE = 1;
+    return $CIPHER;
+}
+
+# Check if master password mode is active
+sub _isMasterPasswordActive { return $_MASTER_PASSWORD_ACTIVE; }
+
+# Create a verification token: encrypt a known string so we can verify the password later
+sub _createMasterVerifier {
+    my $master_pass = shift;
+    my $cipher = Crypt::CBC->new(
+        -key    => $master_pass,
+        -cipher => 'Crypt::Rijndael',
+        -salt   => pack('Q', $SALT),
+        -pbkdf  => 'opensslv2',
+    ) or return undef;
+    return $cipher->encrypt_hex('ASBRU_MASTER_VERIFY_TOKEN_V1');
+}
+
+# Verify a master password against a stored verifier
+sub _verifyMasterPassword {
+    my ($master_pass, $verifier) = @_;
+    return 0 unless defined $verifier && $verifier ne '';
+    my $cipher = Crypt::CBC->new(
+        -key    => $master_pass,
+        -cipher => 'Crypt::Rijndael',
+        -salt   => pack('Q', $SALT),
+        -pbkdf  => 'opensslv2',
+    ) or return 0;
+    my $result;
+    eval { $result = $cipher->decrypt_hex($verifier); };
+    return (!$@ && defined $result && $result eq 'ASBRU_MASTER_VERIFY_TOKEN_V1');
+}
+
+# Re-encrypt all password fields from old cipher to new cipher
+sub _migrateCipherCFG {
+    my ($cfg, $old_cipher, $new_cipher) = @_;
+
+    # Helper to re-encrypt a single value
+    my $reencrypt = sub {
+        my $hex = shift;
+        return '' unless defined $hex && $hex ne '';
+        my $plain;
+        eval { $plain = $old_cipher->decrypt_hex($hex); };
+        return $hex if $@;  # Can't decrypt — leave as-is
+        return $new_cipher->encrypt_hex($plain);
+    };
+
+    # Global variables
+    foreach my $var (keys %{$$cfg{'defaults'}{'global variables'} // {}}) {
+        if (($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} // '') eq '1') {
+            $$cfg{'defaults'}{'global variables'}{$var}{'value'} = $reencrypt->($$cfg{'defaults'}{'global variables'}{$var}{'value'});
+        }
+    }
+    # KeePass password
+    if (defined $$cfg{'defaults'}{'keepass'}) {
+        $$cfg{'defaults'}{'keepass'}{'password'} = $reencrypt->($$cfg{'defaults'}{'keepass'}{'password'});
+    }
+    # Sudo password
+    $$cfg{'defaults'}{'sudo password'} = $reencrypt->($$cfg{'defaults'}{'sudo password'}) if defined $$cfg{'defaults'}{'sudo password'};
+    # GUI password
+    $$cfg{'defaults'}{'gui password'} = $reencrypt->($$cfg{'defaults'}{'gui password'}) if defined $$cfg{'defaults'}{'gui password'};
+
+    # Per-connection passwords
+    foreach my $uuid (keys %{$$cfg{'environments'} // {}}) {
+        next if $uuid =~ /^HASH/;
+        next if $$cfg{'environments'}{$uuid}{'_is_group'};
+
+        $$cfg{'environments'}{$uuid}{'pass'} = $reencrypt->($$cfg{'environments'}{$uuid}{'pass'}) if defined $$cfg{'environments'}{$uuid}{'pass'};
+        $$cfg{'environments'}{$uuid}{'passphrase'} = $reencrypt->($$cfg{'environments'}{$uuid}{'passphrase'}) if defined $$cfg{'environments'}{$uuid}{'passphrase'};
+
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'} // []}) {
+            if (($$hash{'hidden'} // '') eq '1') {
+                $$hash{'send'} = $reencrypt->($$hash{'send'});
+            }
+        }
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'} // []}) {
+            if (($$hash{'hide'} // '') eq '1') {
+                $$hash{'txt'} = $reencrypt->($$hash{'txt'});
+            }
+        }
+    }
+    return 1;
+}
+
+# Decrypt with migration support: try active cipher, then legacy AES, then legacy Blowfish
 sub _decrypt_hex_compat {
     my $hex = shift;
     return '' unless defined $hex && $hex ne '';
     my $result;
     eval { $result = $CIPHER->decrypt_hex($hex); };
     if ($@) {
-        eval { $result = $CIPHER_LEGACY->decrypt_hex($hex); };
-        if ($@) { return ''; }
+        eval { $result = $CIPHER_LEGACY_AES->decrypt_hex($hex); };
+        if ($@) {
+            eval { $result = $CIPHER_LEGACY_BF->decrypt_hex($hex); };
+            if ($@) { return ''; }
+        }
     }
     return $result;
 }

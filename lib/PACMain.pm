@@ -107,10 +107,7 @@ my $CHECK_VERSION = 0;
 my $NEW_VERSION = 0;
 my $NEW_CHANGES = '';
 our $_NO_SPLASH = 0;
-my $SALT = '12345678';
-my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
-my $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
-my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+# Encryption is centralized in PACUtils — use _decrypt_hex_compat, _initMasterCipher etc.
 
 our $UNITY = 0; # Are we in a Unity environment?
 our $STRAY = 1; # Are we using a system tray icon?
@@ -278,7 +275,7 @@ sub new {
         if (!$CIPHER->salt()) {
             $CIPHER->salt(pack('Q',$SALT));
         }
-        if ($pass ne (eval { $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // eval { $CIPHER_LEGACY->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // '')) {
+        if ($pass ne _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'})) {
             _wMessage(undef, 'ERROR: Wrong password!!');
             exit 0;
         }
@@ -2475,7 +2472,7 @@ sub _unlockAsbru {
         $CIPHER->salt(pack('Q',$SALT));
     }
     my $pass = _wEnterValue($$self{_GUI}{main}, 'GUI Unlock', 'Enter current GUI Password to remove protection...', undef, 0, 'asbru-protected');
-    if ((! defined $pass) || ($pass ne (eval { $CIPHER->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // eval { $CIPHER_LEGACY->decrypt_hex($$self{_CFG}{'defaults'}{'gui password'}) } // ''))) {
+    if ((! defined $pass) || ($pass ne _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'}))) {
         $$self{_GUI}{lockApplicationBtn}->set_active(1);
         _wMessage($$self{_WINDOWCONFIG}, 'ERROR: Wrong password!!');
         return 0;
@@ -3601,6 +3598,58 @@ sub _readConfiguration {
     # Make some sanity checks
     $splash and PACUtils::_splash(1, "$APPNAME (v$APPVERSION):Checking config...", 4, 5);
     _cfgSanityCheck($$self{_CFG});
+
+    # Master password handling: if config has a master password verifier, require it
+    if (defined $$self{_CFG}{'defaults'}{'master_password_verifier'} && $$self{_CFG}{'defaults'}{'master_password_verifier'} ne '') {
+        my $verified = 0;
+        for my $attempt (1..3) {
+            my $pass = _wEnterValue(undef, '<b>Master Password Required</b>', "Enter your master password to unlock credentials\n(attempt $attempt/3):", undef, 0, 'asbru-protected');
+            if (!defined $pass) {
+                die "Master password required. Exiting.\n";
+            }
+            if (_verifyMasterPassword($pass, $$self{_CFG}{'defaults'}{'master_password_verifier'})) {
+                _initMasterCipher($pass);
+                $verified = 1;
+                last;
+            }
+            _wMessage(undef, "Wrong master password!") if $attempt < 3;
+        }
+        if (!$verified) {
+            die "Failed to verify master password after 3 attempts. Exiting.\n";
+        }
+    } elsif (!defined $$self{_CFG}{'defaults'}{'master_password_verifier'}) {
+        # First run or migration: offer to set a master password
+        my $answ = _wConfirm(undef, "<b>Security Recommendation</b>\n\nYour connection passwords are currently encrypted with a default key.\nSetting a master password provides much stronger protection.\n\n<b>Would you like to set a master password now?</b>\n\n(You can always set one later in Preferences)");
+        if ($answ) {
+            my $new_pass = _wEnterValue(undef, '<b>Set Master Password</b>', 'Enter a new master password:', undef, 0, 'asbru-protected');
+            if (defined $new_pass && $new_pass ne '') {
+                my $confirm = _wEnterValue(undef, '<b>Confirm Master Password</b>', 'Re-enter your master password:', undef, 0, 'asbru-protected');
+                if (defined $confirm && $confirm eq $new_pass) {
+                    # Save the old cipher for migration (uses legacy hardcoded key)
+                    my $old_cipher = Crypt::CBC->new(
+                        -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
+                        -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
+                    ) or die "ERROR: $!";
+                    # Initialize new cipher with master password
+                    my $new_cipher = _initMasterCipher($new_pass);
+                    # Store verifier
+                    $$self{_CFG}{'defaults'}{'master_password_verifier'} = _createMasterVerifier($new_pass);
+                    # Migrate all encrypted fields from old key to new key
+                    _migrateCipherCFG($$self{_CFG}, $old_cipher, $new_cipher);
+                    print STDERR "INFO: Master password set. All credentials re-encrypted.\n";
+                } else {
+                    _wMessage(undef, "Passwords did not match. Skipping master password setup.");
+                    $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+                }
+            } else {
+                $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+            }
+        } else {
+            # User declined — mark as offered so we don't ask again
+            $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
+        }
+    }
+
     _decipherCFG($$self{_CFG});
 
     $$self{_CFG}{'defaults'}{'layout'} = defined $$self{_CFG}{'defaults'}{'layout'} ? $$self{_CFG}{'defaults'}{'layout'} : 'Traditional';
