@@ -579,7 +579,12 @@ sub _initGUI {
     #  - a "connections panel" with info tab & tabbed connections
     ############################################################################################
     $$self{_GUI}{main} = Gtk3::Window->new();
-    if ($$self{_CFG}{defaults}{'tabs in main window'} && $$self{_CFG}{defaults}{'terminal support transparency'}) {
+    # Only make the main window RGBA-paintable when terminal transparency is
+    # actually requested (> 0). Otherwise GTK uses its normal opaque backing
+    # and textview / scrolledwindow surfaces don't bleed.
+    if ($$self{_CFG}{defaults}{'tabs in main window'}
+        && $$self{_CFG}{defaults}{'terminal support transparency'}
+        && ($$self{_CFG}{defaults}{'terminal transparency'} // 0) > 0) {
         _setWindowPaintable($$self{_GUI}{main});
     }
 
