@@ -272,9 +272,6 @@ sub new {
         if (!defined $pass) {
             exit 0;
         }
-        if (!$CIPHER->salt()) {
-            $CIPHER->salt(pack('Q',$SALT));
-        }
         if ($pass ne _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'})) {
             _wMessage(undef, 'ERROR: Wrong password!!');
             exit 0;
@@ -2468,9 +2465,6 @@ sub _lockAsbru {
 sub _unlockAsbru {
     my $self = shift;
 
-    if (!$CIPHER->salt()) {
-        $CIPHER->salt(pack('Q',$SALT));
-    }
     my $pass = _wEnterValue($$self{_GUI}{main}, 'GUI Unlock', 'Enter current GUI Password to remove protection...', undef, 0, 'asbru-protected');
     if ((! defined $pass) || ($pass ne _decrypt_hex_compat($$self{_CFG}{'defaults'}{'gui password'}))) {
         $$self{_GUI}{lockApplicationBtn}->set_active(1);
