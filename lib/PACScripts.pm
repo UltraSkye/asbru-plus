@@ -480,7 +480,10 @@ sub _initGUI {
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} = Gtk3::TextView->new_with_buffer($$self{_WINDOWSCRIPTS}{multiTextBuffer});
                                 }
 
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_border_width(5);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_left_margin(8);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_right_margin(8);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_top_margin(8);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_bottom_margin(8);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_hexpand(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_vexpand(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{scrollMultiText}->add($$self{_WINDOWSCRIPTS}{gui}{textScript});

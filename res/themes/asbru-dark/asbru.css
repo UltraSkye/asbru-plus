@@ -421,14 +421,26 @@ combobox menuitem:hover {
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────────────*/
+scrollbar {
+    background-color: #2a2a2a;
+    border: 0;
+}
+scrollbar trough {
+    background-color: #2a2a2a;
+    border-radius: 6px;
+}
 scrollbar slider {
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.30);
+    min-width: 10px;
+    min-height: 10px;
+    border-radius: 6px;
+    margin: 2px;
 }
 scrollbar slider:hover {
-    background-color: rgba(255, 255, 255, 0.30);
+    background-color: rgba(255, 255, 255, 0.45);
 }
 scrollbar slider:active {
-    background-color: rgba(255, 255, 255, 0.40);
+    background-color: rgba(255, 255, 255, 0.60);
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────────*/

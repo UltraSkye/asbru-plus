@@ -794,7 +794,7 @@ sub _getMethods {
             _($self, 'cbAutossh')->set_sensitive(0);
             _($self, 'cbAutossh')->set_active(0);
         },
-        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_cu.jpg", 16, 16, 0),
+        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_cu.svg", 16, 16, 0),
         'escape' => ['~.']
     };
 
@@ -861,7 +861,7 @@ sub _getMethods {
             _($self, 'cbAutossh')->set_sensitive(0);
             _($self, 'cbAutossh')->set_active(0);
         },
-        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_remote-tty.jpg", 16, 16, 0)
+        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_remote-tty.svg", 16, 16, 0)
     };
 
     my $c3270 = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which c3270 1>/dev/null 2>&1") eq 0);
@@ -913,7 +913,7 @@ sub _getMethods {
             _($self, 'cbAutossh')->set_sensitive(0);
             _($self, 'cbAutossh')->set_active(0);
         },
-        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_3270.jpg", 16, 16, 0)
+        'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_3270.svg", 16, 16, 0)
     };
 
     my $autossh = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which autossh 1>/dev/null 2>&1") eq 0);
