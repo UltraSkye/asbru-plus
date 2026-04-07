@@ -443,6 +443,16 @@ scrollbar slider:active {
     background-color: rgba(255, 255, 255, 0.60);
 }
 
+/* ── Script output console ────────────────────────────────────────────────*/
+.asbru-script-output,
+.asbru-script-output text,
+.asbru-script-output > text {
+    background-color: #15151a;
+    color: #d6d6d6;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
 /* ── Tooltip ──────────────────────────────────────────────────────────────*/
 tooltip {
   background-color: #1d1d1d;

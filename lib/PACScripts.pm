@@ -501,6 +501,25 @@ sub _initGUI {
                             $$self{_WINDOWSCRIPTS}{gui}{status}->set_justify('center');
                             $$self{_WINDOWSCRIPTS}{gui}{vboxedit}->pack_start($$self{_WINDOWSCRIPTS}{gui}{status}, 0, 1, 0);
 
+                            # Output console — captures stdout/stderr from
+                            # subprocess scripts (Python). Lives below the
+                            # editor and behaves like an inline log panel.
+                            $$self{_WINDOWSCRIPTS}{outputBuffer} = Gtk3::TextBuffer->new;
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollOutput} = Gtk3::ScrolledWindow->new;
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollOutput}->set_size_request(-1, 140);
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollOutput}->set_policy('automatic', 'automatic');
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView} = Gtk3::TextView->new_with_buffer($$self{_WINDOWSCRIPTS}{outputBuffer});
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_editable(0);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_cursor_visible(0);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_monospace(1) if $$self{_WINDOWSCRIPTS}{gui}{outputView}->can('set_monospace');
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_left_margin(8);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_right_margin(8);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_top_margin(6);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->set_bottom_margin(6);
+                            $$self{_WINDOWSCRIPTS}{gui}{outputView}->get_style_context->add_class('asbru-script-output');
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollOutput}->add($$self{_WINDOWSCRIPTS}{gui}{outputView});
+                            $$self{_WINDOWSCRIPTS}{gui}{vboxedit}->pack_start($$self{_WINDOWSCRIPTS}{gui}{scrollOutput}, 0, 1, 0);
+
                         # API functions list
                         $$self{_WINDOWSCRIPTS}{gui}{scrollfunc} = Gtk3::ScrolledWindow->new;
                         $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_size_request(220, -1);
@@ -613,10 +632,19 @@ sub _initGUI {
                 $$self{_WINDOWSCRIPTS}{gui}{btnexec}->set('can_focus', 0);
                 $$self{_WINDOWSCRIPTS}{gui}{btnbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{btnexec}, 1, 1, 0);
 
-                # Put a 'add' button
-                $$self{_WINDOWSCRIPTS}{gui}{btnadd} = Gtk3::Button->new_from_stock('gtk-new');
+                # 'New Perl' button
+                $$self{_WINDOWSCRIPTS}{gui}{btnadd} = Gtk3::Button->new_with_label('New Perl');
+                $$self{_WINDOWSCRIPTS}{gui}{btnadd}->set_image(Gtk3::Image->new_from_stock('gtk-new', 'button'));
+                $$self{_WINDOWSCRIPTS}{gui}{btnadd}->set_always_show_image(1);
                 $$self{_WINDOWSCRIPTS}{gui}{btnadd}->set('can_focus', 0);
                 $$self{_WINDOWSCRIPTS}{gui}{btnbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{btnadd}, 1, 1, 0);
+
+                # 'New Python' button — creates a .py file from the bundled template
+                $$self{_WINDOWSCRIPTS}{gui}{btnaddpy} = Gtk3::Button->new_with_label('New Python');
+                $$self{_WINDOWSCRIPTS}{gui}{btnaddpy}->set_image(Gtk3::Image->new_from_stock('gtk-new', 'button'));
+                $$self{_WINDOWSCRIPTS}{gui}{btnaddpy}->set_always_show_image(1);
+                $$self{_WINDOWSCRIPTS}{gui}{btnaddpy}->set('can_focus', 0);
+                $$self{_WINDOWSCRIPTS}{gui}{btnbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{btnaddpy}, 1, 1, 0);
 
                 # Put a 'import' button
                 $$self{_WINDOWSCRIPTS}{gui}{btnimport} = Gtk3::Button->new('Import...');
@@ -1106,6 +1134,33 @@ All $CONNECTIONS{error|out1|out2} are resetted every time a SEND command is exec
 
         return 1;
     });
+    $$self{_WINDOWSCRIPTS}{gui}{btnaddpy}->signal_connect('clicked' => sub {
+        my $name = _wEnterValue($$self{_WINDOWSCRIPTS}{main}, "<b>Creating new Python Script</b>", "Enter a name for the new Python script");
+        return 1 if ((! defined $name) || ($name =~ /^\s*$/));
+        if ($name =~ m{[/\\\0]}) {
+            _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Script name must not contain path separators");
+            return 1;
+        }
+        return 1 if -f "$SCRIPTS_DIR/$name.py" && ! _wConfirm($$self{_WINDOWSCRIPTS}{main}, "File '$name.py' already exists. Overwrite it?");
+
+        # Copy bundled template
+        my $tpl = "$RealBin/res/script_template.py";
+        my $body;
+        if (open(my $tfh, '<:utf8', $tpl)) { local $/; $body = <$tfh>; close $tfh; }
+        $body //= "#!/usr/bin/env python3\nimport asbru_py as asbru\nasbru.info()\n";
+
+        open(my $fh, '>:utf8', "$SCRIPTS_DIR/$name.py") or do {
+            _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open file '$name.py' for writing ($!)");
+            return 1;
+        };
+        print $fh $body;
+        close $fh;
+        chmod 0755, "$SCRIPTS_DIR/$name.py";
+
+        $self->_reloadDir;
+        $self->_selectFile($name . '.py');
+        return 1;
+    });
     $$self{_WINDOWSCRIPTS}{gui}{btnimport}->signal_connect('clicked' => sub {
         my $choose = Gtk3::FileChooserDialog->new(
             "$APPNAME (v.$APPVERSION) Choose a text file to Import",
@@ -1292,15 +1347,15 @@ sub _reloadDir {
     my $dh;
     my @files;
 
-    # Read file from the directory
+    # Read file from the directory — accept both Perl (.pl) and Python (.py).
     if (! opendir($dh, $SCRIPTS_DIR) ) {
         _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Could not open directory '$SCRIPTS_DIR' for reading ($!)");
         return 0;
     }
     delete $$self{_SCRIPTS};
     while (my $f = readdir($dh) ) {
-        my ($filename, $directories, $suffix) = fileparse ($SCRIPTS_DIR . '/' . $f, '.pl');
-        next unless $suffix eq '.pl';
+        my ($filename, $directories, $suffix) = fileparse($SCRIPTS_DIR . '/' . $f, qr/\.(pl|py)$/);
+        next unless $suffix eq '.pl' || $suffix eq '.py';
         $$self{_SCRIPTS}{$f} = $SCRIPTS_DIR . '/' . $f;
     }
     closedir $dh;
@@ -1411,6 +1466,12 @@ sub _execScript {
     my @uuid_tmps = @_;
 
     return 1 unless defined $name;
+
+    # Python scripts (.py): run as a subprocess with the selected
+    # connection's metadata exposed via env vars + asbru_py helper module.
+    if ($name =~ /\.py$/i) {
+        return _execPython($self, $name, $parentWindow);
+    }
 
     # %SESSION and %CONNECTION *MUST* be reset every time we are called!!
     our %COMMON;    undef %COMMON;
@@ -1651,6 +1712,89 @@ sub _execScript {
             return 0;
         });
     }
+
+    return 1;
+}
+
+sub _execPython {
+    my ($self, $name, $parentWindow) = @_;
+    my $path = $$self{_SCRIPTS}{$name} // ($SCRIPTS_DIR . '/' . $name);
+    return 0 unless -f $path;
+
+    # Resolve the selected connection in Ásbrú so we can hand its details
+    # to the Python script via env vars.
+    my $main = $PACMain::FUNCS{_MAIN};
+    my %env;
+    eval {
+        my @sel = $main->{_GUI}{treeConnections}->_getSelectedUUIDs();
+        if (@sel && $sel[0] && $sel[0] ne '__PAC__ROOT__') {
+            my $uuid = $sel[0];
+            my $node = $main->{_CFG}{environments}{$uuid} // {};
+            $env{ASBRU_NAME}   = $node->{name}        // '';
+            $env{ASBRU_UUID}   = $uuid;
+            $env{ASBRU_HOST}   = $node->{ip}          // '';
+            $env{ASBRU_PORT}   = $node->{port}        // '22';
+            $env{ASBRU_USER}   = $node->{user}        // '';
+            $env{ASBRU_PASS}   = $node->{pass}        // '';
+            $env{ASBRU_KEY}    = $node->{passphrase}  // '';
+            $env{ASBRU_METHOD} = $node->{method}      // 'SSH';
+        }
+    };
+
+    # Make asbru_py importable: prepend our utils dir to PYTHONPATH.
+    my $utils_dir = "$RealBin/utils";
+    $env{PYTHONPATH} = $utils_dir . ($ENV{PYTHONPATH} ? ':' . $ENV{PYTHONPATH} : '');
+
+    # Clear any previous output, mark "running"
+    my $statusBuffer = $$self{_WINDOWSCRIPTS}{outputBuffer};
+    if ($statusBuffer) {
+        $statusBuffer->set_text('');
+        $statusBuffer->insert($statusBuffer->get_end_iter, "▶ Running $name ...\n\n");
+    }
+
+    # Spawn python3 with the script and merged env. Capture stdout/stderr.
+    my $pid;
+    my ($rh, $wh);
+    pipe($rh, $wh) or do {
+        _wMessage($parentWindow // $$self{_WINDOWSCRIPTS}{main}, "ERROR: pipe failed: $!");
+        return 0;
+    };
+    $pid = fork();
+    if (!defined $pid) {
+        _wMessage($parentWindow // $$self{_WINDOWSCRIPTS}{main}, "ERROR: fork failed: $!");
+        return 0;
+    }
+    if ($pid == 0) {
+        # Child
+        close $rh;
+        open(STDOUT, '>&', $wh) or exit 127;
+        open(STDERR, '>&', $wh) or exit 127;
+        $ENV{$_} = $env{$_} for keys %env;
+        exec('python3', '-u', $path) or exit 127;
+    }
+    close $wh;
+
+    # Read child output asynchronously via Glib watch
+    my $fd = fileno($rh);
+    require Glib::IO;
+    my $channel = Glib::IO->new($fd);
+    $channel->set_encoding('UTF-8') if $channel->can('set_encoding');
+    Glib::IO->add_watch($fd, ['in', 'hup'], sub {
+        my (undef, $cond) = @_;
+        my $line = <$rh>;
+        if (defined $line && $statusBuffer) {
+            $statusBuffer->insert($statusBuffer->get_end_iter, $line);
+        }
+        if ($cond->{hup} || !defined $line) {
+            close $rh;
+            waitpid($pid, 0);
+            my $rc = $? >> 8;
+            $statusBuffer->insert($statusBuffer->get_end_iter,
+                $rc == 0 ? "\n✓ Done (exit 0)\n" : "\n✗ Failed (exit $rc)\n") if $statusBuffer;
+            return 0;
+        }
+        return 1;
+    });
 
     return 1;
 }
