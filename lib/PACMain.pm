@@ -975,8 +975,7 @@ sub _initGUI {
     $$self{_GUI}{scrollDescription} = Gtk3::ScrolledWindow->new();
     $$self{_GUI}{vboxInfo}->pack_start($$self{_GUI}{scrollDescription}, 1, 1, 0);
     $$self{_GUI}{scrollDescription}->set_policy('automatic', 'automatic');
-    $$self{_GUI}{scrollDescription}->set_shadow_type('GTK_SHADOW_IN');
-    $$self{_GUI}{scrollDescription}->set_border_width(5);
+    $$self{_GUI}{scrollDescription}->set_shadow_type('none');
 
     # Create descView as a gtktextview with descBuffer
     $$self{_GUI}{descBuffer} = Gtk3::TextBuffer->new();
