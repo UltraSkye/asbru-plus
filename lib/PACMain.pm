@@ -981,7 +981,10 @@ sub _initGUI {
     # Create descView as a gtktextview with descBuffer
     $$self{_GUI}{descBuffer} = Gtk3::TextBuffer->new();
     $$self{_GUI}{descView} = Gtk3::TextView->new_with_buffer($$self{_GUI}{descBuffer});
-    $$self{_GUI}{descView}->set_border_width(5);
+    $$self{_GUI}{descView}->set_left_margin(10);
+    $$self{_GUI}{descView}->set_right_margin(10);
+    $$self{_GUI}{descView}->set_top_margin(10);
+    $$self{_GUI}{descView}->set_bottom_margin(10);
     $$self{_GUI}{scrollDescription}->add($$self{_GUI}{descView});
     $$self{_GUI}{descView}->set_wrap_mode('GTK_WRAP_WORD');
     $$self{_GUI}{descView}->set_sensitive(1);
@@ -3437,8 +3440,12 @@ sub _toggleTheme {
     # stored as GdkPixbuf inside the TreeStore and aren't refreshed by
     # the GtkImage walker), then rebuild the connection tree.
     eval {
-        $GROUPICON_ROOT = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
-        $GROUPICON      = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
+        $GROUPICON_ROOT  = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
+        $GROUPICON       = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
+        $GROUPICONOPEN   = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
+        $GROUPICONCLOSED = _pixBufFromFile("$THEME_DIR/asbru_group_closed_16x16.svg");
+        $AUTOCLUSTERICON = _pixBufFromFile("$THEME_DIR/asbru_cluster_auto.svg");
+        $CLUSTERICON     = _pixBufFromFile("$THEME_DIR/asbru_cluster_connection.svg");
         # Rebuild method icon cache from the new theme dir.
         %{ $$self{_METHODS} } = PACUtils::_getMethods($self, $THEME_DIR);
         $FUNCS{_METHODS}      = $$self{_METHODS};
