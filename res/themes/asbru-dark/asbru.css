@@ -443,7 +443,15 @@ scrollbar slider:active {
     background-color: rgba(255, 255, 255, 0.60);
 }
 
-/* ── Script output console ────────────────────────────────────────────────*/
+/* ── Script editor + output console + snippets ───────────────────────────*/
+.asbru-script-editor,
+.asbru-script-editor .view,
+.asbru-script-editor > text,
+.asbru-script-editor text {
+    background-color: #1d1d22;
+    color: #e8e8e8;
+    font-family: monospace;
+}
 .asbru-script-output,
 .asbru-script-output text,
 .asbru-script-output > text {
@@ -451,6 +459,20 @@ scrollbar slider:active {
     color: #d6d6d6;
     font-family: monospace;
     font-size: 0.9em;
+}
+.asbru-snippets-list {
+    background-color: #232328;
+}
+.asbru-snippets-list row {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0;
+}
+.asbru-snippets-list row:hover {
+    background-color: rgba(53, 132, 228, 0.12);
+}
+.asbru-snippets-list row:active {
+    background-color: rgba(53, 132, 228, 0.20);
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────────*/

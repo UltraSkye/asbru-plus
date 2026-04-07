@@ -461,33 +461,43 @@ sub _initGUI {
                                 if ($SOURCEVIEW) {
                                     $$self{_WINDOWSCRIPTS}{multiTextBuffer} = Gtk3::SourceView2::Buffer->new(undef);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} = Gtk3::SourceView2::View->new_with_buffer($$self{_WINDOWSCRIPTS}{multiTextBuffer});
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_smart_home_end('before');
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_show_line_numbers(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_tab_width(4);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_indent_on_tab(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_auto_indent(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set('auto-indent', 1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript} ->set_highlight_current_line(1);
-                                    eval { $$self{_WINDOWSCRIPTS}{gui}{textScript}->modify_font(Pango::FontDescription::from_string('monospace 10')); };
-                                    # Use a dark scheme so text is readable on the dark theme.
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_smart_home_end('before');
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_show_line_numbers(1);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_show_right_margin(1);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_right_margin_position(100);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_tab_width(4);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_indent_width(4);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_indent_on_tab(1);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_auto_indent(1);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_insert_spaces_instead_of_tabs(1);
+                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_highlight_current_line(1);
+                                    eval { $$self{_WINDOWSCRIPTS}{gui}{textScript}->modify_font(Pango::FontDescription::from_string('monospace 11')); };
+                                    # Dark style scheme for readability on the dark theme.
                                     eval {
                                         my $sm = Gtk3::SourceView2::StyleSchemeManager::get_default();
-                                        my $sch = $sm->get_scheme('oblivion') || $sm->get_scheme('cobalt') || $sm->get_scheme('classic');
+                                        my $sch = $sm->get_scheme('oblivion')
+                                               || $sm->get_scheme('cobalt')
+                                               || $sm->get_scheme('solarized-dark')
+                                               || $sm->get_scheme('classic');
                                         $$self{_WINDOWSCRIPTS}{multiTextBuffer}->set_style_scheme($sch) if $sch;
                                     };
                                 } else {
                                     $$self{_WINDOWSCRIPTS}{multiTextBuffer} = Gtk3::TextBuffer->new;
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} = Gtk3::TextView->new_with_buffer($$self{_WINDOWSCRIPTS}{multiTextBuffer});
+                                    eval { $$self{_WINDOWSCRIPTS}{gui}{textScript}->modify_font(Pango::FontDescription::from_string('monospace 11')); };
                                 }
 
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_left_margin(8);
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_right_margin(8);
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_top_margin(8);
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_bottom_margin(8);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_left_margin(12);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_right_margin(12);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_top_margin(12);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_bottom_margin(12);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_hexpand(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_vexpand(1);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_pixels_above_lines(1);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_pixels_below_lines(1);
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->get_style_context->add_class('asbru-script-editor');
                                 $$self{_WINDOWSCRIPTS}{gui}{scrollMultiText}->add($$self{_WINDOWSCRIPTS}{gui}{textScript});
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_wrap_mode('GTK_WRAP_WORD');
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_wrap_mode('GTK_WRAP_NONE');
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_sensitive(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set('can_focus', 1);
 
@@ -520,20 +530,45 @@ sub _initGUI {
                             $$self{_WINDOWSCRIPTS}{gui}{scrollOutput}->add($$self{_WINDOWSCRIPTS}{gui}{outputView});
                             $$self{_WINDOWSCRIPTS}{gui}{vboxedit}->pack_start($$self{_WINDOWSCRIPTS}{gui}{scrollOutput}, 0, 1, 0);
 
-                        # API functions list
-                        $$self{_WINDOWSCRIPTS}{gui}{scrollfunc} = Gtk3::ScrolledWindow->new;
-                        $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_size_request(220, -1);
-                        $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->pack2($$self{_WINDOWSCRIPTS}{gui}{scrollfunc}, 0, 0);
-                        $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_policy('automatic', 'automatic');
+                        # Right side panel — Snippets / quick reference for
+                        # the current script language. Click any row to
+                        # insert the snippet at the cursor.
+                        $$self{_WINDOWSCRIPTS}{gui}{snippetsBox} = Gtk3::VBox->new(0, 0);
+                        $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->set_size_request(260, -1);
+                        $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->pack2($$self{_WINDOWSCRIPTS}{gui}{snippetsBox}, 0, 0);
 
-                            $$self{_WINDOWSCRIPTS}{treeFuncs} = Gtk3::SimpleList->new_from_treeview (
+                            my $snippetsHeader = Gtk3::Label->new();
+                            $snippetsHeader->set_markup("<b>Snippets</b>");
+                            $snippetsHeader->set_xalign(0.0);
+                            $snippetsHeader->set_margin_top(10);
+                            $snippetsHeader->set_margin_start(12);
+                            $snippetsHeader->set_margin_bottom(6);
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->pack_start($snippetsHeader, 0, 0, 0);
+
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel} = Gtk3::Label->new();
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}->set_xalign(0.0);
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}->set_margin_start(12);
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}->set_margin_bottom(8);
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}->set_markup("<small>Select a script to see snippets</small>");
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}, 0, 0, 0);
+
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollfunc} = Gtk3::ScrolledWindow->new;
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->set_policy('never', 'automatic');
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{scrollfunc}, 1, 1, 0);
+
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsList} = Gtk3::ListBox->new();
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsList}->set_selection_mode('none');
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsList}->get_style_context->add_class('asbru-snippets-list');
+                            $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->add($$self{_WINDOWSCRIPTS}{gui}{snippetsList});
+
+                            # Legacy treeFuncs kept as a hidden hash for any
+                            # callbacks that still reference it.
+                            $$self{_WINDOWSCRIPTS}{treeFuncs} = Gtk3::SimpleList->new_from_treeview(
                                 Gtk3::TreeView->new,
                                 'API NAME' => 'hidden',
                                 'API CALL' => 'markup',
                             );
-                            $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->add($$self{_WINDOWSCRIPTS}{treeFuncs});
-                            $$self{_WINDOWSCRIPTS}{treeFuncs}->set_headers_visible(1);
-                            $$self{_WINDOWSCRIPTS}{treeFuncs}->get_selection->set_mode('GTK_SELECTION_SINGLE');
+                            $$self{_WINDOWSCRIPTS}{treeFuncs}->set_headers_visible(0);
 
                             push(@{$$self{_WINDOWSCRIPTS}{treeFuncs}{data}},
                                 ['$SHARED{_list_}'                                    , '<span foreground="#606060">'        . __('$SHARED{_list_}')                                    . '</span>'],
@@ -1318,6 +1353,7 @@ sub _loadFile {
 
     $$self{_SYNTAX_CHANGED} = 1;
     $$self{_WINDOWSCRIPTS}{nb}->set_current_page(0);
+    $self->_loadSnippets($file);
     return 1;
 }
 
@@ -1713,6 +1749,88 @@ sub _execScript {
         });
     }
 
+    return 1;
+}
+
+sub _loadSnippets {
+    my ($self, $file) = @_;
+    my $list = $$self{_WINDOWSCRIPTS}{gui}{snippetsList} or return;
+
+    # Clear existing rows
+    for my $row ($list->get_children) { $list->remove($row); }
+
+    my $is_python = ($file // '') =~ /\.py$/i;
+    my $lang = $is_python ? 'Python' : 'Perl';
+    $$self{_WINDOWSCRIPTS}{gui}{snippetsLangLabel}->set_markup(
+        sprintf("<small>Click to insert · %s</small>", $lang)
+    );
+
+    my @snippets = $is_python ? (
+        ['connection info'   => 'asbru.info()'],
+        ['run command'       => 'out, err, rc = asbru.run("uname -a")
+print(out)'],
+        ['stream output'     => 'for line in asbru.stream("tail -f /var/log/syslog"):
+    print(line)'],
+        ['upload file'       => 'asbru.upload("local.txt", "/tmp/remote.txt")'],
+        ['download file'     => 'asbru.download("/etc/hostname", "./hostname.txt")'],
+        ['raw paramiko'      => 'ssh = asbru.client()
+sftp = ssh.open_sftp()
+# ... use sftp ...
+sftp.close()
+ssh.close()'],
+        ['try / except'      => 'try:
+    out, err, rc = asbru.run("ls /tmp")
+except Exception as e:
+    print(f"failed: {e}")'],
+    ) : (
+        ['start connection'  => '$PAC{start}("connection-name")'],
+        ['select all'        => '$PAC{select}("*ALL*")'],
+        ['stop tab'           => '$PAC{stop}($tmp_uuid)'],
+        ['send to terminal'  => '$TERMINAL{send}("ls -la\n")'],
+        ['expect prompt'     => '$TERMINAL{expect}("\$ ", 10)'],
+        ['ask user'          => '$TERMINAL{ask}("Continue?")'],
+        ['log to file'       => '$TERMINAL{log}("/tmp/session.log")'],
+        ['save config'       => '$PAC{cfg_save}()'],
+        ['get prompt'        => '$TERMINAL{get_prompt}()'],
+    );
+
+    for my $snippet (@snippets) {
+        my ($title, $code) = @$snippet;
+        my $row = Gtk3::ListBoxRow->new();
+        my $box = Gtk3::VBox->new(0, 2);
+        $box->set_margin_top(6);
+        $box->set_margin_bottom(6);
+        $box->set_margin_start(12);
+        $box->set_margin_end(12);
+
+        my $tlbl = Gtk3::Label->new();
+        $tlbl->set_markup("<b>$title</b>");
+        $tlbl->set_xalign(0.0);
+        $box->pack_start($tlbl, 0, 0, 0);
+
+        my $clbl = Gtk3::Label->new();
+        my $preview = $code;
+        $preview =~ s/&/&amp;/g; $preview =~ s/</&lt;/g; $preview =~ s/>/&gt;/g;
+        my $first_line = (split /\n/, $preview)[0];
+        $clbl->set_markup("<small><tt>$first_line</tt></small>");
+        $clbl->set_xalign(0.0);
+        $clbl->set_ellipsize('end');
+        $box->pack_start($clbl, 0, 0, 0);
+
+        $row->add($box);
+        $row->{_snippet_code} = $code;
+        $list->add($row);
+    }
+
+    $list->signal_connect('row_activated' => sub {
+        my (undef, $row) = @_;
+        my $code = $row->{_snippet_code} // '';
+        return unless length $code;
+        my $buf = $$self{_WINDOWSCRIPTS}{multiTextBuffer};
+        $buf->insert_at_cursor($code);
+    }) unless $$self{_SNIPPETS_BOUND}++;
+
+    $list->show_all;
     return 1;
 }
 
