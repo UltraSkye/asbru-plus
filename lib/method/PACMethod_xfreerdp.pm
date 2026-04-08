@@ -274,12 +274,18 @@ sub _parseOptionsToCfg {
     {
         $txt .= ' /size:' . $$hash{width} . 'x' . $$hash{height};
     }
-    $txt .= ' /kbd:' . $$hash{keyboardLocale} if $$hash{keyboardLocale} ne '';
-    $txt .= ' /shell:' . $$hash{startupshell} if $$hash{startupshell} ne '';
-    $txt .= ' /d:' . $$hash{domain} if $$hash{domain} ne '';
+    # SECURITY: Validate user-supplied fields against shell injection
+    my $_shell_reject = qr/[`\$\(\)\{\};&|<>!\\]/;
+    $txt .= ' /kbd:' . $$hash{keyboardLocale} if $$hash{keyboardLocale} ne '' && $$hash{keyboardLocale} !~ $_shell_reject;
+    $txt .= " /shell:'$$hash{startupshell}'" if $$hash{startupshell} ne '' && $$hash{startupshell} !~ $_shell_reject;
+    $txt .= " /d:'$$hash{domain}'" if $$hash{domain} ne '' && $$hash{domain} !~ $_shell_reject;
     $txt .= ' +clipboard' if $$hash{redirClipboard};
     $txt .= ' /sound:sys:alsa' if $$hash{redirSound};
-    $txt .= ' /cert-ignore' if $$hash{ignoreCert};
+    # SECURITY: Warn when cert-ignore is enabled (allows MITM attacks)
+    if ($$hash{ignoreCert}) {
+        print STDERR "WARNING: /cert-ignore enabled — RDP certificate verification disabled (MITM risk)\n";
+        $txt .= ' /cert-ignore';
+    }
     $txt .= ' -authentication' if $$hash{noAuth};
     $txt .= ' -fast-path' if $$hash{nofastPath};
     $txt .= ' /rfx' if $$hash{rfx};
@@ -292,9 +298,19 @@ sub _parseOptionsToCfg {
     $txt .= ' +fonts' if $$hash{fontSmooth};
     $txt .= ' -grab-keyboard' if $$hash{noGrabKbd};
 
-    foreach my $redir (@{$$hash{redirDisk}}) {$txt .= " /drive:$$redir{redirDiskShare},$$redir{redirDiskPath}";}
+    foreach my $redir (@{$$hash{redirDisk}}) {
+        # SECURITY: Validate disk paths against traversal/injection
+        next if $$redir{redirDiskPath} =~ $_shell_reject || $$redir{redirDiskPath} =~ /\.\./;
+        $txt .= " /drive:$$redir{redirDiskShare},$$redir{redirDiskPath}";
+    }
 
-    $txt .= ' ' . $$hash{otherOptions} if $$hash{otherOptions} ne '';
+    if ($$hash{otherOptions} ne '') {
+        if ($$hash{otherOptions} =~ $_shell_reject) {
+            print STDERR "WARNING: xfreerdp otherOptions contains shell metacharacters — ignoring\n";
+        } else {
+            $txt .= ' ' . $$hash{otherOptions};
+        }
+    }
 
     return $txt;
 }

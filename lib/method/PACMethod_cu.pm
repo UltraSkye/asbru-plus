@@ -153,12 +153,14 @@ sub _parseOptionsToCfg
 
     my $txt = '';
 
-    $txt .= " -l $$hash{'line'}" if $$hash{'line'} ;
-    $txt .= " -s $$hash{'speed'}" if $$hash{'speed'} ;
-    $txt .= " -p $$hash{'port'}" if $$hash{'port'} ;
-    $txt .= " --parity=$$hash{'parity'}" if $$hash{'parity'} ;
-    $txt .= " --halfduplex" if $$hash{'halfduplex'} ;
-    $txt .= " --nostop" if $$hash{'nostop'} ;
+    # SECURITY: Validate serial parameters against shell injection
+    my $_reject = qr/[`\$\(\)\{\};&|<>!\\'"]/;
+    $txt .= " -l '$$hash{'line'}'"       if $$hash{'line'} && $$hash{'line'} !~ $_reject;
+    $txt .= " -s $$hash{'speed'}"         if $$hash{'speed'} && $$hash{'speed'} =~ /^\d+$/;
+    $txt .= " -p '$$hash{'port'}'"       if $$hash{'port'} && $$hash{'port'} !~ $_reject;
+    $txt .= " --parity=$$hash{'parity'}" if $$hash{'parity'} && $$hash{'parity'} =~ /^(even|odd|none)$/;
+    $txt .= " --halfduplex" if $$hash{'halfduplex'};
+    $txt .= " --nostop" if $$hash{'nostop'};
 
     return $txt;
 }

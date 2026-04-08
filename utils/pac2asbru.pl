@@ -192,5 +192,12 @@ sub _wPopUP {
     $msg =~ s/\n/&cr;/g;
     $msg =~ s/\"/&dquot;/g;
     $msg =~ s/\'/&squot;/g;
-    return `'$^X' $PATH/asbru_confirm.pl '$type' '$title' '$msg' `;
+    # SECURITY: Use list-form open to avoid shell interpretation of arguments
+    my $output = '';
+    if (open(my $fh, '-|', $^X, "${PATH}asbru_confirm.pl", $type, $title, $msg)) {
+        local $/;
+        $output = <$fh>;
+        close $fh;
+    }
+    return $output;
 }

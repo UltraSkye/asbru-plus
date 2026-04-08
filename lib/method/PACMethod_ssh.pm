@@ -365,6 +365,16 @@ sub _parseOptionsToCfg
     $txt .= ' -g' if $$hash{allowRemoteConnection};
     $txt .= ' -A' if $$hash{forwardAgent};
     foreach my $opt (@{$$hash{advancedOption}}) {
+        # SECURITY: Block dangerous SSH options that enable arbitrary command execution
+        if ($$opt{option} =~ /^(ProxyCommand|LocalCommand|PermitLocalCommand)$/i) {
+            print STDERR "WARNING: Blocked dangerous SSH option '$$opt{option}' — use connection settings instead\n";
+            next;
+        }
+        # Reject shell metacharacters in option names/values
+        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\\n\r]/) {
+            print STDERR "WARNING: SSH option '$$opt{option}' contains invalid characters — skipping\n";
+            next;
+        }
         $txt .= " -o \"$$opt{option}=$$opt{value}\"";
     }
     foreach my $dynamic (@{$$hash{dynamicForward}}) {

@@ -235,18 +235,33 @@ sub _parseOptionsToCfg {
     $txt .= ' -f' if $$hash{fullScreen};
     $txt .= ' -A' if $$hash{seamless};
     $txt .= ' -K' if $$hash{noGrabKbd};
-    $txt .= ' -s ' . $$hash{startupshell} if $$hash{startupshell} ne '';
+    # SECURITY: Validate user-supplied fields against shell injection before interpolation
+    my $_shell_reject = qr/[`\$\(\)\{\};&|<>!\\]/;
+    if ($$hash{startupshell} ne '' && $$hash{startupshell} !~ $_shell_reject) {
+        $txt .= " -s '$$hash{startupshell}'";
+    }
     if ($$hash{wh}) {
         $txt .= ' -g ' . $$hash{width} . 'x' . $$hash{height};
     }
-    $txt .= ' -k ' . $$hash{keyboardLocale} if $$hash{keyboardLocale} ne '';
+    $txt .= ' -k ' . $$hash{keyboardLocale} if $$hash{keyboardLocale} ne '' && $$hash{keyboardLocale} !~ $_shell_reject;
     $txt .= ' -r sound:' . $$hash{redirSound};
     $txt .= ' -r scard' if $$hash{scard};
     $txt .= ' -r clipboard:PRIMARYCLIPBOARD' if $$hash{clipboard};
-    $txt .= " -d $$hash{domain}" if $$hash{domain} ne '';
-    foreach my $redir (@{$$hash{redirDisk}}) {$txt .= " -r disk:$$redir{redirDiskShare}=\"$$redir{redirDiskPath}\"";}
+    $txt .= " -d '$$hash{domain}'" if $$hash{domain} ne '' && $$hash{domain} !~ $_shell_reject;
+    foreach my $redir (@{$$hash{redirDisk}}) {
+        # SECURITY: Validate disk redirect paths against traversal/injection
+        next if $$redir{redirDiskPath} =~ $_shell_reject || $$redir{redirDiskPath} =~ /\.\./;
+        $txt .= " -r disk:$$redir{redirDiskShare}=\"$$redir{redirDiskPath}\"";
+    }
 
-    $txt .= ' ' . $$hash{otherOptions} if $$hash{otherOptions} ne '';
+    if ($$hash{otherOptions} ne '') {
+        # SECURITY: Reject otherOptions containing shell metacharacters
+        if ($$hash{otherOptions} =~ $_shell_reject) {
+            print STDERR "WARNING: rdesktop otherOptions contains shell metacharacters — ignoring\n";
+        } else {
+            $txt .= ' ' . $$hash{otherOptions};
+        }
+    }
 
     return $txt;
 }

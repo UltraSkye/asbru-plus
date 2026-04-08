@@ -194,6 +194,15 @@ sub _parseOptionsToCfg
     $txt .= ' -1' unless $$hash{sshVersion} eq 'any';
     $txt .= ' -C' if $$hash{useCompression} ;
     foreach my $opt (@{$$hash{advancedOption}}) {
+        # SECURITY: Block dangerous SSH options that enable arbitrary command execution
+        if ($$opt{option} =~ /^(ProxyCommand|LocalCommand|PermitLocalCommand)$/i) {
+            print STDERR "WARNING: Blocked dangerous SFTP option '$$opt{option}'\n";
+            next;
+        }
+        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\\n\r]/) {
+            print STDERR "WARNING: SFTP option '$$opt{option}' contains invalid characters — skipping\n";
+            next;
+        }
         $txt .= " -o \"$$opt{option}=$$opt{value}\"";
     }
 

@@ -180,13 +180,15 @@ sub _parseOptionsToCfg {
     $txt .= ' -cbreak'                            if $$hash{cbreak} ;
     $txt .= ' -noprompt'                        if $$hash{noprompt} ;
     $txt .= ' -mono'                            if $$hash{mono} ;
-    $txt .= ' -model ' . $$hash{model};
-    $txt .= ' -prepend_' . $$hash{prepend}        if $$hash{prepend} ne '';
-    $txt .= ' -charset ' . $$hash{charset}        if $$hash{charset} ne '';
-    $txt .= ' -im ' . $$hash{im}                if $$hash{im} ne '';
-    $txt .= ' -keymap ' . $$hash{keymap}        if $$hash{keymap} ne '';
-    $txt .= ' -printerlu ' . $$hash{printerlu}    if $$hash{printerlu} ne '';
-    $txt .= ' -tn ' . $$hash{tn}                if $$hash{tn} ne '';
+    # SECURITY: Validate all user-supplied fields against shell injection
+    my $_reject = qr/[`\$\(\)\{\};&|<>!\\'"]/;
+    $txt .= ' -model ' . $$hash{model} if $$hash{model} !~ $_reject;
+    $txt .= ' -prepend_' . $$hash{prepend}    if $$hash{prepend} ne '' && $$hash{prepend} !~ $_reject;
+    $txt .= ' -charset ' . $$hash{charset}    if $$hash{charset} ne '' && $$hash{charset} !~ $_reject;
+    $txt .= ' -im ' . $$hash{im}              if $$hash{im} ne '' && $$hash{im} !~ $_reject;
+    $txt .= ' -keymap ' . $$hash{keymap}      if $$hash{keymap} ne '' && $$hash{keymap} !~ $_reject;
+    $txt .= ' -printerlu ' . $$hash{printerlu} if $$hash{printerlu} ne '' && $$hash{printerlu} !~ $_reject;
+    $txt .= ' -tn ' . $$hash{tn}              if $$hash{tn} ne '' && $$hash{tn} !~ $_reject;
 
     return $txt;
 }

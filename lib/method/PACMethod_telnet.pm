@@ -142,9 +142,11 @@ sub _parseOptionsToCfg
 
     my $txt = '';
 
-    $txt .= ' -' . $$hash{ipVersion} if $$hash{ipVersion} ne 'any';
-    $txt .= ' -b ' . $$hash{bindAddress} if $$hash{bindAddress};
-    $txt .= ' -e ' . $$hash{escapeChar} if $$hash{escapeChar};
+    # SECURITY: Validate user-supplied fields against shell injection
+    my $_reject = qr/[`\$\(\)\{\};&|<>!\\'"]/;
+    $txt .= ' -' . $$hash{ipVersion} if $$hash{ipVersion} ne 'any' && $$hash{ipVersion} =~ /^[46]$/;
+    $txt .= " -b '$$hash{bindAddress}'" if $$hash{bindAddress} && $$hash{bindAddress} !~ $_reject;
+    $txt .= " -e '$$hash{escapeChar}'" if $$hash{escapeChar} && $$hash{escapeChar} !~ $_reject;
 
     return $txt;
 }

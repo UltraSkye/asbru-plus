@@ -33,4 +33,5 @@ export ASBRU_ENV_FOR_INTERNAL="$(getCompressedEnv)"
 
 cd "${APPDIR}" || exit 1
 
-exec "${APPDIR}/usr/bin/perl" "${APPDIR}/opt/asbru-cm/asbru-cm" $@
+# SECURITY: Quote "$@" to prevent word splitting and glob expansion of arguments
+exec "${APPDIR}/usr/bin/perl" "${APPDIR}/opt/asbru-cm/asbru-cm" "$@"
