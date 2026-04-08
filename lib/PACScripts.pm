@@ -1077,10 +1077,10 @@ All $CONNECTIONS{error|out1|out2} are resetted every time a SEND command is exec
         }
         return 1 if -f "$SCRIPTS_DIR/$name.pl" && ! _wConfirm($$self{_WINDOWSCRIPTS}{main}, "File '$name.pl' already exists. Overwrite it?");
 
-        if (! open(my $fh, '>:utf8', "$SCRIPTS_DIR/$name.pl")) {
+        open(my $fh, '>:utf8', "$SCRIPTS_DIR/$name.pl") or do {
             _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open file '$name.pl' for writting ($!)");
             return 1;
-        }
+        };
 
         print $fh $PAC_SCRIPTS_NEW;
         close $fh;
@@ -1198,10 +1198,10 @@ sub _saveFile {
     my $path = shift;
     my $file = shift // $$self{_WINDOWSCRIPTS}{treeScripts}->get_model->get_value($$self{_WINDOWSCRIPTS}{treeScripts}->get_model->get_iter($path), 0);
 
-    if (!open(my $fh, '>:utf8', $file)) {
+    open(my $fh, '>:utf8', $file) or do {
         _wMessage($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not open for writing '$file' ($!)");
         return 0;
-    }
+    };
     print $fh $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_text($$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_start_iter, $$self{_WINDOWSCRIPTS}{multiTextBuffer}->get_end_iter, 0);
     close $fh;
 
@@ -1220,10 +1220,10 @@ sub _loadFile {
 
     # Loading a file should not be undoable.
     my $content = '';
-    if (!open(my $fh, '<:utf8', $file)) {
+    open(my $fh, '<:utf8', $file) or do {
         $$self{_WINDOWSCRIPTS}{gui}{btnremove}->clicked if _wConfirm($$self{_WINDOWSCRIPTS}{main}, "ERROR: Can not read file '$file' ($!)\nDelete it?");
         return 0;
-    }
+    };
     while (my $line = <$fh>) {$content .= $line;}
     close $fh;
 
@@ -1573,10 +1573,10 @@ sub _execScript {
     my $file = $$self{_SCRIPTS}{$name};
 
     defined &SESSION and undef &SESSION;
-    if (! open(my $fh, '<:utf8', $file)) {
+    open(my $fh, '<:utf8', $file) or do {
         _wMessage($parentWindow, "Could not open Ásbrú Script file '$file' for reading: $!");
         return 1;
-    }
+    };
     my @lines = <$fh>;
     my $txt = join('', @lines);
     close $fh;

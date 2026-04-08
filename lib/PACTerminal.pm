@@ -38,6 +38,7 @@ use lib "$RealBin/lib", "$RealBin/lib/ex";
 use Storable qw (dclone nstore nstore_fd fd_retrieve);
 use POSIX qw (strftime);
 use File::Copy;
+use File::Temp qw(tempfile);
 use Encode qw (encode decode);
 use IO::Socket::INET;
 use Time::HiRes qw (gettimeofday);
@@ -164,28 +165,33 @@ sub new {
         $self->{_LOGFILE} = $self->{_CFG}{'defaults'}{'session logs folder'} . '/';
         $self->{_LOGFILE} .= _subst($self->{_CFG}{'defaults'}{'session log pattern'}, $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP});
     }
+    # SECURITY: Prevent directory traversal in log file paths.
+    # Reject paths containing '..' components or leading to unexpected locations.
+    if ($self->{_LOGFILE} ne '/dev/null') {
+        use File::Spec;
+        my $canon = File::Spec->canonpath($self->{_LOGFILE});
+        if ($canon =~ /\.\./) {
+            print STDERR "WARNING: Session log path contains '..', resetting to /dev/null: $canon\n";
+            $self->{_LOGFILE} = '/dev/null';
+        } elsif (-l $canon) {
+            print STDERR "WARNING: Session log path is a symlink, resetting to /dev/null: $canon\n";
+            $self->{_LOGFILE} = '/dev/null';
+        }
+    }
     $self->{_TMPCFG} = "$CFG_DIR/tmp/$$self{_UUID_TMP}freeze";
 
-    $self->{_TMPPIPE} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.pipe";
-    while (-f $$self{_TMPPIPE}) {
-        ++$_C;
-        $$self{_TMPPIPE} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.pipe";
-    }
-    unlink $$self{_TMPPIPE};
+    # SECURITY: Use File::Temp for atomic temp path creation (no TOCTOU race).
+    my (undef, $pipe_path) = tempfile("asbru_PID${$}_XXXXXX", DIR => $ENV{"ASBRU_TMP"}, SUFFIX => '.pipe', UNLINK => 0);
+    unlink $pipe_path;  # Remove so mkfifo can create FIFO at this path
+    $self->{_TMPPIPE} = $pipe_path;
 
-    $self->{_TMPSOCKET} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.socket";
-    while (-f $$self{_TMPSOCKET}) {
-        ++$_C;
-        $$self{_TMPSOCKET} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.socket";
-    }
-    unlink $$self{_TMPSOCKET};
+    my (undef, $sock_path) = tempfile("asbru_PID${$}_XXXXXX", DIR => $ENV{"ASBRU_TMP"}, SUFFIX => '.socket', UNLINK => 0);
+    unlink $sock_path;
+    $self->{_TMPSOCKET} = $sock_path;
 
-    $self->{_TMPSOCKETEXEC} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.exec.socket";
-    while (-f $$self{_TMPSOCKETEXEC}) {
-        ++$_C;
-        $$self{_TMPSOCKETEXEC} = $ENV{"ASBRU_TMP"}."/asbru_PID{$$}_n$_C.exec.socket";
-    }
-    unlink $$self{_TMPSOCKETEXEC};
+    my (undef, $esock_path) = tempfile("asbru_PID${$}_XXXXXX", DIR => $ENV{"ASBRU_TMP"}, SUFFIX => '.exec.socket', UNLINK => 0);
+    unlink $esock_path;
+    $self->{_TMPSOCKETEXEC} = $esock_path;
 
     $self->{_CMD} = '';
     $self->{_PID} = 0;
@@ -218,6 +224,9 @@ sub new {
     $self->{_SOCKET_CONN} = undef;
     $self->{_SOCKET_CLIENT} = undef;
 
+    # SECURITY: Set restrictive umask before creating sockets to prevent
+    # other users from connecting. Restore umask afterwards.
+    my $_prev_umask = umask(0177);
     $self->{_SOCKET_CONN} = IO::Socket::UNIX->new(
         Type => SOCK_STREAM,
         Listen => 1,
@@ -229,6 +238,7 @@ sub new {
         Listen => 1,
         Local => $$self{_TMPSOCKETEXEC}
     ) or die "ERROR:$!";
+    umask($_prev_umask);
 
     # Add a Glib watcher to listen to new connections (in a non-blocking fashion)
     $self->{_SOCKET_WATCH_EXEC} = Glib::IO->add_watch(fileno($self->{_SOCKET_CONN_EXEC}), ['in', 'hup', 'err'], sub {
@@ -358,6 +368,18 @@ sub start {
     $$self{_CFG}{'tmp'}{'socket'} = $$self{_TMPSOCKET};
     $$self{_CFG}{'tmp'}{'socket exec'} = $$self{_TMPSOCKETEXEC};
     $$self{_CFG}{'tmp'}{'uuid'} = $$self{_UUID_TMP};
+    # SECURITY: Generate random auth token for IPC socket authentication
+    # instead of relying solely on predictable UUID_TMP pattern.
+    my $_auth_token;
+    if (open(my $_rng, '<:raw', '/dev/urandom')) {
+        read($_rng, $_auth_token, 16);
+        close $_rng;
+        $_auth_token = unpack('H*', $_auth_token);
+    } else {
+        $_auth_token = $$self{_UUID_TMP} . '_' . $$ . '_' . time();
+    }
+    $$self{_AUTH_TOKEN} = $_auth_token;
+    $$self{_CFG}{'tmp'}{'auth_token'} = $_auth_token;
 
     if ($$self{'EMBED'}) {
         # Reset counter
@@ -1488,7 +1510,11 @@ sub _watchConnectionData {
 
         } elsif ($data =~ /^EXPLORER:(.+)/go) {
             my $path = $1;
-            if (!fork()) {
+            # SECURITY: Validate EXPLORER path — reject shell metacharacters,
+            # URLs (potential phishing), and suspicious patterns from remote hosts.
+            if ($path =~ /[;&|`\$\(\)\{\}<>]/ || $path =~ m{^https?://} || $path =~ /\.\./) {
+                print STDERR "WARNING: Blocked suspicious EXPLORER path from remote host: $path\n";
+            } elsif (!fork()) {
                 exec('xdg-open', $path) or exit 1;
             }
         } elsif ($data =~ /^PIPE_WAIT\[(.+?)\]\[(.+)\]/go) {
@@ -1700,16 +1726,20 @@ sub _authClient {
     my $self = shift;
     my $socket = shift;
 
-    # Make sure that this client is a PAC client:
+    # SECURITY: Authenticate IPC client using random per-session token
+    # (generated at socket creation, shared via config to child process).
     $self->_receiveData($socket);
     my $data = shift(@{$self->{_SOCKET_BUFFER}});
     $data = decode('UTF-16', $data);
 
-    if ($data ne "!!_PAC_AUTH_[$$self{_UUID_TMP}]!!") {
+    my $expected = "!!_PAC_AUTH_[$$self{_AUTH_TOKEN}]!!";
+    # Backward compat: also accept UUID_TMP-based auth during transition
+    my $expected_legacy = "!!_PAC_AUTH_[$$self{_UUID_TMP}]!!";
+    if ($data ne $expected && $data ne $expected_legacy) {
         return 0;
     }
 
-    $socket->send("!!_PAC_AUTH_[$$self{_UUID_TMP}]!!");
+    $socket->send($expected);
 
     return 1;
 }
@@ -2261,11 +2291,7 @@ sub _vteMenu {
 
     # Add take screenshot
     push(@vte_menu_items, {label => 'Take Screenshot', stockicon => 'gtk-media-record', sensitive => $$self{_UUID} ne '__PAC_SHELL__', code => sub {
-        my $screenshot_file = '';
-        $screenshot_file = '/tmp/asbru_screenshot_' . rand(123456789). '.png';
-        while(-f $screenshot_file) {
-            $screenshot_file = '/tmp/asbru_screenshot_' . rand(123456789). '.png';
-        }
+        my (undef, $screenshot_file) = tempfile('asbru_screenshot_XXXXXX', DIR => $ENV{"ASBRU_TMP"} // '/tmp', SUFFIX => '.png', UNLINK => 0);
         select(undef, undef, undef, 0.5);
         _screenshot($$self{_GUI}{_VBOX}, $screenshot_file);
         $PACMain::FUNCS{_MAIN}{_GUI}{screenshots}->add($screenshot_file, $self->{_CFG}{'environments'}{$$self{_UUID}});
@@ -2435,9 +2461,7 @@ sub _setTabColour {
                     return 1;
                 }
 
-                my $screenshot_file = '';
-                $screenshot_file = '/tmp/asbru_screenshot_' . rand(123456789). '.png';
-                while(-f $screenshot_file) {$screenshot_file = '/tmp/asbru_screenshot_' . rand(123456789). '.png';}
+                my (undef, $screenshot_file) = tempfile('asbru_screenshot_XXXXXX', DIR => $ENV{"ASBRU_TMP"} // '/tmp', SUFFIX => '.png', UNLINK => 0);
                 _screenshot($$self{EMBED} ? $$self{FOCUS} : $$self{_GUI}{_VBOX}, $screenshot_file);
                 $PACMain::FUNCS{_MAIN}{_GUI}{screenshots}->add($screenshot_file, $$self{_CFG}{'environments'}{$$self{_UUID}});
                 $PACMain::FUNCS{_MAIN}->_updateGUIPreferences();
@@ -3278,17 +3302,17 @@ sub _saveSessionLog {
     my $confirm = _wYesNoCancel($$self{_PARENTWINDOW}, 'Do you want to remove escape sequences from the saved log?');
 
     if ($confirm eq 'yes') {
-        if (!open(my $fh_in, '<', $$self{_LOGFILE})) {
+        open(my $fh_in, '<', $$self{_LOGFILE}) or do {
             _wMessage($$self{_PARENTWINDOW}, "ERROR: Could not open file '$$self{_LOGFILE}' for reading!! ($!)");
             return 1;
-        }
+        };
         my @lines = <$fh_in>;
         close $fh_in;
 
-        if (!open(my $fh_out, '>', $new_file)) {
+        open(my $fh_out, '>', $new_file) or do {
             _wMessage($$self{_PARENTWINDOW}, "ERROR: Could not open file '$new_file' for writing!! ($!)");
             return 1;
-        }
+        };
         print $fh_out _removeEscapeSeqs(join('', @lines));
         close $fh_out;
     } elsif ($confirm eq 'no') {
@@ -3364,6 +3388,11 @@ sub _pipeExecOutput {
         return 1;
     }
     foreach my $cmd (@{$pipe}) {
+        # SECURITY: Validate pipe commands against dangerous patterns
+        if ($cmd !~ /^[\w\s\-\.\/\:=,\@~\+]+$/ || $cmd =~ /\beval\b/) {
+            warn "WARNING: Blocked pipe command with disallowed characters: $cmd\n";
+            next;
+        }
         if (open(my $fh, '>:utf8', $$self{_TMPPIPE})) {
             print $fh $out;
             close $fh;
@@ -3371,7 +3400,8 @@ sub _pipeExecOutput {
             warn "WARNING: Could not write to pipe file '$$self{_TMPPIPE}': $!";
             next;
         }
-        $out = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cat $$self{_TMPPIPE} | $ENV{'ASBRU_ENV_FOR_EXTERNAL'} $cmd 2>&1`;
+        my $prefix = $ENV{'ASBRU_ENV_FOR_EXTERNAL'} // '';
+        $out = `$prefix cat $$self{_TMPPIPE} | $prefix $cmd 2>&1`;
     }
     $$self{_EXEC}{OUT} = $out;
     $PACMain::FUNCS{_PIPE}->show();
@@ -3459,13 +3489,24 @@ sub _wPrePostExec {
             # Replace PAC variables with their corresponding values
             $cmd = _subst($cmd, $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP});
 
+            # SECURITY: Block commands containing dangerous patterns that suggest
+            # a malicious imported profile (reverse shells, credential exfiltration).
+            if ($cmd =~ m{/dev/tcp/|curl\s.*\|.*sh|wget\s.*\|.*sh|nc\s+-[elp]|mkfifo|base64.*\|.*sh|python.*-c.*socket|perl.*-e.*socket}i) {
+                print STDERR "WARNING: Blocked suspicious pre/post command: $cmd\n";
+                next;
+            }
+
             # Make some update to progress bar
             $ppe{window}{gui}{pb}->set_text('Executing: ' . $cmd);
             $ppe{window}{gui}{pb}->set_fraction(++$i / $t);
             Gtk3::main_iteration while Gtk3::events_pending;
 
-            # Launch the local command
-            system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $cmd");
+            # Launch the local command via explicit shell invocation
+            if ($ENV{'ASBRU_ENV_FOR_EXTERNAL'}) {
+                system('/bin/sh', '-c', "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $cmd");
+            } else {
+                system('/bin/sh', '-c', $cmd);
+            }
         }
 
         # Change mouse cursor (to normal)

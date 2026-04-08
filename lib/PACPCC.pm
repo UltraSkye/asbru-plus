@@ -728,10 +728,10 @@ sub _setupCallbacks {
 
         # Loading a file should not be undoable.
         my $content = '';
-        if (!open(my $fh, '<:utf8', $file)) {
+        open(my $fh, '<:utf8', $file) or do {
             _wMessage($$self{_WINDOWPCC}{main}, "ERROR: Can not open for reading '$file' ($!)");
             return 1;
-        }
+        };
         while (my $line = <$fh>) {
             $content .= $line;
         }
@@ -778,10 +778,10 @@ sub _setupCallbacks {
         }
 
         # Loading a file should not be undoable.
-        if (!open(my $fh, '>:utf8', $file)) {
+        open(my $fh, '>:utf8', $file) or do {
             _wMessage($$self{_WINDOWPCC}{main}, "ERROR: Can not open for writing '$file' ($!)");
             return 1;
-        }
+        };
         print $fh $$self{_WINDOWPCC}{multiTextBuffer}->get_text($$self{_WINDOWPCC}{multiTextBuffer}->get_start_iter, $$self{_WINDOWPCC}{multiTextBuffer}->get_end_iter, 0);
         close $fh;
 
