@@ -39,6 +39,7 @@ use warnings;
 use YAML qw (LoadFile DumpFile);
 $YAML::LoadBlessed = 0;  # SECURITY: Prevent arbitrary object instantiation via !!perl/ YAML tags
 use Storable qw (thaw dclone nstore retrieve);
+use Scalar::Util qw (blessed);
 use Fcntl qw(:flock);
 use Encode;
 use File::Copy;
@@ -2568,7 +2569,7 @@ sub _setFavourite {
 sub _lockAsbru {
     my $self = shift;
 
-    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-protected', 'GTK_ICON_SIZE_BUTTON'));
+    $$self{_GUI}{lockApplicationBtn}->set_image(Gtk3::Image->new_from_stock('asbru-protected', 'small_toolbar'));
     $$self{_GUI}{lockApplicationBtn}->set_active(1);
     $$self{_GUI}{vboxCommandPanel}->set_sensitive(0);
     $$self{_GUI}{showConnBtn}->set_sensitive(0);
@@ -2591,6 +2592,12 @@ sub _lockAsbru {
         }
     }
     $$self{_GUILOCKED} = 1;
+
+    # SECURITY: re-cipher the in-memory cfg so cleartext password fields
+    # don't sit in process memory while the GUI is locked. This is a
+    # best-effort hardening — proper memory hygiene requires the PAC::Vault
+    # refactor (see SECURITY.md / roadmap).
+    eval { _cipherCFG($$self{_CFG}); };
 
     return 1;
 }
@@ -3782,14 +3789,20 @@ sub _quitProgram {
     # Once everything is hidden, we may last any time in our final I/O
     delete $$self{_CFG}{environments}{'__PAC_SHELL__'};    # Delete PACShell environment
     delete $$self{_CFG}{environments}{'__PAC__QUICK__CONNECT__'}; # Delete quick connect environment
-    $self->_saveTreeExpanded();                       # Save Tree opened/closed  groups
-    $self->_saveConfiguration() if $save;             # Save config, if applies
-    $$self{_GUI}{statistics}->purge($$self{_CFG});    # Purge trash statistics
-    $$self{_GUI}{statistics}->saveStats();            # Save statistics
-    unless (grep(/^--no-backup$/, @{ $$self{_OPTS} })) {
-        $$self{_CONFIG}->_exporter('yaml', $CFG_FILE);        # Export as YAML file
-        $$self{_CONFIG}->_exporter('perl', $CFG_FILE_DUMPER); # Export as Perl data
-    };
+    # Defensive: shutdown can fire before $self is fully blessed/initialized
+    # (e.g. SIGTERM during splash). Only call methods that exist as blessed
+    # methods on $self, and otherwise skip silently.
+    if (blessed($self)) {
+        eval { $self->_saveTreeExpanded(); };
+        eval { $self->_saveConfiguration() if $save; };
+        eval { $$self{_GUI}{statistics}->purge($$self{_CFG}); }    if $$self{_GUI}{statistics};
+        eval { $$self{_GUI}{statistics}->saveStats(); }            if $$self{_GUI}{statistics};
+    }
+    if (blessed($self) && $$self{_CONFIG}
+        && !grep(/^--no-backup$/, @{ $$self{_OPTS} // [] })) {
+        eval { $$self{_CONFIG}->_exporter('yaml', $CFG_FILE); };
+        eval { $$self{_CONFIG}->_exporter('perl', $CFG_FILE_DUMPER); };
+    }
     # Delete temporal files using File::Path (safer than shell rm -rf with globs)
     use File::Path qw(remove_tree);
     for my $subdir ('sockets', 'tmp') {
@@ -3875,7 +3888,7 @@ sub _readConfiguration {
         if (!_verifyConfigHMAC($R_CFG_FILE)) {
             print STDERR "ERROR: HMAC verification failed for '$R_CFG_FILE' — refusing to load potentially tampered file\n";
         } else {
-            eval { $$self{_CFG} = retrieve($R_CFG_FILE); };
+            eval { $$self{_CFG} = _safe_retrieve($R_CFG_FILE); };
             if ($@) {
                 print STDERR "WARNING: There were errors reading remote file '$R_CFG_FILE' config file: $@\n";
             } else {
@@ -3891,7 +3904,7 @@ sub _readConfiguration {
         if (!_verifyConfigHMAC($CFG_FILE_NFREEZE)) {
             print STDERR "ERROR: HMAC verification failed for '$CFG_FILE_NFREEZE' — refusing to load potentially tampered file\n";
         } else {
-            eval { $$self{_CFG} = retrieve($CFG_FILE_NFREEZE); };
+            eval { $$self{_CFG} = _safe_retrieve($CFG_FILE_NFREEZE); };
             if ($@) {
                 print STDERR "WARNING: There were errors reading '$CFG_FILE_NFREEZE' config file: $@\n";
             } else {
@@ -3960,7 +3973,7 @@ sub _readConfiguration {
             print STDERR "ERROR: HMAC verification failed for '$CFG_FILE_FREEZE' — refusing to load potentially tampered file\n";
         } else {
             eval {
-                $$self{_CFG} = retrieve($CFG_FILE_FREEZE);
+                $$self{_CFG} = _safe_retrieve($CFG_FILE_FREEZE);
             };
             if ($@) {
                 print STDERR "WARNING: There were errors reading the '$CFG_FILE_FREEZE' config file: $@\n";
@@ -5655,16 +5668,44 @@ sub _writeConfigHMAC {
 sub _verifyConfigHMAC {
     my $config_path = shift;
     my $hmac_path = "${config_path}.hmac";
-    # Backward compat: if no HMAC file exists, accept (pre-HMAC config)
-    return 1 unless -f $hmac_path;
+
     return 0 unless -f $config_path;
+
+    # SECURITY: A missing HMAC sidecar used to be treated as "legacy, accept".
+    # That made the HMAC trivially bypassable by any attacker who could just
+    # delete the .hmac. Now: if the user has ever set a master password OR
+    # the config has been written by a recent version (which always writes
+    # HMAC), missing sidecar = REJECT. Pre-HMAC configs from a brand-new
+    # install are silently accepted only when there is genuinely nothing to
+    # protect (no master_password_verifier yet).
+    if (!-f $hmac_path) {
+        # Read just enough to check if a master password is set. We can't
+        # trust the file's body yet — but a missing HMAC plus a verifier
+        # field is the suspicious combination.
+        my $has_verifier = 0;
+        eval {
+            local $Storable::Eval = 0;
+            local $Storable::Deparse = 0;
+            local $Storable::forgive_me = 0;
+            my $cfg = retrieve($config_path);
+            $has_verifier = 1 if $cfg && ref($cfg) eq 'HASH'
+                && defined $cfg->{defaults}{master_password_verifier}
+                && $cfg->{defaults}{master_password_verifier} ne '';
+        };
+        if ($has_verifier) {
+            print STDERR "SECURITY: '$config_path' has a master password set but no HMAC sidecar — refusing to load\n";
+            return 0;
+        }
+        return 1;
+    }
+
     my ($stored_hmac, $data);
     if (open(my $hfh, '<:raw', $hmac_path)) {
         $stored_hmac = <$hfh>;
         chomp $stored_hmac if defined $stored_hmac;
         close $hfh;
     } else {
-        return 1;  # Can't read HMAC file — don't block startup
+        return 0;
     }
     if (open(my $fh, '<:raw', $config_path)) {
         local $/;
@@ -5674,7 +5715,30 @@ sub _verifyConfigHMAC {
         return 0;
     }
     my $computed = hmac_sha256_hex($data, $_HMAC_KEY);
-    return ($computed eq ($stored_hmac // ''));
+    # Constant-time compare to avoid timing oracle.
+    return _ct_eq($computed, $stored_hmac // '');
+}
+
+# Constant-time string compare: equal length and equal bytes only.
+sub _ct_eq {
+    my ($a, $b) = @_;
+    return 0 unless defined $a && defined $b;
+    return 0 unless length($a) == length($b);
+    my $diff = 0;
+    for my $i (0 .. length($a) - 1) {
+        $diff |= ord(substr($a, $i, 1)) ^ ord(substr($b, $i, 1));
+    }
+    return $diff == 0;
+}
+
+# SECURITY: thin wrapper that disables Storable code execution paths
+# *before* every retrieve. Use this everywhere instead of bare retrieve().
+sub _safe_retrieve {
+    my $path = shift;
+    local $Storable::Eval     = 0;
+    local $Storable::Deparse  = 0;
+    local $Storable::forgive_me = 0;
+    return retrieve($path);
 }
 
 # END: Define PRIVATE CLASS functions

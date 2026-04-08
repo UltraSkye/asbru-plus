@@ -138,6 +138,22 @@ use File::Temp qw (tempdir);
 use strict;
 use warnings;
 
+# SECURITY: prevent core dumps + ptrace once we hold credential material in
+# memory. PR_SET_DUMPABLE = 0 makes /proc/self/{mem,maps} unreadable to
+# other users and disables coredump generation. Best-effort: we ignore
+# failures (BSD, non-Linux, missing prctl).
+BEGIN {
+    eval {
+        require 'syscall.ph';
+        # PR_SET_DUMPABLE = 4 on Linux
+        syscall(&SYS_prctl, 4, 0, 0, 0, 0) if defined &SYS_prctl;
+    };
+    if ($@ || $!) {
+        # Fallback: use Linux::Prctl if installed
+        eval { require Linux::Prctl; Linux::Prctl::set_dumpable(0); };
+    }
+}
+
 # END: Import Modules
 ###################################################################
 
@@ -242,6 +258,29 @@ if (-l $CFG_DIR) {
 foreach my $subdir ('autostart','screenshots','session_logs','scripts','tmp','bak') {
     if (!-d "$CFG_DIR/$subdir") {
         mkdir("$CFG_DIR/$subdir", 0700);
+    } else {
+        # Tighten existing dirs that may have been created by older versions.
+        my @sst = stat("$CFG_DIR/$subdir");
+        if (@sst && (($sst[2] & 07777) & 077)) {
+            chmod(0700, "$CFG_DIR/$subdir");
+        }
+    }
+}
+
+# SECURITY: tighten the credentialed config files themselves to 0600.
+# These hold encrypted passwords + HMAC + scripts that may contain secrets.
+foreach my $file ("$CFG_DIR/asbru.nfreeze", "$CFG_DIR/asbru.nfreeze.hmac",
+                  "$CFG_DIR/asbru.yml",     "$CFG_DIR/asbru_stats.nfreeze",
+                  "$CFG_DIR/.salt") {
+    next unless -f $file;
+    next if -l $file;  # never touch symlinks — refuse instead
+    my @fst = stat($file);
+    next unless @fst;
+    my $fmode = $fst[2] & 07777;
+    if ($fmode & 077) {
+        chmod(0600, $file)
+            or warn "WARNING: Could not tighten permissions on '$file': $!\n";
+        print STDERR "SECURITY: Fixed permissions on '$file' from " . sprintf('%04o', $fmode) . " to 0600\n";
     }
 }
 

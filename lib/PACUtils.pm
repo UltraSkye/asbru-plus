@@ -214,11 +214,26 @@ sub _createMasterVerifier {
     return $cipher->encrypt_hex('ASBRU_MASTER_VERIFY_TOKEN_V1');
 }
 
-# Verify a master password against a stored verifier
+# Constant-time string compare to avoid timing oracles on the verifier check.
+sub _ctEq {
+    my ($a, $b) = @_;
+    return 0 unless defined $a && defined $b;
+    return 0 unless length($a) == length($b);
+    my $diff = 0;
+    for my $i (0 .. length($a) - 1) {
+        $diff |= ord(substr($a, $i, 1)) ^ ord(substr($b, $i, 1));
+    }
+    return $diff == 0;
+}
+
+# Verify a master password against a stored verifier.
+# SECURITY: uses constant-time comparison on the decrypted token.
 sub _verifyMasterPassword {
     my ($master_pass, $verifier) = @_;
     return 0 unless defined $verifier && $verifier ne '';
     $master_pass = encode_utf8($master_pass) if defined $master_pass;
+    my $expected = 'ASBRU_MASTER_VERIFY_TOKEN_V1';
+
     # Try with current installation salt first
     my $cipher = Crypt::CBC->new(
         -key => $master_pass, -cipher => 'Crypt::Rijndael',
@@ -226,14 +241,16 @@ sub _verifyMasterPassword {
     ) or return 0;
     my $result;
     eval { $result = $cipher->decrypt_hex($verifier); };
-    return 1 if (!$@ && defined $result && $result eq 'ASBRU_MASTER_VERIFY_TOKEN_V1');
+    if (!$@ && defined $result && _ctEq($result, $expected)) {
+        return 1;
+    }
     # Backward compat: try with legacy static salt
     $cipher = Crypt::CBC->new(
         -key => $master_pass, -cipher => 'Crypt::Rijndael',
         -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2',
     ) or return 0;
     eval { $result = $cipher->decrypt_hex($verifier); };
-    return (!$@ && defined $result && $result eq 'ASBRU_MASTER_VERIFY_TOKEN_V1');
+    return (!$@ && defined $result && _ctEq($result, $expected));
 }
 
 # Re-encrypt all password fields from old cipher to new cipher
