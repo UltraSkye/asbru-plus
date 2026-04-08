@@ -463,8 +463,6 @@ sub _initGUI {
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript} = Gtk3::SourceView2::View->new_with_buffer($$self{_WINDOWSCRIPTS}{multiTextBuffer});
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_smart_home_end('before');
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_show_line_numbers(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_show_right_margin(1);
-                                    $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_right_margin_position(100);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_tab_width(4);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_indent_width(4);
                                     $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_indent_on_tab(1);
@@ -497,7 +495,7 @@ sub _initGUI {
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_pixels_below_lines(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->get_style_context->add_class('asbru-script-editor');
                                 $$self{_WINDOWSCRIPTS}{gui}{scrollMultiText}->add($$self{_WINDOWSCRIPTS}{gui}{textScript});
-                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_wrap_mode('GTK_WRAP_NONE');
+                                $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_wrap_mode('GTK_WRAP_WORD_CHAR');
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set_sensitive(1);
                                 $$self{_WINDOWSCRIPTS}{gui}{textScript}->set('can_focus', 1);
 
@@ -557,7 +555,7 @@ sub _initGUI {
                             $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{scrollfunc}, 1, 1, 0);
 
                             $$self{_WINDOWSCRIPTS}{gui}{snippetsList} = Gtk3::ListBox->new();
-                            $$self{_WINDOWSCRIPTS}{gui}{snippetsList}->set_selection_mode('none');
+                            $$self{_WINDOWSCRIPTS}{gui}{snippetsList}->set_selection_mode('single');
                             $$self{_WINDOWSCRIPTS}{gui}{snippetsList}->get_style_context->add_class('asbru-snippets-list');
                             $$self{_WINDOWSCRIPTS}{gui}{scrollfunc}->add($$self{_WINDOWSCRIPTS}{gui}{snippetsList});
 
@@ -707,8 +705,12 @@ sub _initGUI {
                 $$self{_WINDOWSCRIPTS}{gui}{btnclose}->set('can_focus', 0);
                 $$self{_WINDOWSCRIPTS}{gui}{btnbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{btnclose}, 1, 1, 0);
 
-    $$self{_WINDOWSCRIPTS}{gui}{hpane}->set_position(100);
-    $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->set_position(600);
+    $$self{_WINDOWSCRIPTS}{gui}{hpane}->set_position(220);
+    $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->set_position(620);
+
+    # Pre-load Perl snippets so the right sidebar isn't empty before
+    # the user picks a file from the list.
+    $self->_loadSnippets('default.pl');
 
     return 1;
 }
@@ -1822,13 +1824,23 @@ except Exception as e:
         $list->add($row);
     }
 
-    $list->signal_connect('row_activated' => sub {
-        my (undef, $row) = @_;
-        my $code = $row->{_snippet_code} // '';
-        return unless length $code;
-        my $buf = $$self{_WINDOWSCRIPTS}{multiTextBuffer};
-        $buf->insert_at_cursor($code);
-    }) unless $$self{_SNIPPETS_BOUND}++;
+    if (!$$self{_SNIPPETS_BOUND}++) {
+        $list->signal_connect('row_activated' => sub {
+            my (undef, $row) = @_;
+            my $code = $row->{_snippet_code} // '';
+            return unless length $code;
+            $$self{_WINDOWSCRIPTS}{multiTextBuffer}->insert_at_cursor($code);
+        });
+        $list->signal_connect('row_selected' => sub {
+            my (undef, $row) = @_;
+            return unless $row;
+            my $code = $row->{_snippet_code} // '';
+            return unless length $code;
+            $$self{_WINDOWSCRIPTS}{multiTextBuffer}->insert_at_cursor($code);
+            # Reset selection so next click on the same row still fires.
+            $list->unselect_all;
+        });
+    }
 
     $list->show_all;
     return 1;
