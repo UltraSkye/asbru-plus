@@ -215,4 +215,139 @@ subtest 'decipher with single_uuid only touches target session' => sub {
         'uuid-B remains encrypted when not targeted');
 };
 
+# ── Master password: create and verify ─────────────────────────────────────────
+
+subtest 'master password — create and verify token' => sub {
+    my $pass = 'MyS3cur3M@st3r!';
+    my $token = PACUtils::_createMasterVerifier($pass);
+    ok(defined $token && $token ne '', 'verifier token created');
+    like($token, qr/^[0-9a-f]+$/i, 'verifier is hex string');
+
+    ok(PACUtils::_verifyMasterPassword($pass, $token),
+        'correct password verifies');
+    ok(!PACUtils::_verifyMasterPassword('wrong_password', $token),
+        'wrong password does not verify');
+    ok(!PACUtils::_verifyMasterPassword('', $token),
+        'empty password does not verify');
+};
+
+# ── Master password: different passwords produce different verifiers ──────────
+
+subtest 'master password — different passwords different tokens' => sub {
+    my $tok1 = PACUtils::_createMasterVerifier('password1');
+    my $tok2 = PACUtils::_createMasterVerifier('password2');
+    isnt($tok1, $tok2, 'different passwords produce different verifiers');
+};
+
+# ── Master cipher initialization ─────────────────────────────────────────────
+
+subtest 'master cipher — init and encrypt/decrypt roundtrip' => sub {
+    # Save current cipher state
+    my $orig_cipher = $PACUtils::CIPHER;
+
+    my $master = 'TestMasterPass123!';
+    my $cipher = PACUtils::_initMasterCipher($master);
+    ok(defined $cipher, 'master cipher initialized');
+    ok(PACUtils::_isMasterPasswordActive(), 'master password flag active');
+
+    # Encrypt with master cipher, decrypt should work
+    my $uuid = 'uuid-master-001';
+    my $cfg = make_cfg(uuid => $uuid, pass => 'secret_with_master');
+    PACUtils::_cipherCFG($cfg);
+    isnt($cfg->{environments}{$uuid}{pass}, 'secret_with_master',
+        'password encrypted with master cipher');
+    PACUtils::_decipherCFG($cfg);
+    is($cfg->{environments}{$uuid}{pass}, 'secret_with_master',
+        'password decrypted with master cipher');
+
+    # Restore original cipher
+    $PACUtils::CIPHER = $orig_cipher;
+};
+
+# ── Cipher migration ─────────────────────────────────────────────────────────
+
+subtest 'cipher migration — re-encrypt from old to new key' => sub {
+    # Create "old" cipher with legacy key
+    my $old_cipher = Crypt::CBC->new(
+        -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
+        -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
+    );
+    # Create "new" cipher with master password
+    my $new_cipher = Crypt::CBC->new(
+        -key => 'UserMasterPassword!',
+        -cipher => 'Crypt::Rijndael', -salt => pack('Q', '12345678'), -pbkdf => 'opensslv2'
+    );
+
+    # Build cfg encrypted with old cipher
+    my $uuid = 'uuid-migrate-001';
+    my $cfg = {
+        defaults => {
+            'sudo password' => $old_cipher->encrypt_hex('old_sudo'),
+            'global variables' => {
+                'TOKEN' => { hidden => '1', value => $old_cipher->encrypt_hex('old_token') },
+            },
+            'gui password' => $old_cipher->encrypt_hex('gui_pass'),
+        },
+        environments => {
+            $uuid => {
+                '_is_group' => 0,
+                pass => $old_cipher->encrypt_hex('old_pass'),
+                passphrase => $old_cipher->encrypt_hex('old_phrase'),
+                expect => [{ hidden => '1', send => $old_cipher->encrypt_hex('expect_send') }],
+                variables => [{ hide => '1', txt => $old_cipher->encrypt_hex('var_txt') }],
+            },
+        },
+    };
+
+    # Migrate
+    ok(PACUtils::_migrateCipherCFG($cfg, $old_cipher, $new_cipher),
+        'migration completed');
+
+    # Verify: old cipher can NOT decrypt migrated values
+    my $fail = eval { $old_cipher->decrypt_hex($cfg->{environments}{$uuid}{pass}) };
+    isnt($fail, 'old_pass', 'old cipher cannot decrypt migrated password');
+
+    # New cipher CAN decrypt
+    is($new_cipher->decrypt_hex($cfg->{environments}{$uuid}{pass}), 'old_pass',
+        'new cipher decrypts migrated password');
+    is($new_cipher->decrypt_hex($cfg->{environments}{$uuid}{passphrase}), 'old_phrase',
+        'new cipher decrypts migrated passphrase');
+    is($new_cipher->decrypt_hex($cfg->{defaults}{'sudo password'}), 'old_sudo',
+        'new cipher decrypts migrated sudo password');
+    is($new_cipher->decrypt_hex($cfg->{defaults}{'gui password'}), 'gui_pass',
+        'new cipher decrypts migrated gui password');
+    is($new_cipher->decrypt_hex($cfg->{defaults}{'global variables'}{'TOKEN'}{'value'}), 'old_token',
+        'new cipher decrypts migrated global variable');
+    is($new_cipher->decrypt_hex($cfg->{environments}{$uuid}{'expect'}[0]{'send'}), 'expect_send',
+        'new cipher decrypts migrated expect send');
+    is($new_cipher->decrypt_hex($cfg->{environments}{$uuid}{'variables'}[0]{'txt'}), 'var_txt',
+        'new cipher decrypts migrated variable txt');
+};
+
+# ── _decrypt_hex_compat: legacy Blowfish fallback ───────────────────────────
+
+subtest 'decrypt_hex_compat — Blowfish legacy fallback' => sub {
+    # Encrypt with legacy Blowfish cipher
+    my $bf = Crypt::CBC->new(
+        -key => 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)',
+        -cipher => 'Blowfish', -salt => pack('Q', '12345678'),
+        -pbkdf => 'opensslv1', -nodeprecate => 1
+    );
+    my $hex = $bf->encrypt_hex('legacy_bf_secret');
+
+    # _decrypt_hex_compat should fall through to Blowfish legacy
+    my $result = PACUtils::_decrypt_hex_compat($hex);
+    is($result, 'legacy_bf_secret',
+        'Blowfish legacy data decrypted via compat function');
+};
+
+# ── _decrypt_hex_compat: handles empty/undef ────────────────────────────────
+
+subtest 'decrypt_hex_compat — edge cases' => sub {
+    is(PACUtils::_decrypt_hex_compat(''), '', 'empty string returns empty');
+    is(PACUtils::_decrypt_hex_compat(undef), '', 'undef returns empty');
+    is(PACUtils::_decrypt_hex_compat('not_valid_hex_at_all'), '',
+        'invalid hex returns empty (no crash)');
+};
+
 done_testing();
