@@ -1,0 +1,31 @@
+# .perltidyrc — Ásbrú Plus
+# Apply with: perltidy -pro=.perltidyrc lib/**/*.pm asbru-cm
+# Don't apply globally yet (legacy formatting); use on new code + per
+# refactored module.
+
+# 4-space indent, no tabs
+--indent-columns=4
+--no-tabs
+
+# 100-column line length (matches editor right margin guide)
+--maximum-line-length=100
+
+# Brace style — Allman variant
+--cuddled-else
+--brace-tightness=2
+--paren-tightness=2
+--square-bracket-tightness=2
+
+# Vertical alignment of consecutive '=' / '=>'
+--vertical-tightness=2
+
+# Don't reformat existing blank line patterns
+--blanks-before-comments
+--blanks-before-subs
+
+# Comments left-aligned, not floated
+--minimum-space-to-comment=2
+
+# Output a backup so reformat is reversible
+--backup-and-modify-in-place
+--backup-file-extension=tdy~

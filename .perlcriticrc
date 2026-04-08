@@ -1,0 +1,35 @@
+# .perlcriticrc — Ásbrú Plus
+# Start at severity 4 (gentle); tighten over time toward severity 3.
+# Rationale: this is a 15-year-old codebase mid-modernization. Strict
+# severity 1 would file thousands of issues; we ratchet down per release.
+severity = 4
+verbose  = 9
+
+# Things that are fine in our code:
+[-Subroutines::ProhibitSubroutinePrototypes]
+[-ControlStructures::ProhibitPostfixControls]
+[-Modules::ProhibitMultiplePackages]
+[-NamingConventions::Capitalization]
+[-Subroutines::RequireFinalReturn]
+[-ValuesAndExpressions::ProhibitMagicNumbers]
+[-Variables::ProhibitPunctuationVars]
+[-References::ProhibitDoubleSigils]
+[-InputOutput::RequireBriefOpen]
+[-CodeLayout::RequireTidyCode]
+[-Documentation::RequirePodSections]
+[-Documentation::RequirePodAtEnd]
+
+# Tighter rules we DO want even at severity 4:
+[BuiltinFunctions::ProhibitStringyEval]
+[InputOutput::ProhibitBacktickOperators]
+severity = 4
+[InputOutput::ProhibitTwoArgOpen]
+[InputOutput::ProhibitBarewordFileHandles]
+[Subroutines::ProhibitBuiltinHomonyms]
+[Variables::ProhibitConditionalDeclarations]
+[Variables::ProhibitLocalVars]
+severity = 4
+
+# Let us own our complexity threshold (god-objects acknowledged in audit)
+[Subroutines::ProhibitExcessComplexity]
+max_mccabe = 50
