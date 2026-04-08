@@ -97,9 +97,13 @@ subtest 'Security — no dangerous double-eval regex' => sub {
 
 # ── RDP password escaping ─────────────────────────────────────────────────────
 
-subtest 'Fix #1113 — RDP password single-quote escaped' => sub {
-    like($asbru_conn, qr/rdp_pass\s*=\s*\$PASS.*s\/'/s,
-        'RDP password has single-quote escape applied');
+subtest 'Fix #1113 — RDP password not on command line' => sub {
+    # SECURITY: RDP password is now written to a secure temp file instead of
+    # being passed on the command line (even with single-quote escaping).
+    like($asbru_conn, qr/rdp_.*\.pass/,
+        'RDP password uses secure temp file');
+    like($asbru_conn, qr{/p:file:},
+        'xfreerdp reads password from file, not command line');
 };
 
 # ── PPK key conversion ───────────────────────────────────────────────────────
@@ -176,18 +180,18 @@ subtest 'Security — Pango markup uses @{[__()]} interpolation' => sub {
 
 # ── Security: xdg-open path quoting ──────────────────────────────────────────
 
-subtest 'Security — xdg-open in PACEdit quotes folder path' => sub {
-    like($pac_edit, qr/\$folder\s*=~\s*s\/'/,
-        'PACEdit: single-quote escape applied to folder');
-    like($pac_edit, qr/xdg-open\s+'\\?\$folder'/,
-        'PACEdit: folder wrapped in single quotes for xdg-open');
+subtest 'Security — xdg-open in PACEdit uses fork+exec (no shell)' => sub {
+    like($pac_edit, qr/fork\(\).*exec\('xdg-open'/s,
+        'PACEdit: xdg-open via fork+exec (no shell injection possible)');
+    unlike($pac_edit, qr/system\s*\(\s*["'].*xdg-open/,
+        'PACEdit: no system() shell call for xdg-open');
 };
 
-subtest 'Security — xdg-open in PACConfig quotes folder path' => sub {
-    like($pac_config, qr/\$folder\s*=~\s*s\/'/,
-        'PACConfig: single-quote escape applied to folder');
-    like($pac_config, qr/xdg-open\s+'\\?\$folder'/,
-        'PACConfig: folder wrapped in single quotes for xdg-open');
+subtest 'Security — xdg-open in PACConfig uses fork+exec (no shell)' => sub {
+    like($pac_config, qr/fork\(\).*exec\('xdg-open'/s,
+        'PACConfig: xdg-open via fork+exec (no shell injection possible)');
+    unlike($pac_config, qr/system\s*\(\s*["'].*xdg-open/,
+        'PACConfig: no system() shell call for xdg-open');
 };
 
 # ── Security: PACScripts tmpfile quoting ─────────────────────────────────────

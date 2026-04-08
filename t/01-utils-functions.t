@@ -98,7 +98,7 @@ subtest '_doShellEscape' => sub {
     is(PACUtils::_doShellEscape('double"quote'),   'double\"quote',      'double quote escaped');
     is(PACUtils::_doShellEscape('back\\slash'),    'back\\\\slash',      'backslash escaped');
     is(PACUtils::_doShellEscape(''),               '',                   'empty string');
-    is(PACUtils::_doShellEscape('p@ss!w0rd'),      'p@ss!w0rd',          'safe special chars unchanged');
+    is(PACUtils::_doShellEscape('p@ss!w0rd'),      'p@ss\!w0rd',         'bang escaped (bash history expansion)');
     is(PACUtils::_doShellEscape('has spaces'),     'has spaces',         'spaces unchanged');
     is(PACUtils::_doShellEscape('$ec`ret"\\key'),  '\$ec\`ret\"\\\\key', 'all special chars combined');
 };
