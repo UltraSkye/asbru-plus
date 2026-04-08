@@ -120,14 +120,14 @@ sub add {
         return 0;
     }
 
-    my $screenshot_file = '';
-    my $rn = rand(123456789);
-    $screenshot_file = "$CFG_DIR/screenshots/asbru_screenshot_$rn.png";
-    while (-f $screenshot_file) {
-        $rn = rand(123456789);
-        $screenshot_file = "$CFG_DIR/screenshots/asbru_screenshot_$rn.png";
-    }
-
+    # SECURITY: Use File::Temp for atomic temp file creation (no TOCTOU race).
+    require File::Temp;
+    my (undef, $screenshot_file) = File::Temp::tempfile(
+        'asbru_screenshot_XXXXXX',
+        DIR => "$CFG_DIR/screenshots",
+        SUFFIX => '.png',
+        UNLINK => 0
+    );
     copy($file, $screenshot_file);
 
     push(@{$$new_cfg{screenshots}}, $screenshot_file);

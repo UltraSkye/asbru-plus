@@ -60,6 +60,27 @@ my $KPXC_CACHE_TIMESTAMP;
 my %KPXC_CACHE;
 my $CLI = 'keepassxc-cli';
 
+# SECURITY: Build KeePass CLI command as a list (not string) to prevent
+# shell injection via database paths or entry UIDs containing shell metacharacters.
+sub _kpxc_cmd_list {
+    my ($self, $subcmd, $cfg, @extra_args) = @_;
+    my @cmd = ($CLI);
+    push @cmd, $$self{kpxc_cli} if $$self{kpxc_cli};
+    push @cmd, $subcmd;
+    push @cmd, $$self{kpxc_show_protected} if $$self{kpxc_show_protected};
+    if ($$self{kpxc_keyfile_opt}) {
+        # Extract key file path from the option string
+        if ($$self{kpxc_keyfile_opt} =~ /(?:--key-file|-k)\s+'?([^']+)'?/) {
+            push @cmd, '--key-file', $1;
+        } elsif ($$self{kpxc_keyfile_opt} =~ /(-k)\s+'?([^']+)'?/) {
+            push @cmd, '-k', $2;
+        }
+    }
+    push @cmd, $$cfg{database} if $cfg && $$cfg{database};
+    push @cmd, @extra_args;
+    return @cmd;
+}
+
 # END: Define GLOBAL CLASS variables
 ###################################################################
 
@@ -78,9 +99,11 @@ sub new {
     if (!$KPXC_MP) {
         if ($ENV{'KPXC_MP'}) {
             $KPXC_MP = $ENV{'KPXC_MP'};
+            # SECURITY: Remove password from environment immediately after reading.
+            # Environment variables are visible via /proc/[pid]/environ.
+            delete $ENV{'KPXC_MP'};
         } elsif ($$self{cfg}{password}) {
             $KPXC_MP = $$self{cfg}{password};
-            $ENV{'KPXC_MP'} = $$self{cfg}{password};
         }
     }
 
@@ -141,7 +164,6 @@ sub update {
     $$self{frame}{hboxkpmain}->set_sensitive($$self{cfg}{use_keepass});
     if ($$self{cfg}{'password'}) {
         $KPXC_MP = $$self{cfg}{'password'};
-        $ENV{'KPXC_MP'} = $$self{cfg}{'password'};
     }
     return 1;
 }
@@ -173,7 +195,6 @@ sub getMasterPassword {
         }
     }
     $KPXC_MP = $mp;
-    $ENV{'KPXC_MP'} = $mp;
     return $mp;
 }
 
@@ -189,7 +210,9 @@ sub testMasterKey {
     } else {
         $cfg = $self->get_cfg();
     }
-    $pid = open3(my $writer, my $reader, my $err_reader, "'$CLI' $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
+    # SECURITY: Use list form to prevent shell injection via $uid or database path
+    my @cmd = _kpxc_cmd_list($self, 'show', $cfg, $uid);
+    $pid = open3(my $writer, my $reader, my $err_reader, @cmd);
     print $writer "$KPXC_MP\n";
     close $writer;
     @out = <$reader>;
@@ -269,7 +292,9 @@ sub getFieldValue {
             }
         }
     }
-    $pid = open3(my $writer, my $reader, my $err_reader, "'$CLI' $$self{kpxc_cli} show $$self{kpxc_show_protected} $$self{kpxc_keyfile_opt} '$$cfg{database}' '$uid'");
+    # SECURITY: Use list form to prevent shell injection via $uid or database path
+    my @cmd = _kpxc_cmd_list($self, 'show', $cfg, $uid);
+    $pid = open3(my $writer, my $reader, my $err_reader, @cmd);
     print $writer "$KPXC_MP\n";
     close $writer;
     @out = <$reader>;
@@ -335,7 +360,6 @@ sub listEntries {
         # Get Password user
         if ($$self{cfg}{password}) {
             $KPXC_MP = $$self{cfg}{password};
-            $ENV{'KPXC_MP'} = $$self{cfg}{password};
         } else {
             getMasterPassword($self, $parent);
         }
@@ -551,7 +575,9 @@ sub _locateEntries {
         {
             open(my $saverr, '>&', \*STDERR) or warn "Cannot dup STDERR: $!";
             open(STDERR, '>', '/dev/null') or warn "Cannot redirect STDERR: $!";
-            $pid = open2(my $reader, my $writer, "'$CLI' $$self{kpxc_cli} ${search_command} $$self{kpxc_keyfile_opt} '$$cfg{database}' '${search_term}'");
+            # SECURITY: Use list form to prevent shell injection via search term or database path
+            my @cmd = _kpxc_cmd_list($self, $search_command, $cfg, $search_term);
+            $pid = open2(my $reader, my $writer, @cmd);
             print $writer "$KPXC_MP\n";
             close $writer;
             @KPXC_LIST = <$reader>;
@@ -687,7 +713,7 @@ sub _buildKeePassGUI {
         $w{fcbKeePassFile}->unselect_uri("file://$ENV{'HOME'}");
         if ($KPXC_MP || $ENV{'KPXC_MP'}) {
             $KPXC_MP = '';
-            $ENV{'KPXC_MP'} = '';
+            delete $ENV{'KPXC_MP'};
         }
     });
 
@@ -703,7 +729,7 @@ sub _buildKeePassGUI {
     $w{fcbKeePassFile}->signal_connect('selection-changed' => sub {
         if ($KPXC_MP || $ENV{'KPXC_MP'}) {
             $KPXC_MP = '';
-            $ENV{'KPXC_MP'} = '';
+            delete $ENV{'KPXC_MP'};
         }
     });
 
@@ -784,7 +810,18 @@ sub _setCapabilities {
         print "DEBUG:KEEPASS: testCapabilities\n";
     }
     if ((defined $$self{cfg})&&($$self{cfg}{pathcli})&&(-e $$self{cfg}{pathcli})) {
-        $CLI = $$self{cfg}{pathcli};
+        # SECURITY: Validate CLI path — reject shell metacharacters and ensure it's a regular file
+        my $_cli_path = $$self{cfg}{pathcli};
+        if ($_cli_path =~ /[`\$\(\)\{\};&|<>!\\'\"\s\r\n]/) {
+            print STDERR "ERROR: KeePass CLI path contains invalid characters: '$_cli_path'\n";
+        } elsif (!-f $_cli_path) {
+            print STDERR "ERROR: KeePass CLI path is not a regular file: '$_cli_path'\n";
+        } elsif (-l $_cli_path) {
+            print STDERR "WARNING: KeePass CLI path is a symlink: '$_cli_path'\n";
+            $CLI = $_cli_path;  # Allow symlinks with warning (common for /usr/bin)
+        } else {
+            $CLI = $_cli_path;
+        }
     }
     if (_getMagicBytes($CLI) eq '41490200') {
         $$self{kpxc_cli} = 'cli';
@@ -792,7 +829,13 @@ sub _setCapabilities {
     if ($$self{_VERBOSE}) {
         print "DEBUG:KEEPASS: $CLI $$self{kpxc_cli}\n";
     }
-    $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI' $$self{kpxc_cli} -v 2>/dev/null`;
+    # SECURITY: Validate kpxc_cli subcommand — must be empty or 'cli' only
+    if ($$self{kpxc_cli} ne '' && $$self{kpxc_cli} ne 'cli') {
+        print STDERR "ERROR: Invalid kpxc_cli value '$$self{kpxc_cli}' — expected '' or 'cli'\n";
+        $$self{kpxc_cli} = '';
+    }
+    my $_kpxc_sub = $$self{kpxc_cli} ? " '$$self{kpxc_cli}'" : '';
+    $$self{kpxc_version} = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI'${_kpxc_sub} -v 2>/dev/null`;
     $$self{kpxc_version} =~ s/\n//g;
     if ($$self{kpxc_version} !~ /[0-9]+\.[0-9]+\.[0-9]+/) {
         # Invalid version number, user did not select a valid KeePassXC file
@@ -820,7 +863,8 @@ sub _setCapabilities {
             }
         }
     }
-    $c = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI' $$self{kpxc_cli} -h show 2>&1`;
+    $_kpxc_sub = $$self{kpxc_cli} ? " '$$self{kpxc_cli}'" : '';
+    $c = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} '$CLI'${_kpxc_sub} -h show 2>&1`;
     if ($c =~ /--key-file/) {
         $$self{kpxc_keyfile} = '--key-file';
     }

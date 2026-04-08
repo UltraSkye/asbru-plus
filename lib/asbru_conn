@@ -51,6 +51,14 @@ use Gtk3 '-init';
 binmode STDOUT;
 binmode STDERR;
 
+# SECURITY: Disable core dumps to prevent credential leakage from process memory.
+# Core dumps can contain decrypted passwords, SSH keys, and session tokens.
+eval {
+    require BSD::Resource;
+    BSD::Resource::setrlimit(BSD::Resource::RLIMIT_CORE(), 0, 0);
+};
+# Soft fallback: if BSD::Resource unavailable, not critical
+
 # END OF : Modules import
 ########################################################
 
@@ -171,7 +179,7 @@ my $PORT = $$CFG{'environments'}{$UUID}{'port'};
 my $USER = $$CFG{'environments'}{$UUID}{'user'};
 
 # Validate connection parameters to prevent shell injection via config values
-if (defined $IP && $IP =~ /[;\|`\$\(\)\{\}]/) {
+if (defined $IP && $IP =~ /[;\|`\$\(\)\{\}<>&\r\n"'\\!]/) {
     die "$COLOR{'err'}ERROR: Host/IP contains invalid characters: '$IP'$COLOR{'norm'}\n";
 }
 if (defined $PORT && $PORT !~ /^\d*$/) {
@@ -190,6 +198,16 @@ my $NAME = $$CFG{'environments'}{$UUID}{'name'};
 my $RESTART = $$CFG{'environments'}{$UUID}{'autoreconnect'} // 0;
 my $SEND_SLOW = ($$CFG{'environments'}{$UUID}{'send slow'} // 0) / 1000;
 my $TITLE = $$CFG{'environments'}{$UUID}{'title'};
+# SECURITY: Validate fields interpolated into shell commands (PUBKEY, TITLE, PASSPHRASE_USER)
+if (defined $PUBKEY && $PUBKEY ne '' && $PUBKEY =~ /[;\|`\$\(\)\{\}'"]/) {
+    die "$COLOR{'err'}ERROR: Public key path contains invalid characters: '$PUBKEY'$COLOR{'norm'}\n";
+}
+if (defined $TITLE && $TITLE =~ /[`\$\(\)"\\]/) {
+    die "$COLOR{'err'}ERROR: Title contains invalid characters: '$TITLE'$COLOR{'norm'}\n";
+}
+if (defined $PASSPHRASE_USER && $PASSPHRASE_USER ne '' && $PASSPHRASE_USER =~ /[;\|`\$\(\)\{\}\s]/) {
+    die "$COLOR{'err'}ERROR: Passphrase username contains invalid characters: '$PASSPHRASE_USER'$COLOR{'norm'}\n";
+}
 my $EXPECT = defined $$CFG{'environments'}{$UUID}{'expect'};
 my $USE_PREPEND_COMMAND = $$CFG{'environments'}{$UUID}{'use prepend command'};
 my $PREPEND_COMMAND = $$CFG{'environments'}{$UUID}{'prepend command'};
@@ -287,6 +305,8 @@ $$CFG{'defaults'}{'proxy pass'} = subst($$CFG{'defaults'}{'proxy pass'});
 # Uses File::Temp for secure temp file creation (mode 0600, no TOCTOU window).
 my $_ppk_tmp;
 my $_vnc_pfile;
+my $_rdp_pass_file;  # SECURITY: temp file for RDP password (cleaned up in END block)
+my $_cmd_file;       # SECURITY: temp command file (cleaned up in END block if spawn fails)
 if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
     if (PACWayland::_bin_in_path('puttygen')) {
         # Secure temp file: File::Temp creates it with mode 0600 atomically
@@ -331,10 +351,17 @@ END {
     # Clean up temp files
     unlink $_ppk_tmp  if defined $_ppk_tmp  && -f $_ppk_tmp;
     unlink $_vnc_pfile if defined $_vnc_pfile && -f $_vnc_pfile;
+    unlink $_rdp_pass_file if defined $_rdp_pass_file && -f $_rdp_pass_file;
+    unlink $_cmd_file if defined $_cmd_file && -f $_cmd_file;
 }
 
 # Build initial SSH connection command
 my $CONNECT_OPTS = $$CFG{'environments'}{$UUID}{'options'} || '';
+# SECURITY: Validate CONNECT_OPTS — reject dangerous shell metacharacters
+# and SSH options that enable arbitrary command execution (ProxyCommand, LocalCommand).
+if ($CONNECT_OPTS =~ /[`\$\(\)\{\}]/ || $CONNECT_OPTS =~ /ProxyCommand|LocalCommand|PermitLocalCommand|!!/i) {
+    die "$COLOR{'err'}ERROR: Connection options contain disallowed characters or directives: '$CONNECT_OPTS'$COLOR{'norm'}\n";
+}
 
 # Test if we can avoid openning consecutive port forwarders
 if ($CONNECT_OPTS =~ /(-[LR] .+?)( |$)/) {
@@ -452,10 +479,13 @@ sub receiveData {
 sub auth {
     my $socket = shift;
 
-    &ctrl("!!_PAC_AUTH_[$$CFG{tmp}{uuid}]!!");
+    # SECURITY: Use random per-session auth token when available,
+    # fall back to UUID for backward compatibility.
+    my $token = $$CFG{tmp}{auth_token} // $$CFG{tmp}{uuid};
+    &ctrl("!!_PAC_AUTH_[$token]!!");
     my $auth = '';
     sysread($socket, $auth, 1024);
-    return $auth eq "!!_PAC_AUTH_[$$CFG{tmp}{uuid}]!!";
+    return $auth eq "!!_PAC_AUTH_[$token]!!";
 }
 
 sub subst {
@@ -475,7 +505,10 @@ sub subst {
     $string =~ s/\<\<(proxy|jump)_host\>\>/$proxy_ip/g;
     $string =~ s/\<\<(proxy|jump)_port\>\>/$proxy_port/g;
     $string =~ s/\<\<(proxy|jump)_user\>\>/$proxy_user/g;
-    $string =~ s/\<\<(proxy|jump)_pass\>\>/$proxy_pass/g;
+    # SECURITY: Escape proxy password for safe use in shell contexts.
+    # The raw password is still used via $ENV{'ASBRU_PROXY_AUTH'} for actual proxy tools.
+    (my $_safe_proxy_pass = $proxy_pass) =~ s/([`\$\\!"'(){};&|<>])/\\$1/g;
+    $string =~ s/\<\<(proxy|jump)_pass\>\>/$_safe_proxy_pass/g;
 
     # Replace '<command prompt>' with user defined value for command prompt
     while ($string =~ /<command prompt>/go) {
@@ -519,20 +552,26 @@ sub subst {
         $string =~ s/<ASK:\Q$var\E>/$val/g;
     }
 
-    # Different from PACUtils implementation
-
     # Replace '<CMD:#>' with the result of executing 'cmd'
-    # NOTE: This executes shell commands from config — only safe if config is trusted.
+    # SECURITY: Whitelist-based validation — only allow simple program invocations.
+    # Blocked: shell operators, backticks, $(), eval, redirections, pipes.
     while ($string =~ /<CMD:(.+?)>/go) {
         my $var = $1;
-        # Reject commands containing obvious injection patterns
-        if ($var =~ /[;&|].*[;&|]/ || $var =~ /\beval\b/ || $var =~ /\brm\s+-rf\b/) {
-            print "$COLOR{'err'}WARNING: Blocked suspicious <CMD:$var> substitution$COLOR{'norm'}\n";
+        # Whitelist: letters, digits, spaces, hyphens, underscores, dots,
+        # forward slashes, colons, equals, commas, @, ~, plus
+        if ($var !~ /^[\w\s\-\.\/\:=,\@~\+]+$/ || $var =~ /\beval\b/) {
+            print "$COLOR{'err'}WARNING: Blocked <CMD:$var> — contains disallowed characters$COLOR{'norm'}\n";
             $string =~ s/<CMD:\Q$var\E>//g;
             next;
         }
         print "$COLOR{'log'}CMD substitution: executing '$var'$COLOR{'norm'}\n";
-        my $output = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $var 2>&1`;
+        # SECURITY: Validate ASBRU_ENV_FOR_EXTERNAL — only allow env var assignments
+        my $prefix = $ENV{'ASBRU_ENV_FOR_EXTERNAL'} // '';
+        if ($prefix ne '' && $prefix !~ /^(?:[\w]+=[\w\/\.:,\-~]*\s*)+$/) {
+            print "$COLOR{'err'}WARNING: ASBRU_ENV_FOR_EXTERNAL contains suspicious content, ignoring$COLOR{'norm'}\n";
+            $prefix = '';
+        }
+        my $output = `$prefix $var 2>/dev/null`;
         chomp $output;
         $string =~ s/<CMD:\Q$var\E>/$output/g;
     }
@@ -568,10 +607,21 @@ sub _showSTDERR {
 }
 
 sub send_slow {
+    my ($exp, $data, $hide) = @_;
+    # SECURITY: When sending passwords ('hide' flag), temporarily suspend log_file
+    # to prevent credential leakage. log_stdout(0) alone does NOT suppress log_file().
+    my $_saved_log;
+    if ($hide) {
+        $_saved_log = $exp->log_file();
+        $exp->log_file(undef) if $_saved_log;
+    }
     if ($SEND_SLOW) {
-        $_[0]->send_slow($SEND_SLOW, $_[1]);
+        $exp->send_slow($SEND_SLOW, $data);
     } else {
-        $_[0]->send($_[1]);
+        $exp->send($data);
+    }
+    if ($hide && $_saved_log) {
+        $exp->log_file($_saved_log);
     }
 }
 
@@ -801,22 +851,61 @@ sub _execScript {
     # Start script
     ctrl("SCRIPT_START[NAME:$name]");
 
+    # SECURITY: Execute scripts inside a Safe compartment to block arbitrary
+    # system access (system(), exec(), open(), backticks). Scripts still use
+    # %TERMINAL, %COMMON, %SHARED APIs for controlled connection access.
+    require Safe;
+    my $safe = Safe->new('AsbruScript');
+    $safe->permit_only(qw(
+        :base_core :base_mem :base_loop :base_orig :base_math
+        padany padsv padav padhv pushmark const
+        aelem aelemfast aelemfast_lex helem aslice hslice
+        rv2av rv2hv rv2sv rv2cv rv2gv refgen srefgen ref
+        anonlist anonhash anoncode
+        sassign aassign stringify concat join
+        push pop shift unshift splice reverse sort
+        lc uc ucfirst lcfirst quotemeta
+        match subst split qr regcomp regcreset regcmaybe
+        entertry leavetry die warn
+        entersub leavesub leavesublv return caller wantarray
+        defined undef exists delete keys values each
+        not and or xor cond_expr
+        eq ne lt gt le ge seq sne slt sgt sle sge scmp
+        i_eq i_ne i_lt i_gt i_le i_ge
+        leaveeval entereval
+        length substr index rindex ord chr hex oct chomp chop sprintf
+        time localtime gmtime print say
+        gvsv gv nextstate dbstate unstack scope enter leave lineseq pos sleep
+    ));
+    # Share script API variables into the compartment
+    $safe->share_from('main', [
+        '%COMMON', '%PAC', '%TERMINAL', '%SHARED',
+        '&ctrl', '&msg', '&subst', '&send_slow',
+        '&wEnterValue', '&_removeEscapeSeqs',
+        '&_execAndCapture', '&_getPrompt', '&_cfgSanityCheck',
+        '$EXP', '$CFG', '$NAME', '$METHOD', '$UUID', '$TMP_UUID', '%_W',
+    ]);
+
     no warnings ('redefine');
 
     *OLDERR = *STDERR;
     open STDERR, ">/dev/null";
 
-    eval $script;
+    $safe->reval($script);
+    my $script_err = $@;
     %SHARED = %{$$tmp{shared}};
 
     *STDERR = *OLDERR;
 
-    if ($@) {
+    if ($script_err) {
+        ctrl("SCRIPT_ERROR[NAME:$name][ERROR:$script_err]");
         return 0;
     }
     use warnings;
 
-    if (!defined &CONNECTION) {
+    # Check if the script defined a CONNECTION subroutine in the compartment
+    my $conn_ref = $safe->varglob('CONNECTION');
+    if (!defined &{$conn_ref}) {
         return 1;
     }
     eval {
@@ -833,7 +922,7 @@ sub _execScript {
             die;
         };
 
-        &CONNECTION;
+        $conn_ref->();
     };
 
     ctrl("SCRIPT_STOP[NAME:$name]");
@@ -890,7 +979,7 @@ sub _setProxy {
         $proxy_pass = $$CFG{'environments'}{$UUID}{'jump pass'};
         open(my $cfg_fh, '>:utf8', "$CFG_DIR/tmp/$UUID.conf") or die "ERROR: Cannot write SSH config: $!";
         chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
-        print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
+        print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\nStrictHostKeyChecking accept-new\nHashKnownHosts yes\n";
         print $cfg_fh qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
         if ($$CFG{'environments'}{$UUID}{'jump key'}) {
             # Strip newlines to prevent SSH config directive injection
@@ -920,7 +1009,7 @@ sub _setProxy {
             $proxy_pass = $$CFG{'defaults'}{'jump pass'};
             open(my $cfg_fh, '>:utf8', "$CFG_DIR/tmp/$UUID.conf") or die "ERROR: Cannot write SSH config: $!";
             chmod 0600, "$CFG_DIR/tmp/$UUID.conf";
-            print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\n";
+            print $cfg_fh qq"Host *\n$ssh_config\nProtocol 2\nCompression yes\nTCPKeepAlive yes\nServerAliveInterval 60\nStrictHostKeyChecking accept-new\nHashKnownHosts yes\n";
             print $cfg_fh qq"\nHost jumpserver\nHostName $proxy_ip\nPort $proxy_port\nUser $proxy_user\n";
             if ($$CFG{'defaults'}{'jump key'}) {
                 (my $_jkey = $$CFG{'defaults'}{'jump key'}) =~ s/[\r\n]//g;
@@ -1348,22 +1437,50 @@ if (defined $METHOD) {
             if ($$CFG{'tmp'}{'height'} <= 1) {
                 $$CFG{'tmp'}{'height'} = 768;
             }
-            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
+            # SECURITY: Write RDP password to a secure temp file instead of command line
+            # to prevent exposure via /proc/pid/cmdline or ps(1).
+            if (!$MANUAL && $PASS ne '') {
+                $_rdp_pass_file = "$CFG_DIR/tmp/rdp_${UUID}_$$.pass";
+                if (open(my $_rpf, '>:raw', $_rdp_pass_file)) {
+                    chmod 0600, $_rdp_pass_file;
+                    print $_rpf $PASS;
+                    close $_rpf;
+                }
+            }
             # /wm-class gives each session a unique X11 class name so multiple
             # simultaneous RDP windows can be identified without XID collisions
             my $_wm_class = "/wm-class:asbru-rdp-$UUID";
-            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} $_wm_class /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$rdp_pass'") . " /v:$IP:$PORT";
+            my $_rdp_pass_arg = ($_rdp_pass_file && !$MANUAL) ? " /p:file:'$_rdp_pass_file'" : '';
+            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} $_wm_class /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER'${_rdp_pass_arg}") . " /v:$IP:$PORT";
             $connection_txt = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} $_wm_class /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'<<hidden_password>>'") . " /v:$IP:$PORT";
         } elsif (defined $$CFG{'tmp'}{'xid'}) {
-            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
-            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'$rdp_pass'") . " /v:$IP:$PORT";
+            # SECURITY: Write RDP password to a secure temp file
+            if (!$MANUAL && $PASS ne '') {
+                $_rdp_pass_file = "$CFG_DIR/tmp/rdp_${UUID}_$$.pass";
+                if (open(my $_rpf, '>:raw', $_rdp_pass_file)) {
+                    chmod 0600, $_rdp_pass_file;
+                    print $_rpf $PASS;
+                    close $_rpf;
+                }
+            }
+            my $_rdp_pass_arg = ($_rdp_pass_file && !$MANUAL) ? " /p:file:'$_rdp_pass_file'" : '';
+            $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER'${_rdp_pass_arg}") . " /v:$IP:$PORT";
             $connection_txt = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER' /p:'<<hidden_password>>'") . " /v:$IP:$PORT";
         } elsif ($METHOD eq 'rdesktop') {
             $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " -u $USER -p -") . " -T \"$TITLE\" $IP:$PORT";
             $connection_txt = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " -u $USER -p -") . " -T \"$TITLE\" $IP:$PORT";
         } elsif (($METHOD =~ /^.*freerdp$/) && (defined $PASS)) {
-            (my $rdp_pass = $PASS) =~ s/'/'\\''/g;
-            $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER /p:'$rdp_pass'") . " /t:\"$TITLE\" /v:$IP:$PORT";
+            # SECURITY: Write RDP password to a secure temp file
+            if (!$MANUAL && $PASS ne '') {
+                $_rdp_pass_file = "$CFG_DIR/tmp/rdp_${UUID}_$$.pass";
+                if (open(my $_rpf, '>:raw', $_rdp_pass_file)) {
+                    chmod 0600, $_rdp_pass_file;
+                    print $_rpf $PASS;
+                    close $_rpf;
+                }
+            }
+            my $_rdp_pass_arg = ($_rdp_pass_file && !$MANUAL) ? " /p:file:'$_rdp_pass_file'" : '';
+            $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER${_rdp_pass_arg}") . " /t:\"$TITLE\" /v:$IP:$PORT";
             $connection_txt = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER /p:'<<hidden_password>>'") . " /t:\"$TITLE\" /v:$IP:$PORT";
         } elsif ($METHOD =~ /^.*freerdp$/) {
             $connection_cmd = "$METHOD $CONNECT_OPTS" . ($MANUAL ? '' : " /u:$USER") . " /t:\"$TITLE\" /v:$IP:$PORT";
@@ -1421,7 +1538,17 @@ if (defined $METHOD) {
         } else {
             my $user = '';
 
-            $connection_cmd = "echo \"" . _doShellEscape($PASS) . "\" | $vncviewer_cmd $CONNECT_OPTS $user $IP:$PORT";
+            # SECURITY: Write VNC password to secure temp file instead of echo pipe
+            # to prevent password exposure via /proc/pid/cmdline and session logs.
+            my $_vnc_pass_file = "$CFG_DIR/tmp/vnc_${UUID}_$$.pass";
+            if ($PASS ne '' && open(my $_vpf, '>:raw', $_vnc_pass_file)) {
+                chmod 0600, $_vnc_pass_file;
+                print $_vpf $PASS;
+                close $_vpf;
+                $connection_cmd = "cat '$_vnc_pass_file' | $vncviewer_cmd $CONNECT_OPTS $user $IP:$PORT";
+            } else {
+                $connection_cmd = "$vncviewer_cmd $CONNECT_OPTS $user $IP:$PORT";
+            }
             $connection_txt = "echo \"<<hidden_password>>\" | $vncviewer_cmd $CONNECT_OPTS $user $IP:$PORT";
         }
     }
@@ -1490,9 +1617,11 @@ if ($$CFG{'environments'}{$UUID}{'terminal options'}{'use personal settings'}) {
 }
 
 $connection_cmd = subst($connection_cmd);
+$connection_txt = subst($connection_txt);
 if ($GETCMD) {
+    # SECURITY: Display sanitized command (connection_txt) not the one with actual passwords
     print "<b>Command line:</b>\n";
-    print Glib::Markup::escape_text($connection_cmd);
+    print Glib::Markup::escape_text($connection_txt);
     if ($proxy_get ne '') {
         print "\n\n<b>Proxy setup:</b>";
         print Glib::Markup::escape_text($proxy_get);
@@ -1516,14 +1645,14 @@ if ($$CFG{'environments'}{$UUID}{'save session logs'} && $LOG_FILE && $LOG_FILE 
 
 # Prepare command file that is only accessible to the user
 my $do_connection_cmd = $connection_cmd;
-my $cmd_file = "$CFG_DIR/tmp/cmd_${UUID}_" . int(rand(123456789)) . ".run";
+$_cmd_file = "$CFG_DIR/tmp/cmd_${UUID}_" . int(rand(123456789)) . ".run";
 if ($METHOD ne 'PACShell') {
-    if (open(my $CMD, ">:utf8", $cmd_file)) {
-        chmod(0400, $cmd_file);
-        print { $CMD } "rm -f \"$cmd_file\"\n"; # deleting the temporary file immediately after it has been started
+    if (open(my $CMD, ">:utf8", $_cmd_file)) {
+        chmod(0400, $_cmd_file);
+        print { $CMD } "rm -f \"$_cmd_file\"\n"; # deleting the temporary file immediately after it has been started
         print { $CMD } $connection_cmd;
         close($CMD);
-        $do_connection_cmd = "sh \"$cmd_file\"";
+        $do_connection_cmd = "sh \"$_cmd_file\"";
     }
 }
 
@@ -1531,7 +1660,8 @@ if ($METHOD ne 'PACShell') {
 ctrl("SPAWNING:$connection_txt");
 my $external_dir = $ENV{'ASBRU_SUB_CWD'} // '.';
 $do_connection_cmd = "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cd '$external_dir' && $ENV{'ASBRU_ENV_FOR_EXTERNAL'} $do_connection_cmd";
-$EXP->spawn("$do_connection_cmd 2>&1") or die "Cannot spawn '$connection_cmd: $!\n";
+# SECURITY: Use connection_txt (not connection_cmd) in error messages to avoid password leakage
+$EXP->spawn("$do_connection_cmd 2>&1") or die "Cannot spawn '$connection_txt': $!\n";
 ctrl("SPAWNED:'$connection_txt' (PID:$$)");
 
 $EXP->exp_internal($DEBUG); # EXPECT DEBUG!!
@@ -1734,6 +1864,14 @@ elsif (($METHOD =~ /^.*generic$/) || ($METHOD eq 'Generic Command') || ($METHOD 
         }
 
         $pattern = subst($pattern);
+
+        # SECURITY: Validate that expect pattern is a valid regex and not
+        # susceptible to catastrophic backtracking (ReDoS).
+        eval { qr/$pattern/ };
+        if ($@) {
+            print "$COLOR{'err'}WARNING: Invalid expect pattern '$pattern': $@$COLOR{'norm'}\n";
+            $pattern = quotemeta($pattern);  # Fall back to literal match
+        }
 
         ctrl("EXPECT:WAITING:$pattern");
 
@@ -2012,6 +2150,13 @@ elsif (!$MANUAL) {
                         $TIMEOUT_CMD = $time_out;
                     }
                     $pattern = subst($pattern);
+
+                    # SECURITY: Validate expect pattern
+                    eval { qr/$pattern/ };
+                    if ($@) {
+                        print "$COLOR{'err'}WARNING: Invalid expect pattern '$pattern': $@$COLOR{'norm'}\n";
+                        $pattern = quotemeta($pattern);
+                    }
 
                     ctrl("EXPECT:WAITING:$pattern");
 

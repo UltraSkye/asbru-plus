@@ -57,10 +57,21 @@ BEGIN {
         exit 0;
     }
 
+    # SECURITY: Refuse to run as root — a GUI app managing SSH credentials should
+    # never run with elevated privileges as it increases the blast radius of any vulnerability.
+    # Skip during syntax check ($^C) to allow `perl -c` in CI/Docker containers.
+    if (!$^C && ($< == 0 || $> == 0)) {
+        die "ERROR: asbru-cm must not be run as root (uid=0). Run as a regular user.\n";
+    }
+
     # Check if user wants to use a different configuration directory
     foreach my $arg (@ARGV) {
         if ($arg =~ /^-{1,2}config-dir=\s*(.+)$/i) {
             my $path = $1;
+            # SECURITY: Reject path traversal in --config-dir
+            if ($path =~ /\.\./) {
+                die "ERROR: --config-dir path must not contain '..' (path traversal)\n";
+            }
             # Check if configuration directory is an absolute (starts with /) or relative path (does not starts with /)
             if ($path =~ m|^/|) {
                 # Absolute
@@ -70,7 +81,12 @@ BEGIN {
                 $ENV{"ASBRU_CFG"} = "$ENV{'HOME'}/.config/$path";
             }
         } elsif ($arg =~ /^-{1,2}temp-dir=\s*(.+)$/i) {
-            $ENV{"ASBRU_TMP"} = $1;
+            my $_tmp = $1;
+            # SECURITY: Reject path traversal in --temp-dir
+            if ($_tmp =~ /\.\./) {
+                die "ERROR: --temp-dir path must not contain '..' (path traversal)\n";
+            }
+            $ENV{"ASBRU_TMP"} = $_tmp;
         } elsif ($arg !~ /-{1,2}[\w\-]+/i) {
             print STDERR "INFO: bad start up parameter $arg\n";
         }
@@ -202,6 +218,25 @@ if ($CFG_DIR ne $CFG_DIR_OLD && -e $CFG_DIR_OLD && !-e $CFG_DIR && $CFG_DIR =~ /
 if (!-d $CFG_DIR) {
     mkdir($CFG_DIR, 0700);
 }
+# SECURITY: Verify config dir permissions and ownership — fix if too permissive.
+# Reject symlinks to prevent redirection attacks.
+if (-l $CFG_DIR) {
+    die "ERROR: Configuration directory '$CFG_DIR' is a symlink. This is not allowed for security reasons.\n";
+}
+{
+    my @st = stat($CFG_DIR);
+    if (@st) {
+        my $mode = $st[2] & 07777;
+        if ($mode & 077) {
+            # Directory is readable/writable by group or others — tighten
+            chmod(0700, $CFG_DIR) or warn "WARNING: Could not fix permissions on '$CFG_DIR': $!";
+            print STDERR "SECURITY: Fixed permissions on '$CFG_DIR' from " . sprintf('%04o', $mode) . " to 0700\n";
+        }
+        if ($st[4] != $<) {
+            warn "WARNING: Configuration directory '$CFG_DIR' is not owned by the current user (uid=$<, owner=$st[4])\n";
+        }
+    }
+}
 
 # Create all subdirectories
 foreach my $subdir ('autostart','screenshots','session_logs','scripts','tmp','bak') {
@@ -217,12 +252,26 @@ for (my $n = 1; $n < 5; $n++) {
     }
 }
 
+# SECURITY: Validate ASBRU_ENV_FOR_EXTERNAL at startup — this env var is prepended
+# to shell commands. Only allow KEY=VALUE format (set by AppImage for LD_LIBRARY_PATH etc.)
+if (defined $ENV{'ASBRU_ENV_FOR_EXTERNAL'} && $ENV{'ASBRU_ENV_FOR_EXTERNAL'} ne '') {
+    if ($ENV{'ASBRU_ENV_FOR_EXTERNAL'} !~ /^(?:[\w]+=[\w\/\.:,\-~]*\s*)+$/) {
+        print STDERR "SECURITY: ASBRU_ENV_FOR_EXTERNAL contains suspicious content — clearing\n";
+        delete $ENV{'ASBRU_ENV_FOR_EXTERNAL'};
+    }
+}
+
+# SECURITY: Validate ASBRU_TMP if user-supplied — reject symlinks and traversal
+if (defined $ENV{"ASBRU_TMP"} && -e $ENV{"ASBRU_TMP"} && -l $ENV{"ASBRU_TMP"}) {
+    die "ERROR: ASBRU_TMP path is a symlink — not allowed for security reasons\n";
+}
+
 # Default directory for temporary socket files
 if (!defined($ENV{"ASBRU_TMP"})) {
     $ENV{"ASBRU_TMP"} = File::Temp::tempdir('asbru-cm-XXXX', TMPDIR => 1, CLEANUP => 1);
 }
 if (!-d $ENV{"ASBRU_TMP"}) {
-    mkdir($ENV{"ASBRU_TMP"});
+    mkdir($ENV{"ASBRU_TMP"}, 0700);
 }
 if ($VERBOSE) {
     print "INFO: Path for temporary socket files: " . $ENV{"ASBRU_TMP"} . "\n";
@@ -322,12 +371,14 @@ sub CheckConfigurationFile {
             };
             if (!$@ && $cfg) {
                 print "INFO: Found valid file $CFG_FILE_NAME.$n, recovering...\n";
-                system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} mv -f \"$CFG_FILE\" \"$BACKUP_CFG_FILE.$now.bad\"";
-                system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cp -fp \"$BACKUP_CFG_FILE.$n\" \"$CFG_FILE\"";
+                # SECURITY: Use Perl builtins instead of system() to avoid shell injection
+                rename($CFG_FILE, "$BACKUP_CFG_FILE.$now.bad");
+                require File::Copy;
+                File::Copy::copy("$BACKUP_CFG_FILE.$n", $CFG_FILE);
                 $OK = 1;
                 last;
             } else {
-                system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} mv -f \"$BACKUP_CFG_FILE.$n\" \"$BACKUP_CFG_FILE.$n.$now.bad\"";
+                rename("$BACKUP_CFG_FILE.$n", "$BACKUP_CFG_FILE.$n.$now.bad");
             }
         }
         if (!$OK) {
@@ -340,16 +391,18 @@ sub CheckConfigurationFile {
     }
 
     # Backup file already exists, roll previous backups
+    # SECURITY: Use Perl File::Copy instead of system() to avoid shell injection
+    require File::Copy;
     if (-e "$BACKUP_CFG_FILE.0") {
         for (my $n=$MAX_BACKUP_FILES-1; $n > 0; $n--) {
             my $p = $n-1; # previous
             if (-e "$BACKUP_CFG_FILE.$p") {
-                system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cp -fp \"$BACKUP_CFG_FILE.$p\" \"$BACKUP_CFG_FILE.$n\"";
+                File::Copy::copy("$BACKUP_CFG_FILE.$p", "$BACKUP_CFG_FILE.$n");
             }
         }
     }
     # Save current known configuration
-    system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cp -fp \"$CFG_FILE\" \"$BACKUP_CFG_FILE.0\"";
+    File::Copy::copy($CFG_FILE, "$BACKUP_CFG_FILE.0");
 }
 
 sub _wPopUP {
@@ -361,7 +414,14 @@ sub _wPopUP {
     $msg =~ s/\n/&cr;/g;
     $msg =~ s/\"/&dquot;/g;
     $msg =~ s/\'/&squot;/g;
-    return `'$^X' $PATH/utils/asbru_confirm.pl '$type' '$title' '$msg' `;
+    # SECURITY: Use list-form open to avoid shell interpretation of arguments
+    my $output = '';
+    if (open(my $fh, '-|', $^X, "$PATH/utils/asbru_confirm.pl", $type, $title, $msg)) {
+        local $/;
+        $output = <$fh>;
+        close $fh;
+    }
+    return $output;
 }
 
 END {

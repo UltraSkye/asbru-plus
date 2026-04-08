@@ -148,40 +148,63 @@ my $SPLASH_IMG = "$RES_DIR/asbru-logo-400.png";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
 my $R_CFG_FILE = $PACMain::R_CFG_FILE;
-my $SALT = '12345678';
+my $_SALT_LEGACY = '12345678';  # Static 8-byte salt for backward compat
 my $_CIPHER_KEY_LEGACY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
 
+# SECURITY: Per-installation random salt (8 bytes for Crypt::CBC).
+# Persisted in $CFG_DIR/.salt. Falls back to legacy static salt.
+my $SALT;
+my $SALT_FILE = (defined $CFG_DIR && $CFG_DIR ne '') ? "$CFG_DIR/.salt" : undef;
+if (defined $SALT_FILE && -f $SALT_FILE) {
+    if (open(my $fh, '<:raw', $SALT_FILE)) {
+        read($fh, $SALT, 8);
+        close $fh;
+    }
+}
+if (!defined $SALT || length($SALT) != 8) {
+    if (open(my $rng, '<:raw', '/dev/urandom')) {
+        read($rng, $SALT, 8);
+        close $rng;
+        if (defined $SALT_FILE) {
+            if (open(my $fh, '>:raw', $SALT_FILE)) {
+                print $fh $SALT;
+                close $fh;
+                chmod 0600, $SALT_FILE;
+            }
+        }
+    } else {
+        $SALT = $_SALT_LEGACY;
+    }
+}
+
 # Active cipher — initialized with legacy key, upgraded when master password is set
-our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $SALT), -pbkdf => 'opensslv2') or die "ERROR: $!";
-# Legacy ciphers for reading old configs
-my $CIPHER_LEGACY_AES = $CIPHER;  # AES with legacy key (from previous commit)
-my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => $SALT, -pbkdf => 'opensslv2') or die "ERROR: $!";
+# Legacy ciphers for reading old configs (use static legacy salt for backward compat)
+my $CIPHER_LEGACY_AES = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2') or die "ERROR: $!";
+my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
 my $_MASTER_PASSWORD_ACTIVE = 0;  # Flag: is a user-provided master password in use?
 
 # Initialize cipher with a user-provided master password
-# Called from PACMain after the user enters their master password
 sub _initMasterCipher {
     my $master_pass = shift;
     $CIPHER = Crypt::CBC->new(
         -key    => $master_pass,
         -cipher => 'Crypt::Rijndael',
-        -salt   => pack('Q', $SALT),
+        -salt   => $SALT,
         -pbkdf  => 'opensslv2',
     ) or die "ERROR: Could not initialize cipher: $!";
     $_MASTER_PASSWORD_ACTIVE = 1;
     return $CIPHER;
 }
 
-# Check if master password mode is active
 sub _isMasterPasswordActive { return $_MASTER_PASSWORD_ACTIVE; }
 
-# Create a verification token: encrypt a known string so we can verify the password later
 sub _createMasterVerifier {
     my $master_pass = shift;
     my $cipher = Crypt::CBC->new(
         -key    => $master_pass,
         -cipher => 'Crypt::Rijndael',
-        -salt   => pack('Q', $SALT),
+        -salt   => $SALT,
         -pbkdf  => 'opensslv2',
     ) or return undef;
     return $cipher->encrypt_hex('ASBRU_MASTER_VERIFY_TOKEN_V1');
@@ -191,13 +214,19 @@ sub _createMasterVerifier {
 sub _verifyMasterPassword {
     my ($master_pass, $verifier) = @_;
     return 0 unless defined $verifier && $verifier ne '';
+    # Try with current installation salt first
     my $cipher = Crypt::CBC->new(
-        -key    => $master_pass,
-        -cipher => 'Crypt::Rijndael',
-        -salt   => pack('Q', $SALT),
-        -pbkdf  => 'opensslv2',
+        -key => $master_pass, -cipher => 'Crypt::Rijndael',
+        -salt => $SALT, -pbkdf => 'opensslv2',
     ) or return 0;
     my $result;
+    eval { $result = $cipher->decrypt_hex($verifier); };
+    return 1 if (!$@ && defined $result && $result eq 'ASBRU_MASTER_VERIFY_TOKEN_V1');
+    # Backward compat: try with legacy static salt
+    $cipher = Crypt::CBC->new(
+        -key => $master_pass, -cipher => 'Crypt::Rijndael',
+        -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2',
+    ) or return 0;
     eval { $result = $cipher->decrypt_hex($verifier); };
     return (!$@ && defined $result && $result eq 'ASBRU_MASTER_VERIFY_TOKEN_V1');
 }
@@ -253,20 +282,19 @@ sub _migrateCipherCFG {
     return 1;
 }
 
-# Decrypt with migration support: try active cipher, then legacy AES, then legacy Blowfish
+# Decrypt with migration support: try active cipher, then legacy AES (static salt),
+# then legacy Blowfish. Ensures backward compat with pre-random-salt configs.
 sub _decrypt_hex_compat {
     my $hex = shift;
     return '' unless defined $hex && $hex ne '';
     my $result;
     eval { $result = $CIPHER->decrypt_hex($hex); };
-    if ($@) {
-        eval { $result = $CIPHER_LEGACY_AES->decrypt_hex($hex); };
-        if ($@) {
-            eval { $result = $CIPHER_LEGACY_BF->decrypt_hex($hex); };
-            if ($@) { return ''; }
-        }
-    }
-    return $result;
+    return $result unless $@;
+    eval { $result = $CIPHER_LEGACY_AES->decrypt_hex($hex); };
+    return $result unless $@;
+    eval { $result = $CIPHER_LEGACY_BF->decrypt_hex($hex); };
+    return $result unless $@;
+    return '';
 }
 
 my %WINDOWSPLASH;
@@ -2171,7 +2199,7 @@ sub _cfgSanityCheck {
     $$cfg{'defaults'}{'version'} //= $APPVERSION;
     $$cfg{'defaults'}{'config version'} //= 1;
     #$$cfg{'defaults'}{'config location'} //= $ENV{"ASBRU_CFG"};
-    $$cfg{'defaults'}{'auto accept key'} //= 1;
+    $$cfg{'defaults'}{'auto accept key'} //= 0;  # SECURITY: default OFF — auto-accepting host key changes enables MITM
     $$cfg{'defaults'}{'show screenshots'} //= 1;
     $$cfg{'defaults'}{'back color'} //= '#000000000000';
     $$cfg{'defaults'}{'close terminal on disconnect'} //= '';
@@ -3035,7 +3063,13 @@ sub _subst {
         my $var = $1;
         if (defined $$CFG{'defaults'}{'global variables'}{$var}) {
             my $val = $$CFG{'defaults'}{'global variables'}{$var}{'value'} // '';
-            $string =~ s/<GV:$var>/$val/g;
+            # SECURITY: Warn and block global variable values containing shell metacharacters
+            # that could cause command injection when substituted into shell commands.
+            if ($val =~ /[`\$\(\)\{\};&|<>]/) {
+                warn "WARNING: Global variable '$var' contains shell metacharacters — sanitizing\n";
+                $val =~ s/([`\$\(\)\{\};&|<>])/\\$1/g;
+            }
+            $string =~ s/<GV:\Q$var\E>/$val/g;
             $ret = $string;
         }
     }
@@ -3046,7 +3080,12 @@ sub _subst {
             my $var = $1;
             if (defined $$CFG{'environments'}{$uuid}{'variables'}[$var]) {
                 my $val = $$CFG{'environments'}{$uuid}{'variables'}[$var]{txt} // '';
-                $string =~ s/<V:$var>/$val/g;
+                # SECURITY: Sanitize session variable values against shell injection
+                if ($val =~ /[`\$\(\)\{\};&|<>]/) {
+                    warn "WARNING: Session variable #$var contains shell metacharacters — sanitizing\n";
+                    $val =~ s/([`\$\(\)\{\};&|<>])/\\$1/g;
+                }
+                $string =~ s/<V:\Q$var\E>/$val/g;
                 $ret = $string;
             }
         }
@@ -3057,7 +3096,7 @@ sub _subst {
         my $var = $1;
         if (defined $ENV{$var}) {
             my $val = $ENV{$var} // '';
-            $string =~ s/<ENV:$var>/$val/g;
+            $string =~ s/<ENV:\Q$var\E>/$val/g;
             $ret = $string;
         }
     }
@@ -3086,22 +3125,33 @@ sub _subst {
         while ($string =~ /<ASK:(.+?)>/go) {
             my $var = $1;
             my $val = _wEnterValue(undef, "<b>Variable substitution</b>" , "Please, enter a value for:'$var'") // return undef;
-            $string =~ s/<ASK:$var>/$val/g;
+            # SECURITY: Use \Q\E to prevent regex metachar injection from the label
+            $string =~ s/<ASK:\Q$var\E>/$val/g;
             $ret = $string;
         }
 
         # Replace '<CMD:.+>' with the result of executing 'cmd'
-        # NOTE: This executes shell commands from config — only safe if config is trusted.
+        # SECURITY: Whitelist-based validation — only allow simple program invocations.
+        # Blocked: shell operators, backticks, $(), eval, redirections, pipes.
         while ($string =~ /<CMD:(.+?)>/go) {
             my $var = $1;
-            # Reject commands containing obvious injection patterns
-            if ($var =~ /[;&|].*[;&|]/ || $var =~ /\beval\b/ || $var =~ /\brm\s+-rf\b/) {
-                warn "WARNING: Blocked suspicious <CMD:$var> substitution\n";
+            # Whitelist: letters, digits, spaces, hyphens, underscores, dots,
+            # forward slashes, colons, equals, commas, @, ~, plus
+            if ($var !~ /^[\w\s\-\.\/\:=,\@~\+]+$/ || $var =~ /\beval\b/) {
+                warn "WARNING: Blocked <CMD:$var> — contains disallowed characters\n";
                 $string =~ s/<CMD:\Q$var\E>//g;
                 $ret = $string;
                 next;
             }
-            my $output = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $var`;
+            # SECURITY: Validate ASBRU_ENV_FOR_EXTERNAL before use in backtick execution.
+            # This env var is set by AppImage to configure LD_LIBRARY_PATH etc.
+            # Only allow variable assignments (KEY=VALUE KEY2=VALUE2...) format.
+            my $prefix = $ENV{'ASBRU_ENV_FOR_EXTERNAL'} // '';
+            if ($prefix ne '' && $prefix !~ /^(?:[\w]+=[\w\/\.:,\-~]*\s*)+$/) {
+                warn "WARNING: ASBRU_ENV_FOR_EXTERNAL contains suspicious content, ignoring\n";
+                $prefix = '';
+            }
+            my $output = `$prefix $var 2>/dev/null`;
             chomp $output;
             if ($output =~ /\R/go) {
                 $string =~ s/<CMD:\Q$var\E>/echo "$output"/g;
@@ -3989,6 +4039,16 @@ sub _copyPass {
     }
     use bytes;
     $clipboard->set_text($clip,length($clip));
+
+    # SECURITY: Auto-clear clipboard after 15 seconds to prevent credential leakage.
+    # Store reference for zeroing.
+    my $clip_ref = \$clip;
+    Glib::Timeout->add_seconds(15, sub {
+        my $cb = Gtk3::Clipboard::get(Gtk3::Gdk::Atom::intern('PRIMARY', 0));
+        $cb->set_text('', 0);
+        $$clip_ref = "\0" x length($$clip_ref) if defined $$clip_ref && length($$clip_ref);
+        return 0;  # Don't repeat
+    });
 }
 
 sub _appName {

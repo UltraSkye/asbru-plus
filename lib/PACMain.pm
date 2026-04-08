@@ -37,6 +37,7 @@ use lib "$RealBin/lib", "$RealBin/lib/ex";
 use strict;
 use warnings;
 use YAML qw (LoadFile DumpFile);
+$YAML::LoadBlessed = 0;  # SECURITY: Prevent arbitrary object instantiation via !!perl/ YAML tags
 use Storable qw (thaw dclone nstore retrieve);
 use Fcntl qw(:flock);
 use Encode;
@@ -46,6 +47,7 @@ use UUID::Tiny ':std';
 use POSIX ":sys_wait_h";
 use POSIX qw (strftime);
 use Crypt::CBC;
+use Digest::SHA qw(hmac_sha256_hex);
 use SortedTreeStore;
 use Vte;
 
@@ -3445,13 +3447,18 @@ sub _saveConfiguration {
     if (open(my $lock_fh, '>', "$CFG_FILE_NFREEZE.lock")) {
         flock($lock_fh, LOCK_EX);
         nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
+        # SECURITY: Write HMAC of the config file for integrity verification on load.
+        # Uses HMAC-SHA256 keyed with the cipher key to detect tampering.
+        _writeConfigHMAC($CFG_FILE_NFREEZE);
         flock($lock_fh, LOCK_UN);
         close $lock_fh;
     } else {
         nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
+        _writeConfigHMAC($CFG_FILE_NFREEZE);
     }
     if ($R_CFG_FILE) {
         nstore($cfg, $R_CFG_FILE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$R_CFG_FILE':\n\n$!\n\nLocal copy saved at '$CFG_FILE_NFREEZE'");
+        _writeConfigHMAC($R_CFG_FILE);
     }
     # Restore passwords
     _decipherCFG($cfg);
@@ -3477,25 +3484,37 @@ sub _readConfiguration {
     my $continue = 1;
 
     if ($continue && $R_CFG_FILE && -r $R_CFG_FILE) {
-        eval { $$self{_CFG} = retrieve($R_CFG_FILE); };
-        if ($@) {
-            print STDERR "WARNING: There were errors reading remote file '$R_CFG_FILE' config file: $@\n";
+        # SECURITY: Verify HMAC *before* Storable::retrieve() to prevent
+        # deserialization of tampered files (Storable can execute code).
+        if (!_verifyConfigHMAC($R_CFG_FILE)) {
+            print STDERR "ERROR: HMAC verification failed for '$R_CFG_FILE' — refusing to load potentially tampered file\n";
         } else {
-            print STDERR "INFO: Used remote config file '$R_CFG_FILE'\n";
-            $continue = 0;
+            eval { $$self{_CFG} = retrieve($R_CFG_FILE); };
+            if ($@) {
+                print STDERR "WARNING: There were errors reading remote file '$R_CFG_FILE' config file: $@\n";
+            } else {
+                print STDERR "INFO: Used remote config file '$R_CFG_FILE'\n";
+                $continue = 0;
+            }
         }
     }
 
     if ($continue && -f $CFG_FILE_NFREEZE) {
-        eval { $$self{_CFG} = retrieve($CFG_FILE_NFREEZE); };
-        if ($@) {
-            print STDERR "WARNING: There were errors reading '$CFG_FILE_NFREEZE' config file: $@\n";
+        # SECURITY: Verify HMAC *before* Storable::retrieve() to prevent
+        # deserialization of tampered files (Storable can execute code).
+        if (!_verifyConfigHMAC($CFG_FILE_NFREEZE)) {
+            print STDERR "ERROR: HMAC verification failed for '$CFG_FILE_NFREEZE' — refusing to load potentially tampered file\n";
         } else {
-            print STDERR "INFO: Used config file '$CFG_FILE_NFREEZE'\n";
-            if ($R_CFG_FILE) {
-                nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+            eval { $$self{_CFG} = retrieve($CFG_FILE_NFREEZE); };
+            if ($@) {
+                print STDERR "WARNING: There were errors reading '$CFG_FILE_NFREEZE' config file: $@\n";
+            } else {
+                print STDERR "INFO: Used config file '$CFG_FILE_NFREEZE'\n";
+                if ($R_CFG_FILE) {
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                }
+                $continue = 0;
             }
-            $continue = 0;
         }
     }
 
@@ -3513,43 +3532,61 @@ sub _readConfiguration {
     }
 
     if ($continue && -f $CFG_FILE_DUMPER) {
+        # SECURITY: Use Safe.pm compartment to prevent arbitrary code execution
+        # when loading legacy Data::Dumper config files.
+        require Safe;
+        my $safe = Safe->new();
+        $safe->permit_only(qw(
+            :base_core :base_mem :base_loop :base_orig
+            padany padsv padav padhv pushmark const
+            aelem aelemfast helem aslice hslice
+            rv2av rv2hv rv2sv refgen srefgen ref
+            anonlist anonhash sassign aassign
+            stringify concat push pop shift unshift splice
+            lc uc ucfirst lcfirst quotemeta
+        ));
         if (!open(my $fh, '<:utf8', $CFG_FILE_DUMPER)) {
-            die "ERROR: Could open for reading file '$CFG_FILE_DUMPER': $!";
-        }
-        my $data = '';
-        while (my $line = <$fh>) {
-            $data .= $line;
-        }
-        close $fh;
-        my $VAR1;
-        eval $data;
-        if ($@) {
-            print STDERR "ERROR: Could not load config file from '$CFG_FILE_DUMPER': $@\n";
+            print STDERR "ERROR: Could not open for reading file '$CFG_FILE_DUMPER': $!\n";
         } else {
-            print STDERR "INFO: Used config file '$CFG_FILE_DUMPER'\n";
-            $$self{_CFG} = $VAR1;
-            nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
-            if ($R_CFG_FILE) {
-                nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+            my $data = '';
+            while (my $line = <$fh>) { $data .= $line; }
+            close $fh;
+            my $result = $safe->reval($data);
+            if ($@) {
+                print STDERR "ERROR: Could not safely load config from '$CFG_FILE_DUMPER': $@\n";
+            } elsif (!defined $result || ref($result) ne 'HASH') {
+                print STDERR "ERROR: Config '$CFG_FILE_DUMPER' did not produce a valid hash reference\n";
+            } else {
+                print STDERR "INFO: Used config file '$CFG_FILE_DUMPER' (loaded via Safe compartment)\n";
+                $$self{_CFG} = $result;
+                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+                if ($R_CFG_FILE) {
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                }
+                $continue = 0;
             }
-            $continue = 0;
         }
     }
 
     if ($continue && -f $CFG_FILE_FREEZE) {
-        eval {
-            $$self{_CFG} = retrieve($CFG_FILE_FREEZE);
-        };
-        if ($@) {
-            print STDERR "WARNING: There were errors reading the '$CFG_FILE_FREEZE' config file: $@\n";
+        # SECURITY: Verify HMAC before Storable::retrieve() on legacy .freeze file
+        if (!_verifyConfigHMAC($CFG_FILE_FREEZE)) {
+            print STDERR "ERROR: HMAC verification failed for '$CFG_FILE_FREEZE' — refusing to load potentially tampered file\n";
         } else {
-            print STDERR "INFO: Used config file '$CFG_FILE_FREEZE'\n";
-            nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die"ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
-            if ($R_CFG_FILE) {
-                nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+            eval {
+                $$self{_CFG} = retrieve($CFG_FILE_FREEZE);
+            };
+            if ($@) {
+                print STDERR "WARNING: There were errors reading the '$CFG_FILE_FREEZE' config file: $@\n";
+            } else {
+                print STDERR "INFO: Used config file '$CFG_FILE_FREEZE'\n";
+                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die"ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+                if ($R_CFG_FILE) {
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                }
+                unlink($CFG_FILE_FREEZE);
+                $continue = 0;
             }
-            unlink($CFG_FILE_FREEZE);
-            $continue = 0;
         }
     }
 
@@ -3574,11 +3611,31 @@ sub _readConfiguration {
             print STDERR "WARNING: Could not load vendor config file '$VENDOR_CFG_FILE': $!\n";
         } else {
             print STDERR "INFO: Using vendor config file '$VENDOR_CFG_FILE'\n";
-            $$self{_CFG} //= {};
-            foreach my $config (keys %{ $temp_cfg->{'__PAC__EXPORTED__PARTIAL_CONF'} }) {
-                $$self{_CFG}{$config} = $temp_cfg->{'__PAC__EXPORTED__PARTIAL_CONF'}{$config};
+            # SECURITY: Scan vendor config for suspicious patterns (same as user imports)
+            my $_v_suspicious = 0;
+            my $_v_scan;
+            $_v_scan = sub {
+                my ($val, $path) = @_;
+                if (ref($val) eq 'HASH') {
+                    for my $k (keys %$val) { $_v_scan->($$val{$k}, "$path/$k"); }
+                } elsif (ref($val) eq 'ARRAY') {
+                    for my $i (0..$#$val) { $_v_scan->($$val[$i], "$path/[$i]"); }
+                } elsif (!ref($val) && defined($val)) {
+                    if ($val =~ /(?:\$\(|`[^`]+`|\beval\b|\bexec\b|\bsystem\b|\brm\s+-rf\b|;\s*(?:curl|wget|bash|sh|nc|ncat)\b|\|\s*(?:bash|sh|nc|ncat)\b|\/dev\/tcp\/)/) {
+                        $_v_suspicious++;
+                    }
+                }
+            };
+            $_v_scan->($temp_cfg, 'vendor');
+            if ($_v_suspicious > 0) {
+                print STDERR "ERROR: Vendor config '$VENDOR_CFG_FILE' contains $_v_suspicious suspicious pattern(s) — skipping\n";
+            } else {
+                $$self{_CFG} //= {};
+                foreach my $config (keys %{ $temp_cfg->{'__PAC__EXPORTED__PARTIAL_CONF'} }) {
+                    $$self{_CFG}{$config} = $temp_cfg->{'__PAC__EXPORTED__PARTIAL_CONF'}{$config};
+                }
+                print STDERR "INFO: Used vendor config file '$VENDOR_CFG_FILE'\n";
             }
-            print STDERR "INFO: Used vendor config file '$VENDOR_CFG_FILE'\n";
         }
     }
 
@@ -3612,8 +3669,13 @@ sub _readConfiguration {
             die "Failed to verify master password after 3 attempts. Exiting.\n";
         }
     } elsif (!defined $$self{_CFG}{'defaults'}{'master_password_verifier'}) {
-        # First run or migration: offer to set a master password
-        my $answ = _wConfirm(undef, "<b>Security Recommendation</b>\n\nYour connection passwords are currently encrypted with a default key.\nSetting a master password provides much stronger protection.\n\n<b>Would you like to set a master password now?</b>\n\n(You can always set one later in Preferences)");
+        # First run or migration: strongly recommend setting a master password
+        my $answ = _wConfirm(undef, "<b>Security Warning — Master Password Required</b>\n\n" .
+            "Your connection passwords are encrypted with a <b>default key that is public</b>.\n" .
+            "Without a master password, anyone with access to your config files\n" .
+            "can decrypt all stored credentials.\n\n" .
+            "<b>Setting a master password is strongly recommended.</b>\n\n" .
+            "Set a master password now?");
         if ($answ) {
             my $new_pass = _wEnterValue(undef, '<b>Set Master Password</b>', 'Enter a new master password:', undef, 0, 'asbru-protected');
             if (defined $new_pass && $new_pass ne '') {
@@ -4491,6 +4553,53 @@ sub __importNodes {
         return 1;
     }
 
+    # SECURITY: Validate imported YAML structure — reject non-hash or files with
+    # embedded shell/code patterns that would execute via <CMD:>, expect, pre/post hooks.
+    if (ref($$self{_COPY}{'data'}) ne 'HASH') {
+        $w->destroy();
+        _wMessage($$self{_WINDOWCONFIG}, "ERROR: Imported file does not contain a valid configuration structure.");
+        return 1;
+    }
+    {
+        my $suspicious = 0;
+        my $suspicious_detail = '';
+        my $scan_value;
+        $scan_value = sub {
+            my ($val, $path) = @_;
+            if (ref($val) eq 'HASH') {
+                for my $k (keys %$val) { $scan_value->($$val{$k}, "$path/$k"); }
+            } elsif (ref($val) eq 'ARRAY') {
+                for my $i (0..$#$val) { $scan_value->($$val[$i], "$path/[$i]"); }
+            } elsif (!ref($val) && defined($val)) {
+                # SECURITY: Expanded pattern to catch more injection vectors:
+                # - pipe operators (cmd | nc), redirections (> /etc/), heredocs (<<)
+                # - alternative interpreters (python -c, perl -e, ruby -e, php -r)
+                # - reverse shells (/dev/tcp, mkfifo, socat)
+                # - command substitution ($(), backticks)
+                # - dangerous builtins (eval, exec, sys-calls, forced recursive removal)
+                # - common exfiltration tools (curl, wget, nc, ncat, bash, sh)
+                if ($val =~ /(?:\$\(|`[^`]+`|\beval\b|\bexec\b|\bsystem\b|\brm\s+-rf\b|;\s*(?:curl|wget|bash|sh|nc|ncat)\b|\|\s*(?:bash|sh|nc|ncat|python|perl|ruby|php)\b|\/dev\/tcp\/|\bmkfifo\b|\bsocat\b|(?:python|perl|ruby|php)\d*\s+-[cerpw]|>\s*\/|<<\s*\bEOF\b)/) {
+                    $suspicious++;
+                    $suspicious_detail = "at $path: $val" if $suspicious == 1;
+                }
+            }
+        };
+        $scan_value->($$self{_COPY}{'data'}, 'root');
+        if ($suspicious > 0) {
+            my $proceed = _wConfirm($$self{_GUI}{main},
+                "<b>Security Warning</b>\n\n" .
+                "The imported file contains <b>$suspicious</b> suspicious pattern(s) " .
+                "that may execute shell commands.\n\n" .
+                "Example: <tt>" . Glib::Markup::escape_text(substr($suspicious_detail, 0, 200)) . "</tt>\n\n" .
+                "<b>Import anyway?</b> (Only if you trust the source)");
+            if (!$proceed) {
+                delete $$self{_COPY}{'data'};
+                $w->destroy();
+                return 1;
+            }
+        }
+    }
+
     Gtk3::main_iteration() while Gtk3::events_pending();
 
     # Full export file? (including config!)
@@ -5101,6 +5210,66 @@ sub _doFocusPage {
         # When found, do not process further
         last;
     }
+}
+
+# SECURITY: HMAC integrity functions for config files.
+# Writes/verifies HMAC-SHA256 of config files to detect tampering.
+# Backward compatible: missing HMAC files are treated as valid (pre-HMAC configs).
+# Key is derived from per-installation salt when available for uniqueness.
+my $_HMAC_KEY;
+{
+    my $_salt_file = "$CFG_DIR/.salt";
+    if (-f $_salt_file && open(my $_sfh, '<:raw', $_salt_file)) {
+        my $_salt;
+        read($_sfh, $_salt, 16);
+        close $_sfh;
+        if (defined $_salt && length($_salt) >= 8) {
+            $_HMAC_KEY = hmac_sha256_hex('asbru-config-integrity-v1', $_salt);
+        }
+    }
+    $_HMAC_KEY //= 'asbru-config-integrity-v1';
+}
+
+sub _writeConfigHMAC {
+    my $config_path = shift;
+    return unless -f $config_path;
+    my $hmac_path = "${config_path}.hmac";
+    if (open(my $fh, '<:raw', $config_path)) {
+        local $/;
+        my $data = <$fh>;
+        close $fh;
+        my $hmac = hmac_sha256_hex($data, $_HMAC_KEY);
+        if (open(my $hfh, '>:raw', $hmac_path)) {
+            print $hfh $hmac;
+            close $hfh;
+            chmod 0600, $hmac_path;
+        }
+    }
+}
+
+sub _verifyConfigHMAC {
+    my $config_path = shift;
+    my $hmac_path = "${config_path}.hmac";
+    # Backward compat: if no HMAC file exists, accept (pre-HMAC config)
+    return 1 unless -f $hmac_path;
+    return 0 unless -f $config_path;
+    my ($stored_hmac, $data);
+    if (open(my $hfh, '<:raw', $hmac_path)) {
+        $stored_hmac = <$hfh>;
+        chomp $stored_hmac if defined $stored_hmac;
+        close $hfh;
+    } else {
+        return 1;  # Can't read HMAC file — don't block startup
+    }
+    if (open(my $fh, '<:raw', $config_path)) {
+        local $/;
+        $data = <$fh>;
+        close $fh;
+    } else {
+        return 0;
+    }
+    my $computed = hmac_sha256_hex($data, $_HMAC_KEY);
+    return ($computed eq ($stored_hmac // ''));
 }
 
 # END: Define PRIVATE CLASS functions

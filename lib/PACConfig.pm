@@ -590,15 +590,26 @@ sub _exporter {
 
     if ($format eq 'yaml') {
         $suffix = '.yml';
-        $export_func = sub { require YAML; YAML::DumpFile($file, $$self{_CFG}) or die "ERROR: Could not save file '$file' ($!)"; };
+        $export_func = sub {
+            # SECURITY: Re-encrypt passwords before exporting to prevent plaintext leakage
+            require Storable;
+            my $export_cfg = Storable::dclone($$self{_CFG});
+            PACUtils::_cipherCFG($export_cfg);
+            require YAML;
+            YAML::DumpFile($file, $export_cfg) or die "ERROR: Could not save file '$file' ($!)";
+        };
     } elsif ($format eq 'perl') {
         $suffix = '.dumper';
         $export_func = sub {
+            # SECURITY: Re-encrypt passwords before exporting to prevent plaintext leakage
+            require Storable;
+            my $export_cfg = Storable::dclone($$self{_CFG});
+            PACUtils::_cipherCFG($export_cfg);
             require Data::Dumper;
             local $Data::Dumper::Indent = 1;
             local $Data::Dumper::Purity = 1;
             open(my $fh, '>:utf8', $file) or die "ERROR: Could not open file '$file' for writing ($!)";
-            print $fh Data::Dumper::Dumper($$self{_CFG});
+            print $fh Data::Dumper::Dumper($export_cfg);
             close $fh;
         };
     } elsif ($format eq 'debug') {
