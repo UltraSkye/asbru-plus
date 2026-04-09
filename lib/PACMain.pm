@@ -3843,11 +3843,20 @@ sub _saveConfiguration {
     # Do not attempt to write when in read-only mode
     return 1 if $$self{_READONLY};
     # Do store the configuration on disk (with exclusive lock to prevent corruption)
-    if (open(my $lock_fh, '>', "$CFG_FILE_NFREEZE.lock")) {
+    # SECURITY: refuse symlinked config files / lock files — these would let
+    # an attacker redirect our writes to /etc/passwd or similar.
+    if (-l $CFG_FILE_NFREEZE) {
+        _wMessage($$self{_GUI}{main}, "ERROR: '$CFG_FILE_NFREEZE' is a symlink — refusing to save");
+        return 0;
+    }
+    my $lock_path = "$CFG_FILE_NFREEZE.lock";
+    unlink $lock_path if -l $lock_path;   # drop stale symlink before O_NOFOLLOW open
+    require Fcntl;
+    my $lock_flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_TRUNC();
+    $lock_flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
+    if (sysopen(my $lock_fh, $lock_path, $lock_flags, 0600)) {
         flock($lock_fh, LOCK_EX);
         nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
-        # SECURITY: Write HMAC of the config file for integrity verification on load.
-        # Uses HMAC-SHA256 keyed with the cipher key to detect tampering.
         _writeConfigHMAC($CFG_FILE_NFREEZE);
         flock($lock_fh, LOCK_UN);
         close $lock_fh;
@@ -5651,16 +5660,31 @@ my $_HMAC_KEY;
 sub _writeConfigHMAC {
     my $config_path = shift;
     return unless -f $config_path;
+    return if -l $config_path;   # never compute HMAC over a symlinked file
     my $hmac_path = "${config_path}.hmac";
+
     if (open(my $fh, '<:raw', $config_path)) {
         local $/;
         my $data = <$fh>;
         close $fh;
         my $hmac = hmac_sha256_hex($data, $_HMAC_KEY);
-        if (open(my $hfh, '>:raw', $hmac_path)) {
+
+        # SECURITY: write through O_NOFOLLOW so a symlink planted at
+        # $hmac_path can't redirect us to /etc/passwd or similar.
+        # O_EXCL would be too aggressive (we overwrite on every save),
+        # but we unlink first to avoid TOCTOU on existing symlinks.
+        if (-l $hmac_path) {
+            unlink $hmac_path or warn "WARNING: could not unlink stale symlink at '$hmac_path': $!\n";
+        }
+        require Fcntl;
+        my $flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_TRUNC();
+        $flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
+        if (sysopen(my $hfh, $hmac_path, $flags, 0600)) {
             print $hfh $hmac;
             close $hfh;
             chmod 0600, $hmac_path;
+        } else {
+            warn "WARNING: could not write HMAC sidecar '$hmac_path': $!\n";
         }
     }
 }
