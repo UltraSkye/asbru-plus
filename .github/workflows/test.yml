@@ -53,38 +53,28 @@ jobs:
             sleep 1
           done
 
-      - name: Run packaging consistency tests
-        run: perl t/02-packaging.t
+      - name: Install lint + test tooling
+        run: |
+          sudo apt-get install -y \
+            libtest-simple-perl libperl-critic-perl libperl-tidy-perl \
+            libcrypt-pbkdf2-perl libtry-tiny-perl
 
-      - name: Run critical fix verification tests
-        run: perl t/03-critical-fixes.t
+      - name: Run full test suite (prove -lr t/)
+        run: prove -lr t/
 
-      - name: Run shellcheck tests
-        run: perl t/04-shellcheck.t
+      - name: Perl::Critic gate (gentle, severity 4)
+        run: |
+          perlcritic --gentle --severity 4 \
+            --profile .perlcriticrc \
+            lib/PACMain.pm lib/PACUtils.pm asbru-cm \
+            || (echo '::warning::perlcritic findings (non-fatal during ratchet-down phase)' && true)
 
-      - name: Run workflow lint tests
-        run: perl t/05-workflow-lint.t
+      - name: Static asset linter (no dead Lucide refs)
+        run: prove -lv t/20-no-dead-assets.t
 
-      - name: Run unit tests
-        run: perl t/01-utils-functions.t
-
-      - name: Run syntax check
-        run: perl t/00-syntax.t
-
-      - name: Run dark mode tests
-        run: perl t/06-dark-mode.t
-
-      - name: Run extended utils tests
-        run: perl t/07-utils-extended.t
-
-      - name: Run crypto roundtrip tests
-        run: perl t/08-crypto.t
-
-      - name: Run variable substitution tests
-        run: perl t/09-subst.t
-
-      - name: Run Wayland support tests
-        run: perl t/10-wayland.t
+      - name: Security regression suite
+        run: prove -lv t/13-security-hardening.t t/14-security-functional.t \
+                       t/18-storable-rce-gate.t t/19-vault-ct-compare.t
 
   shellcheck-scripts:
     runs-on: ubuntu-latest

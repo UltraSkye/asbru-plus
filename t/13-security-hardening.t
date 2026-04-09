@@ -326,8 +326,10 @@ subtest 'Config file HMAC integrity' => sub {
         'PACMain: HMAC verified on config load');
     like($pac_main, qr/_writeConfigHMAC.*CFG_FILE_NFREEZE/s,
         'PACMain: HMAC written on config save');
-    like($pac_main, qr/return 1 unless -f \$hmac_path/,
-        'PACMain: missing HMAC file accepted (backward compat)');
+    like($pac_main, qr/has a master password set but no HMAC sidecar/,
+        'PACMain: missing HMAC sidecar REJECTED when master password is set');
+    like($pac_main, qr/_safe_retrieve/,
+        'PACMain: Storable retrieve goes through safety wrapper');
 };
 
 # ── ASBRU_TMP mkdir uses explicit mode ──────────────────────────────────────
