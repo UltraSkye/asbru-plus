@@ -147,8 +147,10 @@ fi
 
 
 %changelog
-* Tue Mar 18 2026 DemonSkye <31297354+UltraSkye@users.noreply.github.com> 6.5.0
+* Wed Apr 09 2026 DemonSkye <31297354+UltraSkye@users.noreply.github.com> 6.5.0
 - Fork as asbru-plus
+- Security: comprehensive hardening (AES-256, master password, shell injection fixes)
+- Security: HMAC config integrity, file locking, signal handler safety
 - Fix keyboard shortcut modifier detection
 - Fix telnet autologin CR/LF handling
 - Fix RDP password special character escaping
