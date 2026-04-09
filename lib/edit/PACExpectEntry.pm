@@ -641,7 +641,7 @@ sub _buildExpect {
     $w{expect}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        return 0 unless $event->button eq 3;
+        return 0 unless $event->button == 3;
 
         my @menu_items;
 
@@ -727,7 +727,7 @@ sub _buildExpect {
     $w{send}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        return 0 unless $event->button eq 3;
+        return 0 unless $event->button == 3;
 
         my @menu_items;
 

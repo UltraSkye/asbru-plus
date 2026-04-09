@@ -278,10 +278,10 @@ sub _buildScreenshots {
     $w{ebScreenshot}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        if ($event->button eq 1) {
+        if ($event->button == 1) {
             $self->_showImage($w{file});
             return 1;
-        } elsif ($event->button eq 3) {
+        } elsif ($event->button == 3) {
             my @screenshot_menu_items;
             push(@screenshot_menu_items, {
                 label => 'Change Screenshot file...',

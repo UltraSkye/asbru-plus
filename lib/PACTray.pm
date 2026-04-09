@@ -155,7 +155,7 @@ sub _setupCallbacks {
     $$self{_TRAY}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        if ($event->button eq 3 && !$$self{_MAIN}{_GUI}{lockApplicationBtn}->get_active()) {
+        if ($event->button == 3 && !$$self{_MAIN}{_GUI}{lockApplicationBtn}->get_active()) {
             $self->_trayMenu($widget, $event);
         }
 

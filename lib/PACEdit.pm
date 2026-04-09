@@ -423,7 +423,7 @@ sub _setupCallbacks {
     _($self, "entryEditSendString")->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        return 0 unless $event->button eq 3;
+        return 0 unless $event->button == 3;
 
         my @menu_items;
 
@@ -520,7 +520,7 @@ sub _setupCallbacks {
     foreach my $w ('IP', 'Port', 'User', 'Password', 'EditPrependCommand', 'EditPostpendCommand', 'TabWindowTitle', 'UserPassphrase', 'Passphrase','CfgProxyConnUser','CfgProxyConnPassword','CfgJumpConnUser','CfgJumpConnPass','CfgProxyConnIP','CfgJumpConnIP') {_($self, "entry$w")->signal_connect('button_press_event' => sub {
             my ($widget, $event) = @_;
 
-            return 0 unless $event->button eq 3;
+            return 0 unless $event->button == 3;
 
             my @menu_items;
 

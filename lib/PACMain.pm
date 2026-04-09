@@ -1967,7 +1967,7 @@ sub _setupCallbacks {
     # Capture 'treeconnections' right click
     $$self{_GUI}{treeConnections}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
-        if ($event->button eq 3) {
+        if ($event->button == 3) {
             if (@SELECTED_UUIDS && $#SELECTED_UUIDS>0) {
                 # There are selected rows, abort reselecting
                 return 1;
@@ -4397,18 +4397,18 @@ sub _updateGUIPreferences {
         $$self{_GUI}{nbTreeTabLabel}->set_text(' Connections');
     }
     $$self{_GUI}{connSearch}->set_sensitive(1);
-    $$self{_GUI}{groupAddBtn}->set_sensitive($total eq 1 && ($is_group || $is_root) && !$protected);
-    $$self{_GUI}{connAddBtn}->set_sensitive($total eq 1 && ($is_group || $is_root) && !$protected);
+    $$self{_GUI}{groupAddBtn}->set_sensitive($total == 1 && ($is_group || $is_root) && !$protected);
+    $$self{_GUI}{connAddBtn}->set_sensitive($total == 1 && ($is_group || $is_root) && !$protected);
     $$self{_GUI}{connEditBtn}->set_sensitive($total >= 1 && ! $is_root);
-    $$self{_GUI}{nodeRenBtn}->set_sensitive($total eq 1 && ! $is_root && ! $protected);
+    $$self{_GUI}{nodeRenBtn}->set_sensitive($total == 1 && ! $is_root && ! $protected);
     $$self{_GUI}{nodeDelBtn}->set_sensitive($total >= 1 && ! $is_root && ! $protected);
     $$self{_GUI}{connExecBtn}->set_sensitive($total >= 1);
-    $$self{_GUI}{descView}->set_sensitive($total eq 1 && ! $is_root);
-    $$self{_GUI}{frameStatistics}->set_sensitive($total eq 1);
-    $$self{_GUI}{frameScreenshots}->set_sensitive($total eq 1 && ! $is_root);
+    $$self{_GUI}{descView}->set_sensitive($total == 1 && ! $is_root);
+    $$self{_GUI}{frameStatistics}->set_sensitive($total == 1);
+    $$self{_GUI}{frameScreenshots}->set_sensitive($total == 1 && ! $is_root);
     $$self{_GUI}{connFavourite}->set_sensitive($total >= 1 && ! ($is_root || $is_group));
     $$self{_NO_PROPAGATE_FAV_TOGGLE} = 1;
-    $$self{_GUI}{connFavourite}->set_active($total eq 1 && ! ($is_root || $is_group) && $$self{_CFG}{'environments'}{$uuid}{'favourite'});
+    $$self{_GUI}{connFavourite}->set_active($total == 1 && ! ($is_root || $is_group) && $$self{_CFG}{'environments'}{$uuid}{'favourite'});
     $$self{_GUI}{connFavourite}->set_image(Gtk3::Image->new_from_stock('asbru-favourite-' . ($$self{_CFG}{'environments'}{$uuid}{'favourite'} ? 'on' : 'off'), 'button'));
     $$self{_NO_PROPAGATE_FAV_TOGGLE} = 0;
 
@@ -5196,7 +5196,7 @@ sub _bulkEdit {
         # Asign a callback to populate this entry with its own context menu
         $w{gui}{"entry$key"}->signal_connect('button_press_event' => sub {
             my ($widget, $event) = @_;
-            return 0 unless $event->button eq 3;
+            return 0 unless $event->button == 3;
             my @menu_items;
 
             # Populate with global defined variables
@@ -5319,7 +5319,7 @@ sub _bulkEdit {
         $w{gui}{"entry$key"}->signal_connect('button_press_event' => sub {
             my ($widget, $event) = @_;
 
-            return 0 unless $event->button eq 3;
+            return 0 unless $event->button == 3;
 
             my @menu_items;
 

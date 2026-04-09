@@ -383,7 +383,7 @@ sub _buildAdvOpt
     # Capture right mouse click to show custom context menu with SSH advanced options
     $w{entryAdvOptOption}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
-        return 0 unless $event->button eq 3;
+        return 0 unless $event->button == 3;
         my @menu_items;
         foreach my $let (sort {$a cmp $b} keys %SSH_ADV_OPTS) {
             my @letmenu;

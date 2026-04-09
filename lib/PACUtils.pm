@@ -555,7 +555,7 @@ sub _getMethods {
         $THEME_DIR = $theme_dir;
     }
 
-    my $rdesktop = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which rdesktop 1>/dev/null 2>&1") eq 0);
+    my $rdesktop = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which rdesktop 1>/dev/null 2>&1") == 0);
     $methods{'RDP (rdesktop)'} = {
         'installed' => sub {return $rdesktop ? 1 : "No 'rdesktop' binary found.\nTo use this option, please, install :'rdesktop'";},
         'checkCFG' => sub {
@@ -626,7 +626,7 @@ sub _getMethods {
         'escape' => ["\cc"]
     };
 
-    my $xfreerdp = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which xfreerdp 1>/dev/null 2>&1") eq 0);
+    my $xfreerdp = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which xfreerdp 1>/dev/null 2>&1") == 0);
     $methods{'RDP (xfreerdp)'} = {
         'installed' => sub {return $xfreerdp ? 1 : "No 'xfreerdp' binary found.\nTo use this option, please, install:\n'freerdp2-x11'";},
         'checkCFG' => sub {
@@ -697,8 +697,8 @@ sub _getMethods {
         'escape' => ["\cc"]
     };
 
-    my $xtightvncviewer = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which vncviewer 1>/dev/null 2>&1") eq 0);
-    my $tigervnc = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} vncviewer --help 2>&1 | /bin/grep -q TigerVNC") eq 0);
+    my $xtightvncviewer = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which vncviewer 1>/dev/null 2>&1") == 0);
+    my $tigervnc = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} vncviewer --help 2>&1 | /bin/grep -q TigerVNC") == 0);
     $methods{'VNC'} = {
         'installed' => sub {return $xtightvncviewer || $tigervnc ? 1 : "No 'vncviewer' binary found.\nTo use this option, please, install any of:\n'xtightvncviewer' or 'tigervnc'\n'tigervnc' is preferred, since it allows embedding its window into Ásbrú Connection Manager.";},
         'checkCFG' => sub {
@@ -765,7 +765,7 @@ sub _getMethods {
         'escape' => ["\cc"]
     };
 
-    my $cu = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which cu 1>/dev/null 2>&1") eq 0);
+    my $cu = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which cu 1>/dev/null 2>&1") == 0);
     $methods{'Serial (cu)'} = {
         'installed' => sub {return $cu ? 1 : "No 'cu' binary found.\nTo use this option, please, install 'cu'.";},
         'checkCFG' => sub {
@@ -815,7 +815,7 @@ sub _getMethods {
         'escape' => ['~.']
     };
 
-    my $remote_tty = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which remote-tty 1>/dev/null 2>&1") eq 0);
+    my $remote_tty = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which remote-tty 1>/dev/null 2>&1") == 0);
     $methods{'Serial (remote-tty)'} = {
         'installed' => sub {return $remote_tty ? 1 : "No 'remote-tty' binary found.\nTo use this option, please, install 'remote-tty'.";},
         'checkCFG' => sub {
@@ -881,7 +881,7 @@ sub _getMethods {
         'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_remote-tty.svg", 16, 16, 0)
     };
 
-    my $c3270 = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which c3270 1>/dev/null 2>&1") eq 0);
+    my $c3270 = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which c3270 1>/dev/null 2>&1") == 0);
     $methods{'IBM 3270/5250'} = {
         'installed' => sub {return $c3270 ? 1 : "No 'c3270' binary found.\nTo use this option, please, install 'c3270' or 'x3270-text'.";},
         'checkCFG' => sub {
@@ -933,7 +933,7 @@ sub _getMethods {
         'icon' => Gtk3::Gdk::Pixbuf->new_from_file_at_scale("$THEME_DIR/asbru_method_3270.svg", 16, 16, 0)
     };
 
-    my $autossh = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which autossh 1>/dev/null 2>&1") eq 0);
+    my $autossh = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which autossh 1>/dev/null 2>&1") == 0);
     $methods{'SSH'} = {
         'installed' => sub {return 1;},
         'checkCFG' => sub {
@@ -996,7 +996,7 @@ sub _getMethods {
         'escape' => ['~.']
     };
 
-    my $mosh = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which mosh 1>/dev/null 2>&1") eq 0);
+    my $mosh = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which mosh 1>/dev/null 2>&1") == 0);
     $methods{'MOSH'} = {
         'installed' => sub {return $mosh ? 1 : "No 'mosh' binary found.\nTo use this option, please, install 'mosh'.";},
         'checkCFG' => sub {
@@ -1061,7 +1061,7 @@ sub _getMethods {
         'escape' => ["\c^x."]
     };
 
-    my $cadaver = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which cadaver 1>/dev/null 2>&1") eq 0);
+    my $cadaver = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which cadaver 1>/dev/null 2>&1") == 0);
     $methods{'WebDAV'} = {
         'installed' => sub {return $cadaver ? 1 : "No 'cadaver' binary found.\nTo use this option, please, install 'cadaver'.";},
         'checkCFG' => sub {
@@ -1126,7 +1126,7 @@ sub _getMethods {
         'escape' => ["\cc", "quit\n"]
     };
 
-    my $telnet = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which telnet 1>/dev/null 2>&1") eq 0);
+    my $telnet = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which telnet 1>/dev/null 2>&1") == 0);
     $methods{'Telnet'} = {
         'installed' => sub {return $telnet ? 1 : "No 'telnet' binary found.\nTo use this option, please, install 'telnet' or 'telnet-ssl'.";},
         'checkCFG' => sub {

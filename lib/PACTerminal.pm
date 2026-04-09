@@ -1233,14 +1233,14 @@ sub _setupCallbacks {
         my $state = $event->get_state();
         my $shift = $state * ['shift-mask'];
 
-        if ($event->button eq 2) {
+        if ($event->button == 2) {
             if (!$$self{_CFG}{'environments'}{$$self{_UUID}}{'send slow'}) {
                 return 0;
             }
             $$self{_GUI}{_VTE}->paste_primary();
             $$self{FOCUS}->child_focus('GTK_DIR_TAB_FORWARD');
             return 1;
-        } elsif ($event->button eq 3 and $event -> type eq 'button-press') {
+        } elsif ($event->button == 3 and $event -> type eq 'button-press') {
             # See #209 for all this hack.
             my $handled_by_vte = 0;
             if (! $shift) {
@@ -2705,7 +2705,7 @@ sub _winToTab {
     $$self{_GUI}{_TABLBL}{_EBLBL}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        if ($event->button eq 2) {
+        if ($event->button == 2) {
             $self->stop(undef, 1);
             return 1;
         }
@@ -3070,7 +3070,7 @@ sub _split {
 
     $$self{_GUI}{_TABLBL}{_EBLBL}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
-        if ($event->button eq 2) {$self->stop(undef, 1); return 1;}
+        if ($event->button == 2) {$self->stop(undef, 1); return 1;}
         elsif ($event->button ne 3) {return 0;}
         $self->_tabMenu($event);
         return 1;
@@ -3164,7 +3164,7 @@ sub _unsplit {
     $$self{_GUI}{_TABLBL}{_EBLBL}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        if ($event->button eq 2) {
+        if ($event->button == 2) {
             $self->stop(undef, 1);
             return 1;
         } elsif ($event->button ne 3) {
@@ -3204,7 +3204,7 @@ sub _unsplit {
     $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL}{_EBLBL}->signal_connect('button_press_event' => sub {
         my ($widget, $event) = @_;
 
-        if ($event->button eq 2) {
+        if ($event->button == 2) {
             $PACMain::RUNNING{$uuid_tmp}{terminal}->stop(undef, 1);
             return 1;
         } elsif ($event->button ne 3) {
