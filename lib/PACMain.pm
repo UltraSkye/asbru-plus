@@ -293,7 +293,29 @@ sub new {
     map({
     if (/^--dump-uuid=(.+)$/) {
         require Data::Dumper;
-        print Data::Dumper::Dumper($$self{_CFG}{environments}{$1});
+        my $node = $$self{_CFG}{environments}{$1};
+        # SECURITY: by default redact secret fields. _readConfiguration has
+        # already deciphered the cfg, so $node->{pass} et al are CLEARTEXT
+        # at this point. Dumping them straight to stdout would leak the
+        # password to shell history, terminal scrollback, log redirects,
+        # and screen recorders. Require an explicit --with-secrets flag to
+        # opt in.
+        my $with_secrets = grep { $_ eq '--with-secrets' } @{ $$self{_OPTS} };
+        if ($node && !$with_secrets) {
+            require Storable;
+            $node = Storable::dclone($node);
+            for my $k (qw(pass passphrase)) {
+                $node->{$k} = '<REDACTED — pass --with-secrets to reveal>'
+                    if defined $node->{$k} && length $node->{$k};
+            }
+            for my $h (@{ $node->{expect} // [] }) {
+                $h->{send} = '<REDACTED>' if ($h->{hidden} // '') eq '1' && defined $h->{send};
+            }
+            for my $h (@{ $node->{variables} // [] }) {
+                $h->{txt} = '<REDACTED>' if ($h->{hide} // '') eq '1' && defined $h->{txt};
+            }
+        }
+        print Data::Dumper::Dumper($node);
         exit 0;
     } } @{ $$self{_OPTS} });
 
