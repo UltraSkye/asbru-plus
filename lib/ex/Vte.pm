@@ -1,5 +1,7 @@
 package Vte;
 
+use strict;
+use warnings;
 use Glib::Object::Introspection;
 
 sub import {

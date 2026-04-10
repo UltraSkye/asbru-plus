@@ -116,6 +116,35 @@ eval {
 # END OF : Variables declaration/initialization
 ########################################################
 
+# SECURITY: write a secret (password etc) to disk atomically with mode
+# 0600 from the start. Defends against:
+#   - umask race (file briefly world-readable between open and chmod)
+#   - symlink attack (planted symlink at $path → write to wrong file)
+#   - existing-file truncation when target was a malicious symlink
+sub _write_secret_file {
+    my ($path, $data) = @_;
+    require Fcntl;
+    # Drop any pre-existing symlink before O_CREAT|O_EXCL.
+    if (-l $path) {
+        unlink $path or warn "WARNING: could not unlink stale symlink at '$path': $!\n";
+    }
+    # If a regular file is left over from a previous run, remove it so we
+    # can re-create with O_EXCL semantics.
+    if (-f $path) {
+        unlink $path;
+    }
+    my $flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_EXCL();
+    $flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
+    if (sysopen(my $fh, $path, $flags, 0600)) {
+        binmode $fh, ':raw';
+        print $fh $data;
+        close $fh;
+        return 1;
+    }
+    warn "SECURITY: could not write secret file '$path': $!\n";
+    return 0;
+}
+
 ########################################################
 # START : Signal handling
 sub __disconnect {
@@ -712,7 +741,8 @@ sub _execAndCapture {
             ctrl("$$ctrl{ctrl}:$tmp");
         } elsif ($tee) {
             $tee =~ /^>{1,2}(.+)$/go or $tee = '>' . $tee;
-            if (!open(my $fh, '>:utf8', $tee)) {
+            my $fh;
+            if (!open($fh, '>:utf8', $tee)) {
                 return 1;
             }
             print $fh $out;
@@ -1441,11 +1471,7 @@ if (defined $METHOD) {
             # to prevent exposure via /proc/pid/cmdline or ps(1).
             if (!$MANUAL && $PASS ne '') {
                 $_rdp_pass_file = "$CFG_DIR/tmp/rdp_${UUID}_$$.pass";
-                if (open(my $_rpf, '>:raw', $_rdp_pass_file)) {
-                    chmod 0600, $_rdp_pass_file;
-                    print $_rpf $PASS;
-                    close $_rpf;
-                }
+                _write_secret_file($_rdp_pass_file, $PASS);
             }
             # /wm-class gives each session a unique X11 class name so multiple
             # simultaneous RDP windows can be identified without XID collisions
@@ -1457,11 +1483,7 @@ if (defined $METHOD) {
             # SECURITY: Write RDP password to a secure temp file
             if (!$MANUAL && $PASS ne '') {
                 $_rdp_pass_file = "$CFG_DIR/tmp/rdp_${UUID}_$$.pass";
-                if (open(my $_rpf, '>:raw', $_rdp_pass_file)) {
-                    chmod 0600, $_rdp_pass_file;
-                    print $_rpf $PASS;
-                    close $_rpf;
-                }
+                _write_secret_file($_rdp_pass_file, $PASS);
             }
             my $_rdp_pass_arg = ($_rdp_pass_file && !$MANUAL) ? " /p:file:'$_rdp_pass_file'" : '';
             $connection_cmd = "$METHOD /parent-window:$$CFG{'tmp'}{'xid'} /size:$$CFG{'tmp'}{'width'}x$$CFG{'tmp'}{'height'} $CONNECT_OPTS" . ($MANUAL ? '' : " /u:'$USER'${_rdp_pass_arg}") . " /v:$IP:$PORT";
@@ -2566,11 +2588,13 @@ sub close_log_file {
     if (!$LOG_FILE || !$REMOVE_CTRL_CHARS) {
         return 1;
     }
-    if (!open(my $fin, '<:raw', $LOG_FILE)) {
+    my $fin;
+    my $fout;
+    if (!open($fin, '<:raw', $LOG_FILE)) {
         ctrl("ERROR: Could not open file '$LOG_FILE' for reading!! ($!)");
         return 1;
     }
-    if (!open(my $fout, '>:raw', "$LOG_FILE.$$")) {
+    if (!open($fout, '>:raw', "$LOG_FILE.$$")) {
         ctrl("ERROR: Could not open file '$LOG_FILE.$$' for writing!! ($!)");
         close $fin;
         return 1;

@@ -21,6 +21,7 @@ package PACTree;
 ###############################################################################
 
 use strict;
+use warnings;
 use Carp;
 use Gtk3;
 

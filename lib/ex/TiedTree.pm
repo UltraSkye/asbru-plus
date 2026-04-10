@@ -13,6 +13,7 @@
 package TiedTree;
 
 use strict;
+use warnings;
 use Gtk3;
 use Carp;
 

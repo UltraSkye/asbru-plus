@@ -159,15 +159,19 @@ sub new {
     $self->{_LOGFILE} = '/dev/null';
     # If enabled at the session or global level, define the session logs file accordingly
     if ($self->{_CFG}{'environments'}{$$self{_UUID}}{'save session logs'}) {
-        $self->{_LOGFILE} = $self->{_CFG}{'environments'}{$$self{_UUID}}{'session logs folder'} . '/';
-        $self->{_LOGFILE} .= _subst($self->{_CFG}{'environments'}{$$self{_UUID}}{'session log pattern'}, $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP});
+        my $folder  = $self->{_CFG}{'environments'}{$$self{_UUID}}{'session logs folder'} // '';
+        my $pattern = _subst($self->{_CFG}{'environments'}{$$self{_UUID}}{'session log pattern'} // '',
+                             $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP}) // '';
+        $self->{_LOGFILE} = "$folder/$pattern" if length $folder && length $pattern;
     } elsif ($self->{_CFG}{'defaults'}{'save session logs'}) {
-        $self->{_LOGFILE} = $self->{_CFG}{'defaults'}{'session logs folder'} . '/';
-        $self->{_LOGFILE} .= _subst($self->{_CFG}{'defaults'}{'session log pattern'}, $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP});
+        my $folder  = $self->{_CFG}{'defaults'}{'session logs folder'} // '';
+        my $pattern = _subst($self->{_CFG}{'defaults'}{'session log pattern'} // '',
+                             $$self{_CFG}, $$self{_UUID}, $$self{_UUID_TMP}) // '';
+        $self->{_LOGFILE} = "$folder/$pattern" if length $folder && length $pattern;
     }
     # SECURITY: Prevent directory traversal in log file paths.
     # Reject paths containing '..' components or leading to unexpected locations.
-    if ($self->{_LOGFILE} ne '/dev/null') {
+    if (defined $self->{_LOGFILE} && $self->{_LOGFILE} ne '/dev/null') {
         use File::Spec;
         my $canon = File::Spec->canonpath($self->{_LOGFILE});
         if ($canon =~ /\.\./) {
