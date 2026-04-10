@@ -72,6 +72,9 @@ jobs:
       - name: Static asset linter (no dead Lucide refs)
         run: prove -lv t/20-no-dead-assets.t
 
+      - name: Shell-form system audit (informational)
+        run: sh ci/no-shell-form.sh
+
       - name: Security regression suite
         run: prove -lv t/13-security-hardening.t t/14-security-functional.t \
                        t/18-storable-rce-gate.t t/19-vault-ct-compare.t

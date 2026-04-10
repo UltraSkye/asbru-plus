@@ -679,7 +679,11 @@ sub cleanUpPersonalData {
     my $file = shift;
     my $out = $file;
 
-    system "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} mv -f $file $file.txt";
+    # SECURITY: list-form rename instead of shell-form 'mv -f $file $file.txt'
+    # which would interpret shell metacharacters in user-controlled paths.
+    require File::Copy;
+    File::Copy::move($file, "$file.txt")
+        or die "ERROR: Could not rename '$file' to '$file.txt': $!\n";
     $file .= ".txt";
 
     $SIG{__WARN__} = sub{};
