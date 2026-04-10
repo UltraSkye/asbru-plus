@@ -1358,26 +1358,32 @@ sub _setupCallbacks {
         $tree->set_headers_visible(0);
         $tree->get_selection->set_mode('GTK_SELECTION_SINGLE');
 
-        my $name = qr/$PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster}{name}/;
-        my $host = qr/$PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster}{host}/;
-        my $title = qr/$PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster}{title}/;
-        my $desc = qr/$PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster}{desc}/;
+        # Compile each auto-cluster pattern defensively — a malformed user
+        # regex must not crash the application, and we disable in-pattern
+        # code execution by keeping `use re 'eval'` off (the default).
+        my $ac = $PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster};
+        my $compile_ac = sub {
+            my $pat = shift;
+            return undef if !defined $pat || $pat eq '';
+            my $re = eval { qr/$pat/ };
+            if ($@) {
+                _wMessage($$self{_WINDOWCLUSTER}{main}, "Invalid regex in auto-cluster '<b>$cluster</b>':\n<tt>$pat</tt>\n\n$@");
+                return undef;
+            }
+            return $re;
+        };
+        my $name  = $compile_ac->($$ac{name});
+        my $host  = $compile_ac->($$ac{host});
+        my $title = $compile_ac->($$ac{title});
+        my $desc  = $compile_ac->($$ac{desc});
         foreach my $uuid (keys %{$PACMain::FUNCS{_MAIN}{_CFG}{environments}}) {
             if ($uuid eq '__PAC__ROOT__' || $PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{_is_group}) {
                 next;
             }
-            if (($name)&&($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{name} !~ /$name/)) {
-                next;
-            }
-            if (($host)&&($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{ip} !~ /$host/)) {
-                next;
-            }
-            if (($title)&&($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{title} !~ /$title/)) {
-                next;
-            }
-            if (($desc)&&($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{description} !~ /$desc/)) {
-                next;
-            }
+            if (defined $name  && ($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{name}        // '') !~ $name)  { next; }
+            if (defined $host  && ($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{ip}          // '') !~ $host)  { next; }
+            if (defined $title && ($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{title}       // '') !~ $title) { next; }
+            if (defined $desc  && ($PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{description} // '') !~ $desc)  { next; }
             push(@{$$tree{data}}, [$PACMain::FUNCS{_METHODS}{$PACMain::FUNCS{_MAIN}{_CFG}{'environments'}{$uuid}{'method'}}{'icon'}, $PACMain::FUNCS{_MAIN}{_CFG}{environments}{$uuid}{name}, $uuid]);
         }
 

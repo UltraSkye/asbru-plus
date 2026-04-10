@@ -686,7 +686,10 @@ sub cleanUpPersonalData {
         or die "ERROR: Could not rename '$file' to '$file.txt': $!\n";
     $file .= ".txt";
 
-    $SIG{__WARN__} = sub{};
+    # Localized warning suppression — do NOT let it leak into the
+    # enclosing scope. Previously this was a bare $SIG assignment that
+    # silenced warnings for the rest of the process lifetime.
+    local $SIG{__WARN__} = sub {};
     print STDERR "SAVED IN : $file\nOUT: $out\n";
     # Remove all personal information
     open(my $fh_in, '<:utf8', $file) or die "ERROR: Cannot open '$file' for reading: $!";

@@ -3597,26 +3597,31 @@ sub _startCluster {
     my $clulist = $$self{_CLUSTER}->getCFGClusters();
 
     if (defined $$self{_CFG}{defaults}{'auto cluster'}{$cluster}) {
-        my $name = qr/$$self{_CFG}{defaults}{'auto cluster'}{$cluster}{name}/;
-        my $host = qr/$$self{_CFG}{defaults}{'auto cluster'}{$cluster}{host}/;
-        my $title = qr/$$self{_CFG}{defaults}{'auto cluster'}{$cluster}{title}/;
-        my $desc = qr/$$self{_CFG}{defaults}{'auto cluster'}{$cluster}{desc}/;
+        # Compile auto-cluster regex defensively — malformed patterns
+        # from a tampered config must NOT crash the application.
+        my $ac = $$self{_CFG}{defaults}{'auto cluster'}{$cluster};
+        my $compile_ac = sub {
+            my $pat = shift;
+            return undef if !defined $pat || $pat eq '';
+            my $re = eval { qr/$pat/ };
+            if ($@) {
+                _wMessage($$self{_GUI}{main}, "Invalid regex in auto-cluster '<b>$cluster</b>':\n<tt>$pat</tt>\n\nPattern will be ignored.");
+                return undef;
+            }
+            return $re;
+        };
+        my $name  = $compile_ac->($$ac{name});
+        my $host  = $compile_ac->($$ac{host});
+        my $title = $compile_ac->($$ac{title});
+        my $desc  = $compile_ac->($$ac{desc});
         foreach my $uuid (keys %{ $$self{_CFG}{environments} }) {
             if ($uuid eq '__PAC__ROOT__' || $$self{_CFG}{environments}{$uuid}{_is_group}) {
                 next;
             }
-            if (($name ne '')&&($$self{_CFG}{environments}{$uuid}{name} !~ /$name/)) {
-                next;
-            }
-            if (($host ne '')&&($$self{_CFG}{environments}{$uuid}{ip} !~ /$host/)) {
-                next;
-            }
-            if (($title ne '')&&($$self{_CFG}{environments}{$uuid}{title} !~ /$title/)) {
-                next;
-            }
-            if (($desc ne '')&&($$self{_CFG}{environments}{$uuid}{description} !~ /$desc/)) {
-                next;
-            }
+            if (defined $name  && ($$self{_CFG}{environments}{$uuid}{name}        // '') !~ $name)  { next; }
+            if (defined $host  && ($$self{_CFG}{environments}{$uuid}{ip}          // '') !~ $host)  { next; }
+            if (defined $title && ($$self{_CFG}{environments}{$uuid}{title}       // '') !~ $title) { next; }
+            if (defined $desc  && ($$self{_CFG}{environments}{$uuid}{description} // '') !~ $desc)  { next; }
             push(@idx, [ $uuid, undef, $cluster ]);
         }
     } else {

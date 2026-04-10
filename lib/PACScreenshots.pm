@@ -35,6 +35,7 @@ use warnings;
 
 use FindBin qw ($RealBin $Bin $Script);
 use File::Copy;
+use POSIX ();
 
 # GTK
 use Gtk3 '-init';
@@ -221,7 +222,17 @@ sub _buildScreenshotsGUI {
     });
 
     $w{btnopenfolder}->signal_connect('clicked', sub {
-        if (!fork()) { exec('xdg-open', "$CFG_DIR/screenshots") or exit 1; }
+        # Double-fork so the grandchild is reparented to init and reaped
+        # automatically — avoids leaking a zombie into the main process.
+        my $pid = fork();
+        return 1 if !defined $pid;
+        if ($pid == 0) {
+            my $pid2 = fork();
+            POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+            exec('xdg-open', "$CFG_DIR/screenshots") or POSIX::_exit(1);
+        }
+        waitpid($pid, 0);
+        return 1;
     });
 
     my @targets = (Gtk3::TargetEntry->new('STRING', [], 0) );
@@ -420,9 +431,15 @@ sub _showImage {
 
     if ($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'screenshots use external viewer'}) {
         my $viewer = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'screenshots external viewer'};
-        if (!fork()) {
-            exec($viewer, $file) or exit 1;
+        # Double-fork to avoid leaking a zombie child on the main process.
+        my $pid = fork();
+        return 1 if !defined $pid;
+        if ($pid == 0) {
+            my $pid2 = fork();
+            POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+            exec($viewer, $file) or POSIX::_exit(1);
         }
+        waitpid($pid, 0);
         return 1;
     }
 

@@ -179,7 +179,7 @@ $CFG = retrieve($CFG_FILE) or die "ERROR: Could not load config file '$CFG_FILE'
 # Check some command line options
 defined $$CFG{'environments'}{$UUID} or die("ERROR: Profile '$UUID' does not exist!!");
 
-my $autossh_bin = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which autossh 1>/dev/null 2>&1") eq 0);
+my $autossh_bin = (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which autossh 1>/dev/null 2>&1") == 0);
 
 # ASBRU_DEBUG env var overrides the in-config debug flag for quick diagnosis
 # without editing preferences:  ASBRU_DEBUG=1 asbru-cm

@@ -46,7 +46,7 @@ use PACUtils;
 ###################################################################
 # Define GLOBAL CLASS variables
 
-our $CONTAINER = Gtk3::VBox->new(0, 0);
+our $CONTAINER = Gtk3::Box->new('vertical', 0);
 my %METHODS;
 
 no strict 'refs'; # Trick or treat!! ;)
