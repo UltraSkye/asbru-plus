@@ -437,16 +437,11 @@ sub new {
     %{ $$self{_METHODS} } = _getMethods($self,$$self{_THEME});
 
     # Dynamically load the Tray icon class related to the current environment/settings
-    if ($ENV{'ASBRU_DESKTOP'} eq 'unity') {
-        print("INFO: Trying to loading Unity specific tray icon package...\n");
-        $@ = '';
-        $UNITY = 1;
-        eval {
-            require 'PACTrayUnity.pm';
-        };
-        if ($@) {
-            $UNITY = 0;
-        }
+    if (($ENV{'ASBRU_DESKTOP'} // '') eq 'unity') {
+        print("INFO: Trying to load Unity specific tray icon package...\n");
+        # Localize $@ so any prior eval state does not leak into the probe.
+        local $@;
+        $UNITY = eval { require 'PACTrayUnity.pm'; 1 } ? 1 : 0;
     }
 
     bless($self, $class);

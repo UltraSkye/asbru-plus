@@ -40,23 +40,31 @@ use Gtk3 '-init';
 # PAC modules
 use PACUtils;
 
-# AppIndicator
-eval {
-    Glib::Object::Introspection->setup(
-        basename => 'AppIndicator3',
-        version  => '0.1',
-        package  => 'AppIndicator',
-    );
-};
-if ($@) {
-    eval {
+# AppIndicator — try the modern Ayatana fork first, fall back to the
+# legacy GNOME AppIndicator3 binding. $@ is localized so this probe
+# cannot be confused by any earlier eval state on the call stack.
+{
+    local $@;
+    my $have_indicator = eval {
         Glib::Object::Introspection->setup(
             basename => 'AyatanaAppIndicator3',
             version  => '0.1',
             package  => 'AppIndicator',
         );
+        1;
     };
-    if ($@) {
+    if (!$have_indicator) {
+        local $@;
+        $have_indicator = eval {
+            Glib::Object::Introspection->setup(
+                basename => 'AppIndicator3',
+                version  => '0.1',
+                package  => 'AppIndicator',
+            );
+            1;
+        };
+    }
+    if (!$have_indicator) {
         warn "WARNING: AppIndicator is missing --> there might be no icon showing up in the status bar when running Unity!\n";
         return 0;
     }

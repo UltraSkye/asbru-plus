@@ -39,8 +39,12 @@ use File::Basename;
 use Storable qw (dclone nstore_fd);
 use Config;
 
-eval {require Gtk3::SourceView2;};
-my $SOURCEVIEW = ! $@;
+# Defensive SourceView2 probe — isolate $@ so any outer eval state
+# cannot influence the truthiness of the availability check.
+my $SOURCEVIEW = do {
+    local $@;
+    eval { require Gtk3::SourceView2; 1 } ? 1 : 0;
+};
 
 # GTK
 use Gtk3 '-init';
@@ -1696,10 +1700,14 @@ sub _execScript {
     my $txt = join('', @lines);
     close $fh;
 
-    no warnings ('redefine');
-    eval $txt;
-    use warnings;
-    if ($@) {_wMessage($parentWindow, "Error parsing Ásbrú Script: $@"); $PAC{msg}(); return 0;}
+    my $parse_err;
+    {
+        no warnings 'redefine';
+        local $@;
+        eval $txt; ## no critic (ProhibitStringyEval)
+        $parse_err = $@;
+    }
+    if ($parse_err) {_wMessage($parentWindow, "Error parsing Ásbrú Script: $parse_err"); $PAC{msg}(); return 0;}
 
     # SESSION execution (local)
     if (scalar @uuid_tmps) {
@@ -1713,8 +1721,13 @@ sub _execScript {
             $PAC{msg}();
             return 0;
         } else {
-            eval {&SESSION;};
-            if ($@) {_wMessage($parentWindow, "Error executing Ásbrú Script: $@"); $PAC{msg}(); return 0;}
+            my $exec_err;
+            {
+                local $@;
+                eval { SESSION(); };
+                $exec_err = $@;
+            }
+            if ($exec_err) {_wMessage($parentWindow, "Error executing Ásbrú Script: $exec_err"); $PAC{msg}(); return 0;}
         }
     }
 
