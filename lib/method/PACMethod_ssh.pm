@@ -427,7 +427,8 @@ sub _buildGUI
     $w{help}->set_image(Gtk3::Image->new_from_stock('asbru-help', 'button'));
 
     my $lblsshv = Gtk3::Label->new('SSH Version ');
-    $lblsshv->set_alignment(1, 0.5);
+    $lblsshv->set_xalign(1);
+    $lblsshv->set_yalign(0.5);
     $hb123->pack_start($lblsshv, 1, 1, 0);
     $hb123->set_tooltip_text('-(1|2|any) : Use SSH v1, v2 or any  of them');
 
@@ -441,7 +442,8 @@ sub _buildGUI
     $w{vboxipv}->pack_start($hb456, 1, 1, 0);
 
     my $lblipv = Gtk3::Label->new('IP Protocol  ');
-    $lblipv->set_alignment(1, 0.5);
+    $lblipv->set_xalign(1);
+    $lblipv->set_yalign(0.5);
     $hb456->pack_start($lblipv, 1, 1, 0);
     $hb456->set_tooltip_text('-(4|6) : Uses IPv4, IPv6 or no specification (ip based)');
 

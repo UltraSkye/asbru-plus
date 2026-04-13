@@ -108,7 +108,7 @@ my %COLOR = (
 
 # Create the Expect object
 $Expect::Multiline_Matching = 1;
-my $EXP = new Expect();
+my $EXP = Expect->new();
 eval {
     $EXP->slave->clone_winsize_from(\*STDIN);
 };
