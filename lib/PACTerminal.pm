@@ -1518,8 +1518,17 @@ sub _watchConnectionData {
             # URLs (potential phishing), and suspicious patterns from remote hosts.
             if ($path =~ /[;&|`\$\(\)\{\}<>]/ || $path =~ m{^https?://} || $path =~ /\.\./) {
                 print STDERR "WARNING: Blocked suspicious EXPLORER path from remote host: $path\n";
-            } elsif (!fork()) {
-                exec('xdg-open', $path) or exit 1;
+            } else {
+                # Double-fork so the xdg-open grandchild is reparented
+                # to init and reaped automatically (no zombie on the
+                # main terminal process).
+                my $pid = fork();
+                if (defined $pid && $pid == 0) {
+                    my $pid2 = fork();
+                    POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+                    exec('xdg-open', $path) or POSIX::_exit(1);
+                }
+                waitpid($pid, 0) if defined $pid && $pid > 0;
             }
         } elsif ($data =~ /^PIPE_WAIT\[(.+?)\]\[(.+)\]/go) {
             my $time = $1;

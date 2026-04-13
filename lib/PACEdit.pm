@@ -37,6 +37,7 @@ use lib $RealBin . '/lib/edit';
 use strict;
 use warnings;
 
+use POSIX ();
 use YAML qw (LoadFile DumpFile);
 use Storable qw (dclone nstore nstore_fd fd_retrieve);
 use Encode;
@@ -351,7 +352,13 @@ sub _setupCallbacks {
             $folder = "$CFG_DIR/session_logs";
             _($self, 'btnEditSaveSessionLogs')->get_current_folder($folder);
         }
-        if (!fork()) { exec('xdg-open', $folder) or exit 1; }
+        my $pid = fork();
+        if (defined $pid && $pid == 0) {
+            my $pid2 = fork();
+            POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+            exec('xdg-open', $folder) or POSIX::_exit(1);
+        }
+        waitpid($pid, 0) if defined $pid && $pid > 0;
     });
 
     # Capture 'Get Command line' button clicked

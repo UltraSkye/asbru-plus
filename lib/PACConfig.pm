@@ -34,6 +34,7 @@ use strict;
 use warnings;
 
 use FindBin qw ($RealBin $Bin $Script);
+use POSIX ();
 use YAML qw (LoadFile DumpFile);
 use Storable;
 use Glib::IO; # GSettings
@@ -270,7 +271,14 @@ sub _setupCallbacks {
     });
     _($self, 'btnCfgOpenSessionLogs')->signal_connect('clicked' => sub {
         my $folder = _($self, 'btnCfgSaveSessionLogs')->get_current_folder();
-        if (!fork()) { exec('xdg-open', $folder) or exit 1; }
+        # Double-fork so xdg-open does not leak a zombie child.
+        my $pid = fork();
+        if (defined $pid && $pid == 0) {
+            my $pid2 = fork();
+            POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+            exec('xdg-open', $folder) or POSIX::_exit(1);
+        }
+        waitpid($pid, 0) if defined $pid && $pid > 0;
     });
     _($self, 'btnCloseConfig')->signal_connect('clicked' => sub {
         $self->_closeConfiguration();

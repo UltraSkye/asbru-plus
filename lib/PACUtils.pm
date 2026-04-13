@@ -4056,7 +4056,15 @@ sub _makeDesktopFile {
     open(my $fh, '>:utf8', "$ENV{HOME}/.local/share/applications/asbru.desktop") or return 0;
     print $fh "$d\n$dal\n$da\n";
     close $fh;
-    if (!fork()) { exec('xdg-desktop-menu', 'forceupdate') or exit 1; }
+    # Double-fork the xdg-desktop-menu refresh so the grandchild is
+    # reaped by init and we never leave a zombie on the parent.
+    my $pid = fork();
+    if (defined $pid && $pid == 0) {
+        my $pid2 = fork();
+        POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
+        exec('xdg-desktop-menu', 'forceupdate') or POSIX::_exit(1);
+    }
+    waitpid($pid, 0) if defined $pid && $pid > 0;
 
     return 1;
 }

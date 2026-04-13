@@ -134,7 +134,9 @@ sub new {
 
     print STDERR "INFO: Config directory is '$CFG_DIR'\n";
 
-    $SIG{'TERM'} = $SIG{'STOP'} = $SIG{'QUIT'} = $SIG{'INT'} = sub {
+    # Note: SIGSTOP and SIGKILL cannot be caught by POSIX contract,
+    # so we only hook the signals we can actually intercept.
+    $SIG{'TERM'} = $SIG{'QUIT'} = $SIG{'INT'} = sub {
         print STDERR "INFO: Signal '$_[0]' received. Exiting Ásbrú...\n";
         _quitProgram($self, 'force');
         exit 0;

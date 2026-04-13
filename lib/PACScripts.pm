@@ -363,7 +363,12 @@ sub show {
         my $file = $model->get_value($model->get_iter($sel[0]), 0);
         my $name = $model->get_value($model->get_iter($sel[0]), 1);
 
-        my $tmpfile = $CFG_DIR . '/tmp/' . $name . '.check';
+        # SECURITY: strip any path-traversal bytes from the script name
+        # before using it as a filename component — a tampered config
+        # must not be able to escape $CFG_DIR/tmp/ via ../ or NULs.
+        (my $safe_name = $name) =~ s{[^\w.-]}{_}g;
+        $safe_name = 'script' if $safe_name eq '' || $safe_name =~ /^\.+$/;
+        my $tmpfile = $CFG_DIR . '/tmp/' . $safe_name . '.check';
         $self->_saveFile($sel[0], $tmpfile);
 
         (my $quoted_tmp = $tmpfile) =~ s/'/'\\''/g;
