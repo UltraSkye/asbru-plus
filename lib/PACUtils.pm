@@ -3388,51 +3388,58 @@ sub _wakeOnLan {
     $w{window}{gui}{hbox}->pack_start($w{window}{gui}{lblup}, 1, 1, 0);
     $w{window}{gui}{lblup}->set_markup("<b>Enter the following data and press 'OK' to send Magic Packet:</b>");
 
-    $w{window}{gui}{table} = Gtk3::Table->new(3, 3, 0);
+    # Modern Gtk3::Grid replaces deprecated Gtk3::Table. attach() takes
+    # (child, col, row, width, height) instead of Table's left/right/top/bottom.
+    $w{window}{gui}{table} = Gtk3::Grid->new();
+    $w{window}{gui}{table}->set_column_spacing(6);
+    $w{window}{gui}{table}->set_row_spacing(4);
     $w{window}{gui}{table}->set_margin_top(10);
     $w{window}{gui}{table}->set_margin_bottom(10);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{table}, 1, 1, 0);
 
     # Create MAC label
     $w{window}{gui}{lblmac} = Gtk3::Label->new();
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{lblmac}, 0, 1, 0, 1);
+    $w{window}{gui}{table}->attach($w{window}{gui}{lblmac}, 0, 0, 1, 1);
     $w{window}{gui}{lblmac}->set_text('MAC Address: ');
 
     # Create MAC entry widget
     $w{window}{gui}{entrymac} = Gtk3::Entry->new();
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{entrymac}, 1, 2, 0, 1);
+    $w{window}{gui}{entrymac}->set_hexpand(1);
+    $w{window}{gui}{table}->attach($w{window}{gui}{entrymac}, 1, 0, 1, 1);
     $w{window}{gui}{entrymac}->set_text($mac);
     $w{window}{gui}{entrymac}->set_activates_default(1);
     $w{window}{gui}{entrymac}->grab_focus();
 
     # Create MAC icon widget
-    $w{window}{gui}{iconmac} = Gtk3::Image->new_from_stock('gtk-no', 'menu');
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{iconmac}, 2, 3, 0, 1);
+    $w{window}{gui}{iconmac} = Gtk3::Image->new_from_icon_name('dialog-error', 'menu');
+    $w{window}{gui}{table}->attach($w{window}{gui}{iconmac}, 2, 0, 1, 1);
 
     # Create HOST label
     $w{window}{gui}{lblip} = Gtk3::Label->new();
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{lblip}, 0, 1, 1, 2);
+    $w{window}{gui}{table}->attach($w{window}{gui}{lblip}, 0, 1, 1, 1);
     $w{window}{gui}{lblip}->set_text('Host: ');
 
     # Create HOST entry widget
     $w{window}{gui}{entryip} = Gtk3::Entry->new();
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{entryip}, 1, 2, 1, 2);
+    $w{window}{gui}{entryip}->set_hexpand(1);
+    $w{window}{gui}{table}->attach($w{window}{gui}{entryip}, 1, 1, 1, 1);
     $w{window}{gui}{entryip}->set_text($ip);
     $w{window}{gui}{entryip}->set_sensitive(0);
     $w{window}{gui}{entryip}->set_activates_default(0);
 
     # Create IP icon widget
-    $w{window}{gui}{iconip} = Gtk3::Image->new_from_stock('gtk-yes', 'menu');
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{iconip}, 2, 3, 1, 2);
+    $w{window}{gui}{iconip} = Gtk3::Image->new_from_icon_name('emblem-ok', 'menu');
+    $w{window}{gui}{table}->attach($w{window}{gui}{iconip}, 2, 1, 1, 1);
 
     # Create PORT label
     $w{window}{gui}{lblport} = Gtk3::Label->new();
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{lblport}, 0, 1, 2, 3);
+    $w{window}{gui}{table}->attach($w{window}{gui}{lblport}, 0, 2, 1, 1);
     $w{window}{gui}{lblport}->set_text('Port Number: ');
 
     # Create PORT entry widget
     $w{window}{gui}{entryport} = Gtk3::SpinButton->new_with_range(1, 65535, 1);
-    $w{window}{gui}{table}->attach_defaults($w{window}{gui}{entryport}, 1, 2, 2, 3);
+    $w{window}{gui}{entryport}->set_hexpand(1);
+    $w{window}{gui}{table}->attach($w{window}{gui}{entryport}, 1, 2, 1, 1);
     $w{window}{gui}{entryport}->set_value($port);
     $w{window}{gui}{entryport}->set_activates_default(1);
 
@@ -3463,7 +3470,7 @@ sub _wakeOnLan {
             if ($_[0]->get_label ne 'gtk-ok') {
                 return 1;
             }
-            $w{window}{gui}{iconmac}->set_from_stock($w{window}{gui}{entrymac}->get_chars(0, -1) =~ /^[\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}$/go ? 'gtk-yes' : 'gtk-no', 'menu');
+            $w{window}{gui}{iconmac}->set_from_icon_name($w{window}{gui}{entrymac}->get_chars(0, -1) =~ /^[\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}$/go ? 'emblem-ok' : 'dialog-error', 'menu');
             $_[0]->set_sensitive($w{window}{gui}{entrymac}->get_chars(0, -1) =~ /^[\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}[:-][\da-fA-F]{2}$/go ? 1 : 0);
         });
         return 0;
@@ -3486,7 +3493,7 @@ sub _wakeOnLan {
             $mac = Net::ARP::arp_lookup('', $ip);
             $mac = $mac eq 'unknown' ? '00:00:00:00:00:00' : $mac;
         }
-        $w{window}{gui}{iconip}->set_from_stock($up ? 'gtk-connect' : 'gtk-disconnect', 'menu');
+        $w{window}{gui}{iconip}->set_from_icon_name($up ? 'network-transmit-receive' : 'network-offline', 'menu');
         $w{window}{gui}{entrymac}->set_text($mac);
         $w{window}{gui}{entrymac}->select_region(0, length($mac));
         $w{window}{gui}{lblstatus}->set_text("'$ip' TCP port $ping_port seems to be " . ($up ? 'REACHABLE' : 'UNREACHABLE'));
