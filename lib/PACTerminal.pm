@@ -731,7 +731,7 @@ sub _initGUI {
     my $tabs = $$self{_NOTEBOOK};
 
     # Create a GtkVBox and its child widgets:
-    $$self{_GUI}{_VBOX} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{_VBOX} = Gtk3::Box->new('vertical', 0);
 
     $$self{_GUI}{_HBOX} = Gtk3::HPaned->new();
 
@@ -773,7 +773,7 @@ sub _initGUI {
 
     # MACROS Combobox??
     if ($$self{_CFG}{'defaults'}{'show commands box'} == 1) {
-        $$self{_GUI}{_MACROSBOX} = Gtk3::HBox->new(0, 0);
+        $$self{_GUI}{_MACROSBOX} = Gtk3::Box->new('horizontal', 0);
         $$self{_GUI}{_VBOX}->pack_start($$self{_GUI}{_MACROSBOX}, 0, 1, 0);
 
         # Create a GtkButton and add it to $macrosbox
@@ -826,7 +826,7 @@ sub _initGUI {
     {
         $$self{_GUI}{_SCROLLMACROS} = Gtk3::ScrolledWindow->new();
         $$self{_GUI}{_SCROLLMACROS}->set_policy('automatic', 'never');
-        $$self{_GUI}{_MACROSBOX} = Gtk3::HBox->new(0, 0);
+        $$self{_GUI}{_MACROSBOX} = Gtk3::Box->new('horizontal', 0);
         $$self{_GUI}{_SCROLLMACROS}->add_with_viewport($$self{_GUI}{_MACROSBOX});
 
         $$self{_GUI}{_VBOX}->pack_start($$self{_GUI}{_SCROLLMACROS}, 0, 1, 0);
@@ -837,7 +837,7 @@ sub _initGUI {
     }
 
     # bottombox will contain both progress and status bar
-    $$self{_GUI}{bottombox} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{bottombox} = Gtk3::Box->new('horizontal', 0);
     if ($$self{_CFG}{defaults}{'terminal show status bar'}) {
         $$self{_GUI}{_VBOX}->pack_end($$self{_GUI}{bottombox}, 0, 1, 0);
     }
@@ -901,7 +901,7 @@ sub _initGUI {
     # New TAB:
     if ($$self{_TABBED}) {
         # Append this GUI to a new TAB (with an associated label && event_box->image(close) button)
-        $$self{_GUI}{_TABLBL} = Gtk3::HBox->new(0, 0);
+        $$self{_GUI}{_TABLBL} = Gtk3::Box->new('horizontal', 0);
         $$self{_GUI}{_TABLBL}{_EBLBL} = Gtk3::EventBox->new();
         $$self{_GUI}{_TABLBL}{_LABEL} = Gtk3::Label->new($$self{_TITLE});
         $$self{_GUI}{_TABLBL}{_EBLBL}->add($$self{_GUI}{_TABLBL}{_LABEL});
@@ -2689,7 +2689,7 @@ sub _winToTab {
     my $tabs = $$self{_NOTEBOOK};
 
     # Append this GUI to a new TAB (with an associated label && event_box->image(close) button)
-    $$self{_GUI}{_TABLBL} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{_TABLBL} = Gtk3::Box->new('horizontal', 0);
 
     $$self{_GUI}{_TABLBL}{_EBLBL} = Gtk3::EventBox->new();
     $$self{_GUI}{_TABLBL}->pack_start($$self{_GUI}{_TABLBL}{_EBLBL}, 1, 1, 0);
@@ -3055,7 +3055,7 @@ sub _split {
     $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_VBOX}->reparent($new_vpane); # Move THE OTHER TERMINAL into new created PANE
 
     # Append this GUI to a new TAB (with an associated label && event_box->image(close) button)
-    $$self{_GUI}{_TABLBL} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{_TABLBL} = Gtk3::Box->new('horizontal', 0);
 
     $$self{_GUI}{_TABLBL}{_EBLBL} = Gtk3::EventBox->new();
     $$self{_GUI}{_TABLBL}->pack_start($$self{_GUI}{_TABLBL}{_EBLBL}, 1, 1, 0);
@@ -3137,8 +3137,8 @@ sub _unsplit {
     my $tabs = $$self{_NOTEBOOK};
     my $page = $$self{_NOTEBOOK}->page_num($$self{_SPLIT_VPANE});
 
-    my $new_vbox_1 = Gtk3::VBox->new(0, 0);
-    my $new_vbox_2 = Gtk3::VBox->new(0, 0);
+    my $new_vbox_1 = Gtk3::Box->new('vertical', 0);
+    my $new_vbox_2 = Gtk3::Box->new('vertical', 0);
 
     $$self{_GUI}{_VBOX}->reparent($new_vbox_1);
     $$self{_GUI}{_VBOX} = $new_vbox_1;
@@ -3148,7 +3148,7 @@ sub _unsplit {
     $PACMain::RUNNING{$uuid_tmp}{terminal}{_TABBED} = 1;
 
     # Append this GUI to a new TAB (with an associated label && event_box->image(close) button)
-    $$self{_GUI}{_TABLBL} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{_TABLBL} = Gtk3::Box->new('horizontal', 0);
 
     $$self{_GUI}{_TABLBL}{_EBLBL} = Gtk3::EventBox->new();
     $$self{_GUI}{_TABLBL}->pack_start($$self{_GUI}{_TABLBL}{_EBLBL}, 1, 1, 0);
@@ -3188,7 +3188,7 @@ sub _unsplit {
     $self->_setupTabDND();
 
     # Append this GUI to a new TAB (with an associated label && event_box->image(close) button)
-    $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL} = Gtk3::HBox->new(0, 0);
+    $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL} = Gtk3::Box->new('horizontal', 0);
 
     $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL}{_EBLBL} = Gtk3::EventBox->new();
     $PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL}->pack_start($PACMain::RUNNING{$uuid_tmp}{terminal}{_GUI}{_TABLBL}{_EBLBL}, 1, 1, 0);
@@ -3752,7 +3752,7 @@ sub _wSelectChain {
         );
         $sct->add($w{window}{gui}{treeview});
 
-        $w{window}{gui}{hboxtitle} = Gtk3::HBox->new(0, 0),
+        $w{window}{gui}{hboxtitle} = Gtk3::Box->new('horizontal', 0),
         $w{window}{data}->get_content_area->pack_start($w{window}{gui}{hboxtitle}, 0, 1, 0);
 
         $w{window}{gui}{btnSelectAll} = Gtk3::Button->new("Select All/None");
@@ -4136,7 +4136,7 @@ sub _wFindInTerminal {
     $w{window}{data}->add($w{window}{gui}{hboxmain});
 
     # Create a vbox
-    $w{window}{gui}{vbox} = Gtk3::VBox->new(0, 0);
+    $w{window}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
     $w{window}{gui}{vbox}->set_size_request(300, 200);
     $w{window}{gui}{hboxmain}->pack1($w{window}{gui}{vbox}, 1, 0);
 
@@ -4146,7 +4146,7 @@ sub _wFindInTerminal {
     $w{window}{gui}{frame1}->set_label(' Enter Regular Expression to look for: ');
     $w{window}{gui}{frame1}->set_border_width(5);
 
-    $w{window}{gui}{hbox} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{frame1}->add($w{window}{gui}{hbox});
     $w{window}{gui}{hbox}->set_border_width(5);
 
@@ -4221,7 +4221,7 @@ sub _wFindInTerminal {
     $w{window}{gui}{vbox}->pack_start($w{window}{gui}{sep}, 0, 1, 5);
 
     # Put a hbox to add copy/close buttons
-    $w{window}{gui}{hbtnbox} = Gtk3::HBox->new();
+    $w{window}{gui}{hbtnbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{vbox}->pack_start($w{window}{gui}{hbtnbox}, 0, 1, 0);
     $w{window}{gui}{hbtnbox}->set_border_width(5);
 

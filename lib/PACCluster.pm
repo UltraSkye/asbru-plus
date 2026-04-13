@@ -243,7 +243,7 @@ sub _initGUI {
     $$self{_WINDOWCLUSTER}{main}->set_transient_for($PACMain::FUNCS{_MAIN}{_GUI}{main});
     $$self{_WINDOWCLUSTER}{main}->set_modal(1);
 
-    my $vbox0 = Gtk3::VBox->new(0, 0);
+    my $vbox0 = Gtk3::Box->new('vertical', 0);
     $$self{_WINDOWCLUSTER}{main}->add($vbox0);
 
     $vbox0->pack_start(PACUtils::_createBanner('asbru-cluster.svg', 'Cluster Management') , 0, 1, 0);
@@ -255,17 +255,17 @@ sub _initGUI {
     # FIXME-HOMOGENEOUS            $$self{_WINDOWCLUSTER}{nb}->set('homogeneous', 1);
     $vbox0->pack_start($$self{_WINDOWCLUSTER}{nb}, 1, 1, 0);
 
-    my $tablbl1 = Gtk3::HBox->new(0, 0);
+    my $tablbl1 = Gtk3::Box->new('horizontal', 0);
     my $lbl1 = Gtk3::Label->new;
     $lbl1->set_markup('<b>RUNNING CLUSTERS </b>');
     $tablbl1->pack_start($lbl1, 0, 1, 0);
     $tablbl1->pack_start(Gtk3::Image->new_from_stock('asbru-terminal-ok-small', 'menu'), 0, 1, 0);
     $tablbl1->show_all;
 
-    my $vbox1 = Gtk3::VBox->new(0, 0);
+    my $vbox1 = Gtk3::Box->new('vertical', 0);
     $$self{_WINDOWCLUSTER}{nb}->append_page($vbox1, $tablbl1);
 
-    my $hbox1 = Gtk3::HBox->new(0, 0);
+    my $hbox1 = Gtk3::Box->new('horizontal', 0);
     $vbox1->pack_start($hbox1, 1, 1, 0);
 
     my $frame0 = Gtk3::Frame->new(' Unclustered Terminals');
@@ -295,7 +295,7 @@ sub _initGUI {
     $col_terminals[1]->set_expand(0);
 
     # Buttons to Add/Del to/from Clusters
-    my $vbox2 = Gtk3::VBox->new(0, 0);
+    my $vbox2 = Gtk3::Box->new('vertical', 0);
     $hbox1->pack_start($vbox2, 0, 1, 0);
 
     $$self{_WINDOWCLUSTER}{btnadd} = Gtk3::Button->new_with_label("Add to\nCluster");
@@ -313,7 +313,7 @@ sub _initGUI {
     $$self{_WINDOWCLUSTER}{btndel}->set_sensitive(0);
 
     # Clusters list
-    my $vbox3 = Gtk3::VBox->new(0, 0);
+    my $vbox3 = Gtk3::Box->new('vertical', 0);
     $hbox1->pack_start($vbox3, 1, 1, 0);
 
     my $frame1 = Gtk3::Frame->new(' Active Clusters');
@@ -322,7 +322,7 @@ sub _initGUI {
     $frame1lbl->set_markup(' <b>Active Clusters</b> ');
     $frame1->set_label_widget($frame1lbl);
 
-    my $vbox4 = Gtk3::VBox->new(0, 0);
+    my $vbox4 = Gtk3::Box->new('vertical', 0);
     $frame1->add($vbox4);
 
     $$self{_WINDOWCLUSTER}{comboClusters} = Gtk3::ComboBoxText->new();
@@ -351,7 +351,7 @@ sub _initGUI {
     $frame2lbl->set_markup(' <b>Terminals in selected Cluster</b> ');
     $frame2->set_label_widget($frame2lbl);
 
-    my $vbox5 = Gtk3::VBox->new(0, 0);
+    my $vbox5 = Gtk3::Box->new('vertical', 0);
     $frame2->add($vbox5);
 
     my $scroll2 = Gtk3::ScrolledWindow->new;
@@ -373,14 +373,14 @@ sub _initGUI {
     $col_cluster[0]->set_expand(1);
     $col_cluster[1]->set_expand(0);
 
-    my $tablbl2 = Gtk3::HBox->new(0, 0);
+    my $tablbl2 = Gtk3::Box->new('horizontal', 0);
     my $lbl2 = Gtk3::Label->new;
     $lbl2->set_markup('<b>Saved Clusters </b>');
     $tablbl2->pack_start($lbl2, 0, 1, 0);
     $tablbl2->pack_start(Gtk3::Image->new_from_stock('asbru-cluster-manager', 'menu'), 0, 1, 0);
     $tablbl2->show_all;
 
-    my $hboxclu = Gtk3::HBox->new(0, 0);
+    my $hboxclu = Gtk3::Box->new('horizontal', 0);
     $$self{_WINDOWCLUSTER}{nb}->append_page($hboxclu, $tablbl2);
 
     # Create a scrolled1 scrolled window to contain the connections tree
@@ -413,7 +413,7 @@ sub _initGUI {
     $col[0]->set_visible(0);
 
     # Buttons to Add/Del to/from Clusters
-    my $vboxclu1 = Gtk3::VBox->new(0, 0);
+    my $vboxclu1 = Gtk3::Box->new('vertical', 0);
     $hboxclu->pack_start($vboxclu1, 0, 1, 0);
 
     $$self{_WINDOWCLUSTER}{btnadd1} = Gtk3::Button->new_with_label("Add to\nCluster");
@@ -431,7 +431,7 @@ sub _initGUI {
     $$self{_WINDOWCLUSTER}{btndel1}->set_sensitive(0);
 
     # Clusters list
-    my $vbox3clu = Gtk3::VBox->new(0, 0);
+    my $vbox3clu = Gtk3::Box->new('vertical', 0);
     $hboxclu->pack_start($vbox3clu, 0, 1, 0);
 
     my $frame1clu = Gtk3::Frame->new(' Configured Clusters');
@@ -440,7 +440,7 @@ sub _initGUI {
     $frame1lblclu->set_markup(' <b>Configured Clusters</b> ');
     $frame1clu->set_label_widget($frame1lblclu);
 
-    my $vbox4clu = Gtk3::VBox->new(0, 0);
+    my $vbox4clu = Gtk3::Box->new('vertical', 0);
     $frame1clu->add($vbox4clu);
 
     $$self{_WINDOWCLUSTER}{comboClusters1} = Gtk3::ComboBoxText->new;
@@ -474,7 +474,7 @@ sub _initGUI {
     $frame2lblclu->set_markup(' <b>Terminals in selected cluster</b> ');
     $frame2clu->set_label_widget($frame2lblclu);
 
-    my $vbox5clu = Gtk3::VBox->new(0, 0);
+    my $vbox5clu = Gtk3::Box->new('vertical', 0);
     $frame2clu->add($vbox5clu);
 
     my $scroll2clu = Gtk3::ScrolledWindow->new;
@@ -493,20 +493,20 @@ sub _initGUI {
     $$self{_WINDOWCLUSTER}{treeClustered1}->get_selection->set_mode('GTK_SELECTION_MULTIPLE');
 
     # Add an "autocluster" tab
-    my $tablbl3 = Gtk3::HBox->new(0, 0);
+    my $tablbl3 = Gtk3::Box->new('horizontal', 0);
     my $lbl3 = Gtk3::Label->new;
     $lbl3->set_markup('<b>Auto Clusters </b>');
     $tablbl3->pack_start($lbl3, 0, 1, 0);
     $tablbl3->pack_start(Gtk3::Image->new_from_stock('asbru-cluster-manager2', 'menu'), 0, 1, 0);
     $tablbl3->show_all;
 
-    my $hboxautoclu = Gtk3::HBox->new(0, 0);
+    my $hboxautoclu = Gtk3::Box->new('horizontal', 0);
     $$self{_WINDOWCLUSTER}{nb}->append_page($hboxautoclu, $tablbl3);
 
-    my $vboxaclist = Gtk3::VBox->new;
+    my $vboxaclist = Gtk3::Box->new('vertical', 0);
     $hboxautoclu->pack_start($vboxaclist, 1, 1, 0);
 
-    my $hboxaclistbtns = Gtk3::HBox->new;
+    my $hboxaclistbtns = Gtk3::Box->new('horizontal', 0);
     $vboxaclist->pack_start($hboxaclistbtns, 0, 1, 0);
 
     $$self{_WINDOWCLUSTER}{addAC} = Gtk3::Button->new_from_stock('gtk-add');
@@ -544,22 +544,22 @@ sub _initGUI {
     $frameac->set_label_widget($frameaclbl);
     $frameac->set_tooltip_text("These entries accept Regular Expressions,like:\n^server\\d+\nor\nconn.*\\d{1,3}\$\nor any other Perl RegExp");
 
-    my $vboxacprops = Gtk3::VBox->new;
+    my $vboxacprops = Gtk3::Box->new('vertical', 0);
     $frameac->add($vboxacprops);
 
-    my $hboxacpname = Gtk3::HBox->new; $vboxacprops->pack_start($hboxacpname, 0, 1, 0);
+    my $hboxacpname = Gtk3::Box->new('horizontal', 0); $vboxacprops->pack_start($hboxacpname, 0, 1, 0);
     $hboxacpname->pack_start(Gtk3::Label->new('Name') , 0, 1, 0);
     $hboxacpname->pack_start($$self{_WINDOWCLUSTER}{entryname} = Gtk3::Entry->new, 1, 1, 0);
 
-    my $hboxacptitle = Gtk3::HBox->new; $vboxacprops->pack_start($hboxacptitle, 0, 1, 0);
+    my $hboxacptitle = Gtk3::Box->new('horizontal', 0); $vboxacprops->pack_start($hboxacptitle, 0, 1, 0);
     $hboxacptitle->pack_start(Gtk3::Label->new('Title') , 0, 1, 0);
     $hboxacptitle->pack_start($$self{_WINDOWCLUSTER}{entrytitle} = Gtk3::Entry->new, 1, 1, 0);
 
-    my $hboxacphost = Gtk3::HBox->new; $vboxacprops->pack_start($hboxacphost, 0, 1, 0);
+    my $hboxacphost = Gtk3::Box->new('horizontal', 0); $vboxacprops->pack_start($hboxacphost, 0, 1, 0);
     $hboxacphost->pack_start(Gtk3::Label->new('IP/Host') , 0, 1, 0);
     $hboxacphost->pack_start($$self{_WINDOWCLUSTER}{entryhost} = Gtk3::Entry->new, 1, 1, 0);
 
-    my $hboxacpdesc = Gtk3::HBox->new; $vboxacprops->pack_start($hboxacpdesc, 0, 1, 0);
+    my $hboxacpdesc = Gtk3::Box->new('horizontal', 0); $vboxacprops->pack_start($hboxacpdesc, 0, 1, 0);
     $hboxacpdesc->pack_start(Gtk3::Label->new('Description') , 0, 1, 0);
     $hboxacpdesc->pack_start($$self{_WINDOWCLUSTER}{entrydesc} = Gtk3::Entry->new, 1, 1, 0);
 
@@ -1346,7 +1346,7 @@ sub _setupCallbacks {
         $windowConfirm->add_buttons('gtk-ok' => 'ok');
         $windowConfirm->set_size_request(640, 400);
 
-        my $hboxjarl = Gtk3::HBox->new(0, 0);
+        my $hboxjarl = Gtk3::Box->new('horizontal', 0);
         $windowConfirm->get_content_area->pack_start($hboxjarl, 1, 1, 0);
 
         my $scroll = Gtk3::ScrolledWindow->new;

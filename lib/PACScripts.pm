@@ -402,10 +402,10 @@ sub _initGUI {
     $$self{_WINDOWSCRIPTS}{main}->set_resizable(1);
     $$self{_WINDOWSCRIPTS}{main}->maximize;
 
-        $$self{_WINDOWSCRIPTS}{gui}{vbox} = Gtk3::VBox->new(0, 0);
+        $$self{_WINDOWSCRIPTS}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
         $$self{_WINDOWSCRIPTS}{main}->add($$self{_WINDOWSCRIPTS}{gui}{vbox});
 
-            my $hboxaux = Gtk3::HBox->new(0, 0);
+            my $hboxaux = Gtk3::Box->new('horizontal', 0);
             $$self{_WINDOWSCRIPTS}{gui}{vbox}->pack_start($hboxaux, 0, 1, 0);
             $hboxaux->pack_start(PACUtils::_createBanner('asbru-scripts-manager.svg', 'Scripts Manager'), 1, 1, 0);
 
@@ -438,7 +438,7 @@ sub _initGUI {
 
                     # PAC Script Editor
 
-                    my $tablbl = Gtk3::HBox->new(0, 0);
+                    my $tablbl = Gtk3::Box->new('horizontal', 0);
                     $tablbl->pack_start(Gtk3::Label->new(' Script Editor '), 1, 1, 0);
                     $tablbl->pack_start(Gtk3::Image->new_from_stock('asbru-script', 'menu'), 0, 1, 0);
                     $tablbl->show_all;
@@ -450,7 +450,7 @@ sub _initGUI {
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_reorderable($$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}, 0);
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_detachable($$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}, 0);
 
-                        $$self{_WINDOWSCRIPTS}{gui}{vboxedit} = Gtk3::VBox->new(0, 0);
+                        $$self{_WINDOWSCRIPTS}{gui}{vboxedit} = Gtk3::Box->new('vertical', 0);
                         $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->pack1($$self{_WINDOWSCRIPTS}{gui}{vboxedit}, 0, 0);
 
                             $$self{_WINDOWSCRIPTS}{gui}{scrollMultiText} = Gtk3::ScrolledWindow->new;
@@ -531,7 +531,7 @@ sub _initGUI {
                         # Right side panel — Snippets / quick reference for
                         # the current script language. Click any row to
                         # insert the snippet at the cursor.
-                        $$self{_WINDOWSCRIPTS}{gui}{snippetsBox} = Gtk3::VBox->new(0, 0);
+                        $$self{_WINDOWSCRIPTS}{gui}{snippetsBox} = Gtk3::Box->new('vertical', 0);
                         $$self{_WINDOWSCRIPTS}{gui}{snippetsBox}->set_size_request(260, -1);
                         $$self{_WINDOWSCRIPTS}{gui}{hpanededitfunc}->pack2($$self{_WINDOWSCRIPTS}{gui}{snippetsBox}, 0, 0);
 
@@ -604,12 +604,12 @@ sub _initGUI {
 
                     # PAC Script Help
 
-                    my $tablbl2 = Gtk3::HBox->new(0, 0);
+                    my $tablbl2 = Gtk3::Box->new('horizontal', 0);
                     $tablbl2->pack_start(Gtk3::Label->new(' Ásbrú Script Help '), 1, 1, 0);
                     $tablbl2->pack_start(Gtk3::Image->new_from_stock('gtk-help', 'menu'), 0, 1, 0);
                     $tablbl2->show_all;
 
-                    $$self{_WINDOWSCRIPTS}{gui}{vboxhelp} = Gtk3::VBox->new(0, 0);
+                    $$self{_WINDOWSCRIPTS}{gui}{vboxhelp} = Gtk3::Box->new('vertical', 0);
                     $$self{_WINDOWSCRIPTS}{nb}->append_page($$self{_WINDOWSCRIPTS}{gui}{vboxhelp}, $tablbl2);
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_reorderable($$self{_WINDOWSCRIPTS}{gui}{vboxhelp}, 0);
                     $$self{_WINDOWSCRIPTS}{nb}->set_tab_detachable($$self{_WINDOWSCRIPTS}{gui}{vboxhelp}, 0);
@@ -656,7 +656,7 @@ sub _initGUI {
             $$self{_WINDOWSCRIPTS}{nb}->set_current_page(0);
 
             # Action buttons
-            $$self{_WINDOWSCRIPTS}{gui}{btnbox} = Gtk3::HBox->new(0, 0);
+            $$self{_WINDOWSCRIPTS}{gui}{btnbox} = Gtk3::Box->new('horizontal', 0);
             $$self{_WINDOWSCRIPTS}{gui}{vbox}->pack_start($$self{_WINDOWSCRIPTS}{gui}{btnbox}, 0, 1, 0);
 
                 # Put a 'execute' button
@@ -1799,7 +1799,7 @@ except Exception as e:
     for my $snippet (@snippets) {
         my ($title, $code) = @$snippet;
         my $row = Gtk3::ListBoxRow->new();
-        my $box = Gtk3::VBox->new(0, 2);
+        my $box = Gtk3::Box->new('vertical', 2);
         $box->set_margin_top(6);
         $box->set_margin_bottom(6);
         $box->set_margin_start(12);

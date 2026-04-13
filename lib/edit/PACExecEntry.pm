@@ -156,8 +156,8 @@ sub _buildExecGUI {
     my %w;
 
     # Build a vbox for:buttons, separator and expect widgets
-    $w{vbox} = Gtk3::VBox->new(0, 0);
-    $w{hbox} = Gtk3::HBox->new(1, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0); $w{hbox}->set_homogeneous(1);
 
     # Build a hbuttonbox for widgets actions (add, etc.)
     $w{bbox} = Gtk3::HButtonBox->new();
@@ -203,7 +203,7 @@ sub _buildExecGUI {
     $w{vp}->set_shadow_type('none');
 
     # Build and add the vbox that will contain the expect widgets
-    $w{vbexec} = Gtk3::VBox->new(0, 0);
+    $w{vbexec} = Gtk3::Box->new('vertical', 0);
     $w{vp}->add($w{vbexec});
 
     $$self{container} = $w{vbox};
@@ -266,13 +266,13 @@ sub _buildExec {
     $w{frame}->set_shadow_type('GTK_SHADOW_NONE');
 
     # Make an HBox to contain checkbox, entry and delete
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{frame}->add($w{hbox});
 
-    $w{vbox} = Gtk3::VBox->new(0, 5);
+    $w{vbox} = Gtk3::Box->new('vertical', 5);
     $w{hbox}->pack_start($w{vbox}, 1, 1, 0);
 
-    $w{hbox3} = Gtk3::HBox->new(0, 0);
+    $w{hbox3} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hbox3}, 0, 1, 0);
 
     # Build label
@@ -292,7 +292,7 @@ sub _buildExec {
     $w{hbox3}->pack_start($w{intro}, 0, 1, 0);
     $w{intro}->set_active($intro);
 
-    $w{hbox4} = Gtk3::HBox->new(0, 0);
+    $w{hbox4} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hbox4}, 0, 1, 0);
 
     # Build label

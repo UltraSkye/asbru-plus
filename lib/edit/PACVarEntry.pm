@@ -115,8 +115,8 @@ sub _buildVarGUI {
     my %w;
 
     # Build a vbox for:buttons, separator and expect widgets
-    $w{vbox} = Gtk3::VBox->new(0, 0);
-    $w{hbox} = Gtk3::HBox->new(1, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0); $w{hbox}->set_homogeneous(1);
 
     # Build a hbuttonbox for widgets actions (add, etc.)
     $w{bbox} = Gtk3::HButtonBox->new();
@@ -152,7 +152,7 @@ sub _buildVarGUI {
     $w{vp}->set_shadow_type('none');
 
     # Build and add the vbox that will contain the expect widgets
-    $w{vbvar} = Gtk3::VBox->new(0, 0);
+    $w{vbvar} = Gtk3::Box->new('vertical', 0);
     $w{vp}->add($w{vbvar});
 
     $$self{container} = $w{vbox};
@@ -198,7 +198,7 @@ sub _buildVar {
     $w{position} = scalar @{$$self{list}};
 
     # Make an HBox to contain label, entry and del button
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
 
     # Build label
 

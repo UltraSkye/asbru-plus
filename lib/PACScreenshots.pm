@@ -152,7 +152,7 @@ sub _buildScreenshotsGUI {
     my %w;
 
     # Build a vbox for:buttons, separator and image widgets
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{hbox}->set_size_request(200, 170);
 
     # Build a buttonbox for widgets actions (add, etc.)
@@ -163,7 +163,7 @@ sub _buildScreenshotsGUI {
     # Build 'add' button
     $w{btnadd} = Gtk3::Button->new();
 
-    $w{hboxbtnadd} = Gtk3::HBox->new(0, 8);
+    $w{hboxbtnadd} = Gtk3::Box->new('horizontal', 8);
     $w{hboxbtnadd}->set_border_width(4);
     $w{btnadd}->add($w{hboxbtnadd});
     $w{btnadd}->set('can_focus', 0);
@@ -176,7 +176,7 @@ sub _buildScreenshotsGUI {
 
     $w{btnopenfolder} = Gtk3::Button->new();
 
-    $w{hboxbtnopenfolder} = Gtk3::HBox->new(0, 8);
+    $w{hboxbtnopenfolder} = Gtk3::Box->new('horizontal', 8);
     $w{hboxbtnopenfolder}->set_border_width(4);
     $w{btnopenfolder}->add($w{hboxbtnopenfolder});
     $w{btnopenfolder}->set('can_focus', 0);
@@ -199,7 +199,7 @@ sub _buildScreenshotsGUI {
     $w{vp}->set_shadow_type('none');
 
     # Build and add the vbox that will contain the image widgets
-    $w{hbscreenshots} = Gtk3::HBox->new(0, 0);
+    $w{hbscreenshots} = Gtk3::Box->new('horizontal', 0);
     $w{vp}->add($w{hbscreenshots});
 
     $$self{container} = $w{hbox};

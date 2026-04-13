@@ -272,10 +272,10 @@ sub _buildStatisticsGUI {
     my %w;
 
     # Build a vbox for:buttons, separator and image widgets
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
 
     # Reset button — single line label, auto width, large_toolbar icon
-    $w{hboxReset} = Gtk3::HBox->new(0, 8);
+    $w{hboxReset} = Gtk3::Box->new('horizontal', 8);
     $w{hboxReset}->set_border_width(4);
     $w{hboxReset}->pack_start(Gtk3::Image->new_from_stock('gtk-refresh', 'small_toolbar'), 0, 0, 0);
     $w{hboxReset}->pack_start(Gtk3::Label->new("Reset"), 0, 0, 0);
@@ -285,10 +285,10 @@ sub _buildStatisticsGUI {
     $w{btnReset}->add($w{hboxReset});
     $w{hbox}->pack_start($w{btnReset}, 0, 0, 8);
 
-    $w{vbox} = Gtk3::VBox->new(0, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
     $w{hbox}->pack_start($w{vbox}, 1, 1, 0);
 
-    $w{hboxPACRoot} = Gtk3::HBox->new(0, 0);
+    $w{hboxPACRoot} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxPACRoot}, 0, 1, 0);
 
     $w{lblPR} = Gtk3::Label->new();
@@ -296,7 +296,7 @@ sub _buildStatisticsGUI {
     $w{lblPR}->set_line_wrap(1);
     $w{hboxPACRoot}->pack_start($w{lblPR}, 0, 1, 0);
 
-    $w{hboxPACGroup} = Gtk3::HBox->new(0, 0);
+    $w{hboxPACGroup} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxPACGroup}, 0, 1, 0);
 
     $w{lblPG} = Gtk3::Label->new();
@@ -304,7 +304,7 @@ sub _buildStatisticsGUI {
     $w{lblPG}->set_line_wrap(1);
     $w{hboxPACGroup}->pack_start($w{lblPG}, 0, 0, 0);
 
-    $w{hboxPACNode} = Gtk3::HBox->new(0, 0);
+    $w{hboxPACNode} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxPACNode}, 0, 1, 0);
 
     $w{lblPN} = Gtk3::Label->new();

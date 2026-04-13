@@ -188,7 +188,7 @@ sub _buildGUI {
     $w{frPredict}->set_shadow_type('GTK_SHADOW_NONE');
     $w{vbox}->pack_start($w{frPredict}, 0, 1, 0);
 
-    $w{hboxPredict} = Gtk3::HBox->new(0, 0);
+    $w{hboxPredict} = Gtk3::Box->new('horizontal', 0);
     $w{frPredict}->add($w{hboxPredict});
 
     $w{rbPredictAdaptive} = Gtk3::RadioButton->new_with_label(undef, 'Adaptive');
@@ -204,7 +204,7 @@ sub _buildGUI {
 
     $w{vbox}->pack_start(Gtk3::HSeparator->new, 0, 1, 5);
 
-    $w{hbUDPPort} = Gtk3::HBox->new(0, 0);
+    $w{hbUDPPort} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hbUDPPort}, 0, 1, 0);
 
     $w{hbUDPPort}->pack_start(Gtk3::Label->new('Server-side UDP Port Start: '), 0, 1, 0);

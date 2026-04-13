@@ -181,13 +181,13 @@ sub _buildGUI {
 
     $w{vbox} = $container;
 
-    $w{hboxReal} = Gtk3::HBox->new(0, 5);
+    $w{hboxReal} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hboxReal}, 0, 1, 5);
     $w{lblClient} = Gtk3::Label->new();
     $w{lblClient}->set_markup('<b>VNC configuration</b>');
     $w{hboxReal}->pack_start($w{lblClient}, 0, 0, 0);
 
-    $w{hbox1} = Gtk3::HBox->new(0, 5);
+    $w{hbox1} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox1}, 0, 1, 5);
 
     $w{frCompressLevel} = Gtk3::Frame->new('Compression level (1: min, 10: max) :');
@@ -204,7 +204,7 @@ sub _buildGUI {
     $w{spQuality} = Gtk3::HScale->new(Gtk3::Adjustment->new(5, 1, 11, 1.0, 1.0, 1.0) );
     $w{frQuality}->add($w{spQuality});
 
-    $w{hbox2} = Gtk3::HBox->new(0, 5);
+    $w{hbox2} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox2}, 0, 1, 5);
 
     $w{chFullScreen} = Gtk3::RadioButton->new_with_label(undef, 'Fullscreen');

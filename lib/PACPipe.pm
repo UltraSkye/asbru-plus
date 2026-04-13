@@ -117,7 +117,7 @@ sub _initGUI {
     #$$self{_WINDOWPIPE}{data}->set_modal(1);
     $$self{_WINDOWPIPE}{data}->maximize;
 
-    $$self{_WINDOWPIPE}{gui}{vbox} = Gtk3::VBox->new(0, 0);
+    $$self{_WINDOWPIPE}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
     $$self{_WINDOWPIPE}{data}->add($$self{_WINDOWPIPE}{gui}{vbox});
 
     # Create an hpane
@@ -195,7 +195,7 @@ sub _initGUI {
     $$self{_WINDOWPIPE}{gui}{text}->modify_font(Pango::FontDescription::from_string('monospace') );
     $$self{_WINDOWPIPE}{gui}{scroll}->add($$self{_WINDOWPIPE}{gui}{text});
 
-    $$self{_WINDOWPIPE}{gui}{btnbox} = Gtk3::HBox->new(0, 0);
+    $$self{_WINDOWPIPE}{gui}{btnbox} = Gtk3::Box->new('horizontal', 0);
     $$self{_WINDOWPIPE}{gui}{vbox}->pack_start($$self{_WINDOWPIPE}{gui}{btnbox}, 0, 1, 0);
 
     # Put a 'always on top' checkbutton

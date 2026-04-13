@@ -203,9 +203,9 @@ sub _buildTermOptsGUI {
     my %w;
 
     # Build main vbox
-    $w{vbox} = Gtk3::VBox->new(0, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
 
-    $w{hboxopts} = Gtk3::HBox->new(0, 0);
+    $w{hboxopts} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxopts}, 0, 1, 0);
 
     $w{frameSuper} = Gtk3::Frame->new;
@@ -215,11 +215,11 @@ sub _buildTermOptsGUI {
     $w{frameSuper}->set_label_widget($w{cbUsePersonal});
     $w{frameSuper}->set_shadow_type('GTK_SHADOW_NONE');
 
-    $w{vbox1} = Gtk3::VBox->new(0, 0);
+    $w{vbox1} = Gtk3::Box->new('vertical', 0);
     $w{frameSuper}->add($w{vbox1});
     $w{vbox1}->set_border_width(5);
 
-    my $hbox1 = Gtk3::HBox->new(0, 0);
+    my $hbox1 = Gtk3::Box->new('horizontal', 0);
     $w{vbox1}->pack_start($hbox1, 0, 1, 0);
 
     my $frameCommandPrompt = Gtk3::Frame->new(' Prompt RegExp  ');
@@ -247,11 +247,11 @@ sub _buildTermOptsGUI {
     my $frameTermUI = Gtk3::Frame->new(' Terminal UI  ');
     $w{vbox1}->pack_start($frameTermUI, 0, 1, 0);
 
-    my $vboxTermUI = Gtk3::VBox->new(0, 0);
+    my $vboxTermUI = Gtk3::Box->new('vertical', 0);
     $frameTermUI->add ($vboxTermUI);
     $frameTermUI->set_shadow_type('GTK_SHADOW_NONE');
 
-    my $hboxTermUI1 = Gtk3::HBox->new(0, 0);
+    my $hboxTermUI1 = Gtk3::Box->new('horizontal', 0);
     $vboxTermUI->add ($hboxTermUI1);
     $hboxTermUI1->set_border_width(5);
 
@@ -296,7 +296,7 @@ sub _buildTermOptsGUI {
     $w{colorTabBack} = Gtk3::ColorButton->new;
     $frameTabBackColor->add($w{colorTabBack});
 
-    my $hboxTermUI2 = Gtk3::HBox->new(0, 0);
+    my $hboxTermUI2 = Gtk3::Box->new('horizontal', 0);
     $vboxTermUI->add ($hboxTermUI2);
     $hboxTermUI2->set_border_width(5);
 
@@ -331,13 +331,13 @@ sub _buildTermOptsGUI {
     $frameSelectWords->add($w{entrySelectWords});
     $frameSelectWords->set_shadow_type('GTK_SHADOW_NONE');
 
-    $w{hboxTimeSize} = Gtk3::HBox->new(0, 0);
+    $w{hboxTimeSize} = Gtk3::Box->new('horizontal', 0);
     $w{vbox1}->pack_start($w{hboxTimeSize}, 0, 1, 0);
 
     my $frameTimeOuts = Gtk3::Frame->new(' Time outs (seconds)  ');
     $w{hboxTimeSize}->pack_start($frameTimeOuts, 0, 1, 0);
 
-    my $hbox2 = Gtk3::HBox->new(0, 0);
+    my $hbox2 = Gtk3::Box->new('horizontal', 0);
     $frameTimeOuts->add($hbox2);
     $frameTimeOuts->set_shadow_type('GTK_SHADOW_NONE');
     $hbox2->set_border_width(5);
@@ -361,20 +361,20 @@ sub _buildTermOptsGUI {
     my $frameWindowSize = Gtk3::Frame->new(' Open NEW connection on  ');
     $w{hboxTimeSize}->pack_start($frameWindowSize, 0, 1, 0);
 
-    my $vboxWindowSize = Gtk3::VBox->new(0, 0);
+    my $vboxWindowSize = Gtk3::Box->new('vertical', 0);
     $frameWindowSize->add($vboxWindowSize);
     $frameWindowSize->set_shadow_type('GTK_SHADOW_NONE');
 
     $w{cbCfgNewInTab} = Gtk3::RadioButton->new_with_label(undef, 'Tab');
     $vboxWindowSize->pack_start($w{cbCfgNewInTab}, 0, 1, 0);
 
-    my $hboxWindowSize = Gtk3::HBox->new(0, 0);
+    my $hboxWindowSize = Gtk3::Box->new('horizontal', 0);
     $vboxWindowSize->pack_start($hboxWindowSize, 0, 1, 0);
 
     $w{cbCfgNewInWindow} = Gtk3::RadioButton->new_with_label($w{cbCfgNewInTab}, 'Window');
     $hboxWindowSize->pack_start($w{cbCfgNewInWindow}, 0, 1, 0);
 
-    $w{hboxWidthHeight} = Gtk3::HBox->new(0, 0);
+    $w{hboxWidthHeight} = Gtk3::Box->new('horizontal', 0);
     $hboxWindowSize->pack_start($w{hboxWidthHeight}, 0, 1, 0);
 
     $w{hboxWidthHeight}->pack_start(Gtk3::Label->new(' Width  '), 0, 1, 0);
@@ -392,13 +392,13 @@ sub _buildTermOptsGUI {
     $frameBackspace->add($w{comboBackspace});
     $frameBackspace->set_shadow_type('GTK_SHADOW_NONE');
 
-    $w{hboxchar} = Gtk3::HBox->new(0,0);
+    $w{hboxchar} = Gtk3::Box->new('horizontal', 0);
     $w{vbox1}->pack_start($w{hboxchar},0,1,5);
 
     my $frameEncoding = Gtk3::Frame->new(' Character Encoding  ');
     $w{hboxchar}->pack_start($frameEncoding, 1, 1, 0);
 
-    my $vboxEnc = Gtk3::VBox->new(0, 0);
+    my $vboxEnc = Gtk3::Box->new('vertical', 0);
     $frameEncoding->add($vboxEnc);
     $frameEncoding->set_shadow_type('GTK_SHADOW_NONE');
 
@@ -408,7 +408,7 @@ sub _buildTermOptsGUI {
     my $frameEmulations = Gtk3::Frame->new(' Terminal Emulation ');
     $w{hboxchar}->pack_start($frameEmulations, 1, 1, 0);
 
-    my $vboxEmulation = Gtk3::VBox->new(0, 0);
+    my $vboxEmulation = Gtk3::Box->new('vertical', 0);
     $frameEmulations->add($vboxEmulation);
     $frameEmulations->set_shadow_type('GTK_SHADOW_NONE');
 

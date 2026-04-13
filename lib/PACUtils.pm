@@ -465,7 +465,7 @@ sub _splash {
         $WINDOWSPLASH{_GUI}->set_keep_above(1);
         $WINDOWSPLASH{_GUI}->get_style_context->add_class('asbru-splash');
 
-        $WINDOWSPLASH{_VBOX} = Gtk3::VBox->new(0, 8);
+        $WINDOWSPLASH{_VBOX} = Gtk3::Box->new('vertical', 8);
         $WINDOWSPLASH{_VBOX}->set_border_width(12);
         $WINDOWSPLASH{_GUI}->add($WINDOWSPLASH{_VBOX});
 
@@ -1751,11 +1751,11 @@ sub _wEnterValue {
     $w{window}{data}->set_border_width(15);
 
     # Create a VBox to avoid vertical expansions
-    $w{window}{gui}{vbox} = Gtk3::VBox->new(0, 0);
+    $w{window}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{vbox}, 0, 0, 0);
 
     # Create an HBox to contain a picture and a label
-    $w{window}{gui}{hbox} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{hbox}->set_border_width(0);
     $w{window}{gui}{vbox}->pack_start($w{window}{gui}{hbox}, 0, 0, 5);
 
@@ -1861,7 +1861,7 @@ sub _wAddRenameNode {
     $w{window}{data}->set_border_width(5);
 
     # Create an HBox to contain a picture and a label
-    $w{window}{gui}{hbox} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{hbox}, 0, 1, 0);
     $w{window}{gui}{hbox}->set_border_width(5);
 
@@ -1875,7 +1875,7 @@ sub _wAddRenameNode {
     $w{window}{gui}{lblup}->set_markup($lblup);
 
     # Create an HBox to contain a label and an entry
-    $w{window}{gui}{hbox1} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox1} = Gtk3::Box->new('horizontal', 0);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{hbox1}, 0, 1, 0);
     $w{window}{gui}{hbox1}->set_border_width(5);
 
@@ -1895,7 +1895,7 @@ sub _wAddRenameNode {
     });
 
     # Create an HBox to contain a label and an entry
-    $w{window}{gui}{hbox2} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox2} = Gtk3::Box->new('horizontal', 0);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{hbox2}, 0, 1, 0);
     $w{window}{gui}{hbox2}->set_border_width(5);
 
@@ -2144,7 +2144,7 @@ sub _wProgress {
         }
         $WINDOWPROGRESS{_GUI}->set_modal(1);
 
-        $WINDOWPROGRESS{vbox} = Gtk3::VBox->new(0, 0);
+        $WINDOWPROGRESS{vbox} = Gtk3::Box->new('vertical', 0);
         $WINDOWPROGRESS{_GUI}->add($WINDOWPROGRESS{vbox});
 
         $WINDOWPROGRESS{lbl1} = Gtk3::Label->new();
@@ -3378,7 +3378,7 @@ sub _wakeOnLan {
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{banner}, 0, 1, 0);
 
     # Create an HBox to contain a picture and a label
-    $w{window}{gui}{hbox} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{hbox}->set_margin_top(10);
     $w{window}{gui}{hbox}->set_margin_bottom(10);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{hbox}, 1, 1, 0);
@@ -3440,7 +3440,7 @@ sub _wakeOnLan {
     $w{window}{gui}{cbbroadcast} = Gtk3::CheckButton->new_with_label('Send to broadcast');
     $w{window}{gui}{cbbroadcast}->set_active(1);
     $w{window}{gui}{cbbroadcast}->set_sensitive($ip);
-    $w{window}{gui}{hbox2} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox2} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{hbox2}->set_halign('center');
     $w{window}{gui}{hbox2}->set_margin_top(10);
     $w{window}{gui}{hbox2}->set_margin_bottom(10);
@@ -4135,7 +4135,7 @@ sub _createBanner {
     $text->set_margin_right(10);
     $text->set_text($text_label);
     $text->get_style_context->add_class('banner-text');
-    $banner = Gtk3::HBox->new(0, 0);
+    $banner = Gtk3::Box->new('horizontal', 0);
     $banner->set_size_request(-1, 50);
     $banner->get_style_context->add_class('banner-fill');
     $banner->pack_start($icon, 0, 1, 0);

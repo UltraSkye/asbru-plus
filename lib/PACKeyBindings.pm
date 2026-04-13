@@ -535,8 +535,8 @@ sub _buildGUI {
     my %w;
 
     # Build a vbox
-    $w{vbox} = Gtk3::VBox->new(0, 0);
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
 
     # Attach to class attribute
     $$self{container} = $w{vbox};

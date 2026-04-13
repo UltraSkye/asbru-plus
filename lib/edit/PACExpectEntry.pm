@@ -145,8 +145,8 @@ sub _buildExpectGUI {
     my %w;
 
     # Build a vbox for:buttons, separator and expect widgets
-    $w{vbox} = Gtk3::VBox->new(0, 0);
-    $w{hbox} = Gtk3::HBox->new(1, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0); $w{hbox}->set_homogeneous(1);
 
     # Build a hbuttonbox for widgets actions (add, etc.)
     $w{bbox} = Gtk3::HButtonBox->new();
@@ -182,7 +182,7 @@ sub _buildExpectGUI {
     $w{vp}->set_shadow_type('none');
 
     # Build and add the vbox that will contain the expect widgets
-    $w{vbexpect} = Gtk3::VBox->new(0, 0);
+    $w{vbexpect} = Gtk3::Box->new('vertical', 0);
     $w{vp}->add($w{vbexpect});
 
     $$self{container} = $w{vbox};
@@ -237,13 +237,13 @@ sub _buildExpect {
     $w{frame}->set_shadow_type('GTK_SHADOW_NONE');
 
     # Build an HBox
-    $w{vbox} = Gtk3::VBox->new(0, 5);
-    $w{hbox1} = Gtk3::HBox->new(0, 0);
+    $w{vbox} = Gtk3::Box->new('vertical', 5);
+    $w{hbox1} = Gtk3::Box->new('horizontal', 0);
     $w{frame}->add($w{vbox});
     $w{vbox}->pack_start($w{hbox1}, 0, 1, 0);
 
     # Build a vbox for event_boxes 1 & 2
-    $w{vbox1} = Gtk3::VBox->new(0, 0);
+    $w{vbox1} = Gtk3::Box->new('vertical', 0);
     $w{hbox1}->pack_start($w{vbox1}, 0, 1, 0);
 
     # Build first event_box and add a go-up arrow
@@ -257,12 +257,12 @@ sub _buildExpect {
     $w{ebdown}->add(Gtk3::Image->new_from_stock('gtk-go-down', 'small-toolbar') );
 
     # Build a vbox for expect and send entries
-    $w{vbox2} = Gtk3::VBox->new(0, 3);
+    $w{vbox2} = Gtk3::Box->new('vertical', 3);
     $w{hbox1}->pack_start($w{vbox2}, 1, 1, 0);
     $w{vbox2}->set_sensitive($active);
 
     # Build an HBox to contain label & expect entry
-    $w{hboxExpect} = Gtk3::HBox->new(0, 0);
+    $w{hboxExpect} = Gtk3::Box->new('horizontal', 0);
     $w{vbox2}->pack_start($w{hboxExpect}, 0, 1, 0);
 
     # Build and add the label
@@ -283,7 +283,7 @@ sub _buildExpect {
     $w{hboxExpect}->pack_start($w{time_out}, 0, 1, 0);
 
     # Build an HBox to contain label, hide checkbox & send entry
-    $w{hboxSend} = Gtk3::HBox->new(0, 0);
+    $w{hboxSend} = Gtk3::Box->new('horizontal', 0);
     $w{vbox2}->pack_start($w{hboxSend}, 1, 1, 0);
 
     # Build and add the label
@@ -312,10 +312,10 @@ sub _buildExpect {
 
     # Add ON_MATCH, ON_FAIL and TIME_OUT entries
 
-    $w{vbox33} = Gtk3::HBox->new(0, 0);
+    $w{vbox33} = Gtk3::Box->new('horizontal', 0);
     $w{vbox2}->pack_start($w{vbox33}, 0, 1, 0);
 
-    $w{hbox33} = Gtk3::HBox->new(0, 0);
+    $w{hbox33} = Gtk3::Box->new('horizontal', 0);
     $w{hbox33}->set_tooltip_text('If "Expect" IS matched, the "Send" string will be sent and we will "go to" selected Expect number. If stop is selected, Expect processing will stop, and control will be returned to user (no disconnect will happen)');
     $w{vbox33}->pack_start($w{hbox33}, 0, 1, 0);
 
@@ -323,7 +323,7 @@ sub _buildExpect {
     $w{cbOnMatch}->set_active($on_match != -1);
     $w{hbox33}->pack_start($w{cbOnMatch}, 1, 1, 0);
 
-    $w{onmatchhbox} = Gtk3::HBox->new(0, 0);
+    $w{onmatchhbox} = Gtk3::Box->new('horizontal', 0);
     $w{onmatchhbox}->set_sensitive($w{cbOnMatch}->get_active);
     $w{hbox33}->pack_start($w{onmatchhbox}, 0, 1, 0);
 
@@ -342,7 +342,7 @@ sub _buildExpect {
 
     $w{hbox33}->pack_start(Gtk3::VSeparator->new, 0, 1, 5);
 
-    $w{hbox34} = Gtk3::HBox->new(0, 0);
+    $w{hbox34} = Gtk3::Box->new('horizontal', 0);
     $w{hbox34}->set_tooltip_text('If "Expect" IS NOT matched, no string will be sent, and we will "go to" selected Expect. If stop is selected, Expect processing will stop, and control will be returned to user (no disconnect will happen)');
     $w{vbox33}->pack_start($w{hbox34}, 0, 1, 0);
 
@@ -350,7 +350,7 @@ sub _buildExpect {
     $w{cbOnFail}->set_active($on_fail != -1);
     $w{hbox34}->pack_start($w{cbOnFail}, 1, 1, 0);
 
-    $w{onfailhbox} = Gtk3::HBox->new(0, 0);
+    $w{onfailhbox} = Gtk3::Box->new('horizontal', 0);
     $w{onfailhbox}->set_sensitive($w{cbOnFail}->get_active);
     $w{hbox34}->pack_start($w{onfailhbox}, 0, 1, 0);
 

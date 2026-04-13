@@ -281,7 +281,7 @@ sub _buildGUI {
 
     $w{vbox} = $container;
 
-        $w{hbox1} = Gtk3::HBox->new(0, 5);
+        $w{hbox1} = Gtk3::Box->new('horizontal', 5);
         $w{vbox}->pack_start($w{hbox1}, 0, 1, 5);
 
             $w{frRDPVersion} = Gtk3::Frame->new('RDP Version:');
@@ -302,10 +302,10 @@ sub _buildGUI {
                 $w{frBPP}->add($w{cbBPP});
                 foreach my $bpp (8, 15, 16, 24, 32) {$w{cbBPP}->append_text($bpp);};
 
-            $w{vboxup} = Gtk3::VBox->new(0, 0);
+            $w{vboxup} = Gtk3::Box->new('vertical', 0);
             $w{hbox1}->pack_start($w{vboxup}, 0, 1, 5);
 
-                $w{hboxup} = Gtk3::HBox->new(0, 0);
+                $w{hboxup} = Gtk3::Box->new('horizontal', 0);
                 $w{vboxup}->pack_start($w{hboxup}, 1, 1, 0);
 
                     $w{chAttachToConsole} = Gtk3::CheckButton->new_with_label('Attach to console');
@@ -324,7 +324,7 @@ sub _buildGUI {
                     $w{hboxup}->pack_start($w{cbScard}, 0, 1, 0);
                     $w{cbScard}->set_tooltip_text('[-r scard] : Enable SmartCard usage');
 
-                $w{hboxdown} = Gtk3::HBox->new(0, 0);
+                $w{hboxdown} = Gtk3::Box->new('horizontal', 0);
                 $w{vboxup}->pack_start($w{hboxdown}, 1, 1, 0);
 
                     $w{chClipboard} = Gtk3::CheckButton->new_with_label('Clipboard forwarding');
@@ -341,7 +341,7 @@ sub _buildGUI {
 
 
 
-        $w{hboxss} = Gtk3::HBox->new(0, 5);
+        $w{hboxss} = Gtk3::Box->new('horizontal', 5);
         $w{vbox}->pack_start($w{hboxss}, 0, 1, 5);
 
             $w{lblStartupShell} = Gtk3::Label->new('Startup shell: ');
@@ -351,7 +351,7 @@ sub _buildGUI {
             $w{entryStartupShell}->set_tooltip_text("[-s 'startupshell command'] : start given startupshell/command instead of explorer");
             $w{hboxss}->pack_start($w{entryStartupShell}, 1, 1, 5);
 
-        $w{hboxoo} = Gtk3::HBox->new(0, 5);
+        $w{hboxoo} = Gtk3::Box->new('horizontal', 5);
         $w{vbox}->pack_start($w{hboxoo}, 0, 1, 5);
 
             $w{lblOtherOptions} = Gtk3::Label->new('Other options: ');
@@ -361,17 +361,17 @@ sub _buildGUI {
             $w{entryOtherOptions}->set_tooltip_text("Insert other options not implemented in Asbru (launch 'rdesktop --help' to see them all)");
             $w{hboxoo}->pack_start($w{entryOtherOptions}, 1, 1, 5);
 
-        $w{hbox2} = Gtk3::HBox->new(0, 5);
+        $w{hbox2} = Gtk3::Box->new('horizontal', 5);
         $w{vbox}->pack_start($w{hbox2}, 0, 1, 5);
 
             $w{frGeometry} = Gtk3::Frame->new(' RDP Window size: ');
             $w{hbox2}->pack_start($w{frGeometry}, 1, 1, 0);
             $w{frGeometry}->set_tooltip_text('[-g] : Amount of screen to use');
 
-                $w{hboxsize} = Gtk3::VBox->new(0, 5);
+                $w{hboxsize} = Gtk3::Box->new('vertical', 5);
                 $w{frGeometry}->add($w{hboxsize});
 
-                    $w{hboxfsebpc} = Gtk3::HBox->new(0, 5);
+                    $w{hboxfsebpc} = Gtk3::Box->new('horizontal', 5);
                     $w{hboxsize}->pack_start($w{hboxfsebpc}, 1, 1, 0);
 
                     $w{chFullscreen} = Gtk3::RadioButton->new_with_label(undef, 'Fullscreen');
@@ -382,14 +382,14 @@ sub _buildGUI {
                     $w{hboxfsebpc}->pack_start($w{chEmbed}, 1, 1, 0);
                     $w{chEmbed}->set_tooltip_text('Embed terminal window in Asbru TAB, using Asbru\'s GUI size');
 
-                    $w{hbox69} = Gtk3::HBox->new(0, 5);
+                    $w{hbox69} = Gtk3::Box->new('horizontal', 5);
                     $w{hboxfsebpc}->pack_start($w{hbox69}, 1, 1, 0);
 
                         $w{chWidthHeight} = Gtk3::RadioButton->new_with_label($w{chFullscreen}, 'Width x Height:');
                         $w{chWidthHeight}->set_tooltip_text('[-g WIDTHxHEIGHT] : Define a fixed WIDTH x HEIGHT geometry window');
                         $w{hbox69}->pack_start($w{chWidthHeight}, 0, 1, 0);
 
-                        $w{hboxWidthHeight} = Gtk3::HBox->new(0, 5);
+                        $w{hboxWidthHeight} = Gtk3::Box->new('horizontal', 5);
                         $w{hbox69}->pack_start($w{hboxWidthHeight}, 0, 1, 0);
 
                             $w{spWidth} = Gtk3::SpinButton->new_with_range(1, 4096, 10);
@@ -405,7 +405,7 @@ sub _buildGUI {
                 $w{entryKeyboard} = Gtk3::Entry->new;
                 $w{frKeyboard}->add($w{entryKeyboard});
 
-        $w{hboxDomain} = Gtk3::HBox->new(0, 5);
+        $w{hboxDomain} = Gtk3::Box->new('horizontal', 5);
         $w{vbox}->pack_start($w{hboxDomain}, 0, 1, 5);
 
             $w{hboxDomain}->pack_start(Gtk3::Label->new('Windows Domain: '), 0, 1, 0);
@@ -421,7 +421,7 @@ sub _buildGUI {
         $w{vbox}->pack_start($w{frameRedirDisk}, 1, 1, 0);
         $w{frameRedirDisk}->set_tooltip_text('[-r disk:<8_chars_sharename>=<path>] : Redirects a <path> to the share \\tsclient\<8_chars_sharename> on the server');
 
-            $w{vbox_enesimo} = Gtk3::VBox->new(0, 0);
+            $w{vbox_enesimo} = Gtk3::Box->new('vertical', 0);
             $w{frameRedirDisk}->add($w{vbox_enesimo},);
 
                 # Build 'add' button
@@ -439,7 +439,7 @@ sub _buildGUI {
                     $w{vp}->set_shadow_type('GTK_SHADOW_NONE');
 
                         # Build and add the vbox that will contain the redirect widgets
-                        $w{vbRedirect} = Gtk3::VBox->new(0, 0);
+                        $w{vbRedirect} = Gtk3::Box->new('vertical', 0);
                         $w{vp}->add($w{vbRedirect});
 
     # Capture 'Full Screen' checkbox toggled state
@@ -477,7 +477,7 @@ sub _buildRedir {
     $w{position} = scalar @{$$self{listRedir}};
 
     # Make an HBox to contain local address, local port, remote address, remote port and delete
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
 
         $w{hbox}->pack_start(Gtk3::Label->new('Share Name (8 chars max.!):'), 0, 1, 0);
         $w{entryRedirShare} = Gtk3::Entry->new;

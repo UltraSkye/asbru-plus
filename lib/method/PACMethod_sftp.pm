@@ -226,7 +226,7 @@ sub _buildGUI
 
     $w{vbox} = $container;
 
-    $w{hbox1} = Gtk3::HBox->new(0, 5);
+    $w{hbox1} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox1}, 0, 1, 5);
 
     $w{frSSHVersion} = Gtk3::Frame->new('SSH Version:');
@@ -246,7 +246,7 @@ sub _buildGUI
 
     $w{vbox}->pack_start(Gtk3::Label->new('Advanced Options:'), 0, 1, 0);
 
-    $w{vboxAdvOpt} = Gtk3::VBox->new(0, 0);
+    $w{vboxAdvOpt} = Gtk3::Box->new('vertical', 0);
     $w{vbox}->pack_start($w{vboxAdvOpt}, 1, 1, 5);
     $w{lblAdvOpt} = Gtk3::Label->new('Advanced Options');
     $w{vboxAdvOpt}->set_tooltip_text('[-o "ssh_option=value"]');
@@ -267,7 +267,7 @@ sub _buildGUI
     $w{vpAdvOpt}->set_shadow_type('GTK_SHADOW_NONE');
 
     # Build and add the vbox that will contain the advanced options widgets
-    $w{vbAdvOpt} = Gtk3::VBox->new(0, 0);
+    $w{vbAdvOpt} = Gtk3::Box->new('vertical', 0);
     $w{vpAdvOpt}->add($w{vbAdvOpt});
 
     $w{vbox}->pack_start(Gtk3::HSeparator->new, 0, 1, 5);
@@ -303,7 +303,7 @@ sub _buildAdvOpt
     $w{position} = scalar @{$$self{listAdvOpt}};
 
     # Make an HBox to contain option, value and delete
-    $w{hbox} = Gtk3::HBox->new(0, 0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0);
 
     $w{frAdvOptOption} = Gtk3::Frame->new('Option:');
     $w{hbox}->pack_start($w{frAdvOptOption}, 1, 1, 0);

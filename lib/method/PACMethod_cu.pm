@@ -182,7 +182,7 @@ sub _buildGUI
 
     $w{vbox} = $container;
 
-        $w{hbox1} = Gtk3::HBox->new(0, 0);
+        $w{hbox1} = Gtk3::Box->new('horizontal', 0);
         $w{vbox}->pack_start($w{hbox1}, 0, 1, 0);
 
             $w{hbox1}->pack_start(Gtk3::Label->new('Line: '), 0, 1, 0);
@@ -207,7 +207,7 @@ sub _buildGUI
             $w{hbox1}->pack_start($w{cbParity}, 0, 1, 0);
             foreach my $parity (sort {$a cmp $b} keys %PARITY) {$w{cbParity}->append_text($parity);};
 
-        $w{hbox2} = Gtk3::HBox->new(0, 0);
+        $w{hbox2} = Gtk3::Box->new('horizontal', 0);
         $w{vbox}->pack_start($w{hbox2}, 0, 1, 0);
 
             $w{chHalfDuplex} = Gtk3::CheckButton->new_with_label('Half Duplex');

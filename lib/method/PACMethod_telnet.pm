@@ -168,7 +168,7 @@ sub _buildGUI
 
     $w{vbox} = $container;
 
-    $w{hbox1} = Gtk3::HBox->new(0, 5);
+    $w{hbox1} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox1}, 0, 1, 5);
 
     $w{frSSHProtocol} = Gtk3::Frame->new('IP Protocol:');

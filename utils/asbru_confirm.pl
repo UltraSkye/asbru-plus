@@ -50,7 +50,7 @@ $window{main}->set_border_width(8);
 $window{frame} = Gtk3::Frame->new();
 $window{main}->add($window{frame});
 
-$window{frame}{vbox} = Gtk3::VBox->new();
+$window{frame}{vbox} = Gtk3::Box->new('vertical', 0);
 $window{frame}{vbox}->set_border_width(8);
 $window{frame}->add($window{frame}{vbox});
 
@@ -58,7 +58,7 @@ $window{frame}{msg} = Gtk3::Label->new();
 $window{frame}{msg}->set_markup($opt{msg});
 $window{frame}{vbox}->pack_start($window{frame}{msg}, 1, 1, 0);
 
-$window{frame}{hbox} = Gtk3::HBox->new();
+$window{frame}{hbox} = Gtk3::Box->new('horizontal', 0);
 $window{frame}{vbox}->pack_start($window{frame}{hbox}, 1, 1, 0);
 if ($opt{type} eq 'Confirm') {
     $window{frame}{btnCancel} = Gtk3::Button->new('Cancel');

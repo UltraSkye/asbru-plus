@@ -620,7 +620,7 @@ sub _initGUI {
 
     # Wrap the main pane in a VBox so we can show an update-notification
     # InfoBar above it when a newer release is published on GitHub.
-    $$self{_GUI}{vboxRoot} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{vboxRoot} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{main}->add($$self{_GUI}{vboxRoot});
 
     # Create the (initially hidden) update banner.
@@ -652,7 +652,7 @@ sub _initGUI {
     $$self{_GUI}{vboxRoot}->pack_start($$self{_GUI}{hpane}, 1, 1, 0);
 
     # Create a vboxCommandPanel: actions, connections and other tools
-    $$self{_GUI}{vboxCommandPanel} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{vboxCommandPanel} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{vboxCommandPanel}->set_size_request(200, -1);
     if ($$self{_CFG}{defaults}{'tree on right side'}) {
         $$self{_GUI}{hpane}->pack2($$self{_GUI}{vboxCommandPanel}, 0, 0);
@@ -663,7 +663,7 @@ sub _initGUI {
     # Create a hbuttonbox1: add, rename, delete, etc.
     # spacing=4 (xs) gives buttons a small breathing gap; homogeneous on so
     # they share width evenly across the sidebar.
-    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new(1, 4);
+    $$self{_GUI}{hbuttonbox1} = Gtk3::Box->new('horizontal', 4); $$self{_GUI}{hbuttonbox1}->set_homogeneous(1);
     $$self{_GUI}{hbuttonbox1}->set_border_width(4);
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
@@ -723,7 +723,7 @@ sub _initGUI {
     # Create a scrolled1 scrolled window to contain the connections tree
     $$self{_GUI}{scroll1} = Gtk3::ScrolledWindow->new();
     $$self{_GUI}{scroll1}->set_overlay_scrolling($$self{_CFG}{'defaults'}{'tree overlay scrolling'});
-    $$self{_GUI}{nbTreeTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbTreeTab} = Gtk3::Box->new('horizontal', 4);
     $$self{_GUI}{nbTreeTabLabel} = Gtk3::Label->new('Connections');
     $$self{_GUI}{nbTreeTab}->pack_start(Gtk3::Image->new_from_stock('asbru-treelist', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
@@ -759,14 +759,14 @@ sub _initGUI {
         }
     );
 
-    $$self{_GUI}{_vboxSearch} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{_vboxSearch} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{_vboxSearch}, 0, 1, 0);
 
     $$self{_GUI}{_entrySearch} = Gtk3::Entry->new();
     $$self{_GUI}{_vboxSearch}->pack_start($$self{_GUI}{_entrySearch}, 0, 1, 0);
     $$self{_GUI}{_entrySearch}->grab_focus();
 
-    $$self{_GUI}{_hboxSearch} = Gtk3::HBox->new(1, 0);
+    $$self{_GUI}{_hboxSearch} = Gtk3::Box->new('horizontal', 0); $$self{_GUI}{_hboxSearch}->set_homogeneous(1);
     $$self{_GUI}{_vboxSearch}->pack_start($$self{_GUI}{_hboxSearch}, 0, 1, 0);
 
     $$self{_GUI}{_btnPrevSearch} = Gtk3::Button->new('Previous');
@@ -793,7 +793,7 @@ sub _initGUI {
 
     # Create a scrolled2 scrolled window to contain the favourites tree
     $$self{_GUI}{scroll2} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbFavTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbFavTab} = Gtk3::Box->new('horizontal', 4);
     $$self{_GUI}{nbFavTabLabel} = Gtk3::Label->new('Favourites');
     $$self{_GUI}{nbFavTab}->pack_start(Gtk3::Image->new_from_stock('asbru-favourite-on', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
@@ -826,7 +826,7 @@ sub _initGUI {
 
     # Create a scrolled3 scrolled window to contain the history tree
     $$self{_GUI}{scroll3} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbHistTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbHistTab} = Gtk3::Box->new('horizontal', 4);
     $$self{_GUI}{nbHistTabLabel} = Gtk3::Label->new('History');
     $$self{_GUI}{nbHistTab}->pack_start(Gtk3::Image->new_from_stock('asbru-history', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
@@ -853,7 +853,7 @@ sub _initGUI {
     $$self{_GUI}{treeHistory}->set_enable_search(0);
     $$self{_GUI}{treeHistory}->set_has_tooltip(1);
 
-    $$self{_GUI}{vboxclu} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{vboxclu} = Gtk3::Box->new('vertical', 0);
 
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
         $$self{_GUI}{btneditclu} = Gtk3::Button->new_with_label(' Manage Clusters');
@@ -864,7 +864,7 @@ sub _initGUI {
 
     # Create a scrolledclu scrolled window to contain the clusters tree
     $$self{_GUI}{scrolledclu} = Gtk3::ScrolledWindow->new();
-    $$self{_GUI}{nbCluTab} = Gtk3::HBox->new(0, 4);
+    $$self{_GUI}{nbCluTab} = Gtk3::Box->new('horizontal', 4);
     $$self{_GUI}{nbCluTabLabel} = Gtk3::Label->new('Clusters');
     $$self{_GUI}{nbCluTab}->pack_start(Gtk3::Image->new_from_stock('asbru-cluster-manager', 'button'), 0, 1, 0);
     if ($$self{_CFG}{'defaults'}{'layout'} ne 'Compact') {
@@ -891,10 +891,10 @@ sub _initGUI {
     $$self{_GUI}{treeClusters}->set_has_tooltip(0);
 
     # Create a hbox0: exec and clusters
-    $$self{_GUI}{hbox0} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{hbox0} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{vboxCommandPanel}->pack_start($$self{_GUI}{hbox0}, 0, 1, 0);
 
-    $$self{_GUI}{hboxsearchstart} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{hboxsearchstart} = Gtk3::Box->new('horizontal', 0);
     $$self{_GUI}{hbox0}->pack_start($$self{_GUI}{hboxsearchstart}, 0, 1, 0);
 
     # Create a "Search" button
@@ -928,7 +928,7 @@ sub _initGUI {
     $$self{_GUI}{connFavourite}->set('can-focus' => 0);
     $$self{_GUI}{connFavourite}->set_tooltip_text('Add to/remove from favourites connections list');
 
-    $$self{_GUI}{hboxclusters} = Gtk3::HBox->new(0, 0);
+    $$self{_GUI}{hboxclusters} = Gtk3::Box->new('horizontal', 0);
     $$self{_GUI}{hbox0}->pack_start($$self{_GUI}{hboxclusters}, 0, 1, 0);
 
     # Create "Clusters" button
@@ -970,7 +970,7 @@ sub _initGUI {
     $$self{_GUI}{pccBtn}->set_tooltip_text("Open the Power Clusters Controller:\nexecute commands in every clustered terminal from this single window");
 
     # Create a vbox for info tab, connections (if tabbed) and button bar
-    $$self{_GUI}{vboxConnectionPanel} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{vboxConnectionPanel} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{hpane}->pack2($$self{_GUI}{vboxConnectionPanel}, 1, 0);
     if ($$self{_CFG}{defaults}{'tree on right side'}) {
         $$self{_GUI}{hpane}->pack1($$self{_GUI}{vboxConnectionPanel}, 0, 0);
@@ -984,14 +984,14 @@ sub _initGUI {
     $$self{_GUI}{nbConnectionPanel}->set_scrollable(1);
     $$self{_GUI}{nbConnectionPanel}->set_tab_pos($$self{_CFG}{'defaults'}{'tabs position'});
 
-    my $tablbl = Gtk3::HBox->new(0, 0);
+    my $tablbl = Gtk3::Box->new('horizontal', 0);
     $tablbl->pack_start(Gtk3::Label->new('Info '), 0, 1, 0);
     $$self{_GUI}{_TABIMG} = Gtk3::Image->new_from_stock('gtk-info', 'menu');
     $tablbl->pack_start($$self{_GUI}{_TABIMG}, 0, 1, 0);
     $tablbl->show_all();
 
     # Create a vboxInfo: description
-    $$self{_GUI}{vboxInfo} = Gtk3::VBox->new(0, 0);
+    $$self{_GUI}{vboxInfo} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{nbConnectionPanel}->append_page($$self{_GUI}{vboxInfo}, $tablbl);
 
     # Create a scrolled2 scrolled window to contain the description textview
@@ -1043,7 +1043,7 @@ sub _initGUI {
 
     # Create a hbuttonbox1: show/hide, WOL, Shell, Preferences, etc.
     # spacing=6 (sm-) gives breathing room between bottom-toolbar buttons.
-    $$self{_GUI}{hbuttonbox1} = Gtk3::HBox->new(0, 6);
+    $$self{_GUI}{hbuttonbox1} = Gtk3::Box->new('horizontal', 6);
     $$self{_GUI}{hbuttonbox1}->set_border_width(6);
     $$self{_GUI}{vboxConnectionPanel}->pack_start($$self{_GUI}{hbuttonbox1}, 0, 1, 4);
 
@@ -5151,7 +5151,7 @@ sub _bulkEdit {
     $w{data}->set_resizable(0);
     $w{data}->set_default_response('ok');
 
-    $w{gui}{hboxIconLabel} = Gtk3::HBox->new(0, 5);
+    $w{gui}{hboxIconLabel} = Gtk3::Box->new('horizontal', 5);
     $w{data}->get_content_area->pack_start($w{gui}{hboxIconLabel}, 0, 1, 5);
 
     $w{gui}{imgUP} = Gtk3::Image-> new_from_stock('gtk-edit', 'dialog');
@@ -5170,7 +5170,7 @@ sub _bulkEdit {
     $w{gui}{frameAffect}->set_label_widget($lblaffect);
     $w{data}->get_content_area->pack_start($w{gui}{frameAffect}, 0, 1, 0);
 
-    $w{gui}{vboxaffect} = Gtk3::VBox->new(0, 0);
+    $w{gui}{vboxaffect} = Gtk3::Box->new('vertical', 0);
     $w{gui}{frameAffect}->add($w{gui}{vboxaffect});
 
     $w{gui}{rb1level} = Gtk3::RadioButton->new_with_label('level affected', "1st level children");
@@ -5179,7 +5179,7 @@ sub _bulkEdit {
     $w{gui}{vboxaffect}->pack_start($w{gui}{rballlevel}, 0, 1, 0);
 
     # Create a vbox for the list os elements to bulk-edit
-    $w{gui}{vboxlist} = Gtk3::VBox->new(0, 0);
+    $w{gui}{vboxlist} = Gtk3::Box->new('vertical', 0);
     $w{data}->get_content_area->pack_start($w{gui}{vboxlist}, 1, 1, 0);
 
     $w{gui}{framecommon} = Gtk3::Frame->new();
@@ -5188,19 +5188,19 @@ sub _bulkEdit {
     $w{gui}{framecommon}->set_label_widget($lblcom);
     $w{data}->get_content_area->pack_start($w{gui}{framecommon}, 0, 1, 0);
 
-    $w{gui}{vboxcommon} = Gtk3::VBox->new(0, 0);
+    $w{gui}{vboxcommon} = Gtk3::Box->new('vertical', 0);
     $w{gui}{framecommon}->add($w{gui}{vboxcommon});
 
     # Build the COMMON elements
     foreach my $key ('title', 'ip', 'port', 'user', 'pass', 'passphrase user', 'passphrase') {
-        $w{gui}{"hb$key"} = Gtk3::HBox->new(0, 0);
+        $w{gui}{"hb$key"} = Gtk3::Box->new('horizontal', 0);
         $w{gui}{vboxcommon}->pack_start($w{gui}{"hb$key"}, 0, 1, 0);
 
         $w{gui}{"cb$key"} = Gtk3::CheckButton->new("Set '$key': ");
         $w{gui}{"hb$key"}->pack_start($w{gui}{"cb$key"}, 0, 1, 0);
         $w{gui}{"cb$key"}->set('can_focus', 0);
 
-        $w{gui}{"hboxre$key"} = Gtk3::HBox->new(0, 0);
+        $w{gui}{"hboxre$key"} = Gtk3::Box->new('horizontal', 0);
         $w{gui}{"hb$key"}->pack_start($w{gui}{"hboxre$key"}, 1, 1, 0);
 
         $w{gui}{"hboxre$key"}->pack_start(Gtk3::Label->new('change '), 0, 1, 0);
@@ -5310,19 +5310,19 @@ sub _bulkEdit {
     $w{gui}{frameExpect}->set_label_widget($lblexp);
     $w{data}->get_content_area->pack_start($w{gui}{frameExpect}, 0, 1, 0);
 
-    $w{gui}{vboxexpect} = Gtk3::VBox->new(0, 0);
+    $w{gui}{vboxexpect} = Gtk3::Box->new('vertical', 0);
     $w{gui}{frameExpect}->add($w{gui}{vboxexpect});
 
     # Build the EXPECT elements
     foreach my $key ('expect', 'send') {
-        $w{gui}{"hb$key"} = Gtk3::HBox->new(0, 0);
+        $w{gui}{"hb$key"} = Gtk3::Box->new('horizontal', 0);
         $w{gui}{vboxexpect}->pack_start($w{gui}{"hb$key"}, 0, 1, 0);
 
         $w{gui}{"cb$key"} = Gtk3::CheckButton->new("Set '$key': ");
         $w{gui}{"hb$key"}->pack_start($w{gui}{"cb$key"}, 0, 1, 0);
         $w{gui}{"cb$key"}->set('can_focus', 0);
 
-        $w{gui}{"hboxre$key"} = Gtk3::HBox->new(0, 0);
+        $w{gui}{"hboxre$key"} = Gtk3::Box->new('horizontal', 0);
         $w{gui}{"hb$key"}->pack_start($w{gui}{"hboxre$key"}, 1, 1, 0);
 
         $w{gui}{"hboxre$key"}->pack_start(Gtk3::Label->new('change '), 0, 1, 0);

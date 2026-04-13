@@ -187,15 +187,15 @@ sub _initGUI {
     $$self{_WINDOWPCC}{main}->set_resizable(0);
     $$self{_WINDOWPCC}{main}->set_border_width(2);
 
-    my $vbox0 = Gtk3::VBox->new(0, 0);
+    my $vbox0 = Gtk3::Box->new('vertical', 0);
     $$self{_WINDOWPCC}{main}->add($vbox0);
 
     $vbox0->pack_start(PACUtils::_createBanner('asbru-cluster.svg', 'Power Cluster Controller'), 0, 1, 0);
 
-    my $vbox1 = Gtk3::VBox->new(0, 0);
+    my $vbox1 = Gtk3::Box->new('vertical', 0);
     $vbox0->pack_start($vbox1, 0, 1, 0);
 
-    my $hbox1 = Gtk3::HBox->new(0, 0);
+    my $hbox1 = Gtk3::Box->new('horizontal', 0);
     $vbox1->pack_start($hbox1, 0, 1, 0);
 
     my $lblSendTo = Gtk3::Label->new('Send to Cluster: ');
@@ -226,7 +226,7 @@ sub _initGUI {
 
     $vbox1->pack_start(Gtk3::HSeparator->new, 1, 1, 0);
 
-    $$self{_WINDOWPCC}{optsbox} = Gtk3::HBox->new(0, 0);
+    $$self{_WINDOWPCC}{optsbox} = Gtk3::Box->new('horizontal', 0);
     $vbox1->pack_start($$self{_WINDOWPCC}{optsbox}, 0, 1, 0);
 
     $$self{_WINDOWPCC}{cbPreventSingle} = Gtk3::CheckButton->new_with_label('Prevent single window keys broadcast');
@@ -249,7 +249,7 @@ sub _initGUI {
 
     $vbox1->pack_start(Gtk3::HSeparator->new, 1, 1, 0);
 
-    $$self{_WINDOWPCC}{hboxData} = Gtk3::HBox->new(0, 0);
+    $$self{_WINDOWPCC}{hboxData} = Gtk3::Box->new('horizontal', 0);
     $vbox1->pack_start($$self{_WINDOWPCC}{hboxData}, 0, 1, 0);
 
     $$self{_WINDOWPCC}{lblData} = Gtk3::Label->new('Type commands here: ');
@@ -268,10 +268,10 @@ sub _initGUI {
 
     $vbox1->pack_start(Gtk3::HSeparator->new, 0, 1, 0);
 
-    $$self{_WINDOWPCC}{vboxMultiText} = Gtk3::VBox->new(0, 0);
+    $$self{_WINDOWPCC}{vboxMultiText} = Gtk3::Box->new('vertical', 0);
     $vbox0->pack_start($$self{_WINDOWPCC}{vboxMultiText}, 1, 1, 0);
 
-    my $hbTextBtn = Gtk3::HBox->new(0, 0);
+    my $hbTextBtn = Gtk3::Box->new('horizontal', 0);
     $$self{_WINDOWPCC}{vboxMultiText}->pack_start($hbTextBtn, 0, 0, 3);
 
     $$self{_WINDOWPCC}{btnLoadFile} = Gtk3::Button->new_with_mnemonic('_Open');
@@ -347,7 +347,7 @@ sub _initGUI {
     $$self{_WINDOWPCC}{vboxMultiText}->pack_start($$self{_WINDOWPCC}{frameExec}, 0, 1, 0);
     $$self{_WINDOWPCC}{frameExec}->set_shadow_type('etched-in');
 
-    my $hbbox0 = Gtk3::HBox->new(1, 0);
+    my $hbbox0 = Gtk3::Box->new('horizontal', 0); $hbbox0->set_homogeneous(1);
     $$self{_WINDOWPCC}{frameExec}->add($hbbox0);
 
     $$self{_WINDOWPCC}{btnAll} = Gtk3::Button->new_with_mnemonic('A_ll');

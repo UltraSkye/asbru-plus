@@ -212,7 +212,7 @@ sub _buildGUI {
     $w{frModel}->set_tooltip_text('[-model (3278|3279)-(2|3|4|5)] : Selects a display model(3278 BW , 3279 Colour, with different number of rows and columns');
     $w{vbox}->pack_start($w{frModel}, 0, 1, 0);
 
-    $w{hboxModel} = Gtk3::HBox->new(0, 0);
+    $w{hboxModel} = Gtk3::Box->new('horizontal', 0);
     $w{frModel}->add($w{hboxModel});
 
     $w{'rbModel3278-2'} = Gtk3::RadioButton->new_with_label(undef, '3278-2');
@@ -244,7 +244,7 @@ sub _buildGUI {
     $w{frPrepend} = Gtk3::Frame->new(' Connect method: ');
     $w{vbox}->pack_start($w{frPrepend}, 0, 1, 0);
 
-    $w{hboxPrepend} = Gtk3::HBox->new(0, 0);
+    $w{hboxPrepend} = Gtk3::Box->new('horizontal', 0);
     $w{frPrepend}->add($w{hboxPrepend});
 
     $w{rbPrepend} = Gtk3::RadioButton->new_with_label(undef, 'Standard');
@@ -269,7 +269,7 @@ sub _buildGUI {
 
     $w{rbPrepend}->set_active(1);
 
-    $w{hboxSwitch1} = Gtk3::HBox->new(0, 0);
+    $w{hboxSwitch1} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxSwitch1}, 0, 1, 0);
 
     $w{chAllBold} = Gtk3::CheckButton->new_with_label('ALL characters in bold');
@@ -290,7 +290,7 @@ sub _buildGUI {
 
     $w{vbox}->pack_start(Gtk3::HSeparator->new, 0, 1, 5);
 
-    $w{hboxSwitch2} = Gtk3::HBox->new(0, 5);
+    $w{hboxSwitch2} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hboxSwitch2}, 0, 1, 0);
 
     $w{lblEBCDIC} = Gtk3::Label->new('EBCDIC character set:');
@@ -307,7 +307,7 @@ sub _buildGUI {
     $w{entryIM}->set_tooltip_text('[-im <method>] : Specifies the name of the input method to use for multi-byte input.');
     $w{hboxSwitch2}->pack_start($w{entryIM}, 1, 1, 0);
 
-    $w{hboxSwitch3} = Gtk3::HBox->new(0, 0);
+    $w{hboxSwitch3} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxSwitch3}, 0, 1, 0);
 
     $w{lblKM} = Gtk3::Label->new('Keyboard Map:');
@@ -324,7 +324,7 @@ sub _buildGUI {
     $w{entryLU}->set_tooltip_text('[-printerlu <luname>] : Causes c3270 to automatically start a pr3287 printer session.');
     $w{hboxSwitch3}->pack_start($w{entryLU}, 1, 1, 0);
 
-    $w{hboxSwitch4} = Gtk3::HBox->new(0, 0);
+    $w{hboxSwitch4} = Gtk3::Box->new('horizontal', 0);
     $w{vbox}->pack_start($w{hboxSwitch4}, 0, 1, 0);
 
     $w{lblTN} = Gtk3::Label->new('Terminal Name:');

@@ -381,12 +381,12 @@ sub listEntries {
     $w{window}{data}->set_resizable(0);
     $w{window}{data}->set_border_width(5);
 
-    $w{window}{gui}{vbox} = Gtk3::VBox->new(0, 0);
+    $w{window}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
     $w{window}{data}->get_content_area->pack_start($w{window}{gui}{vbox}, 1, 1, 5);
     $w{window}{gui}{vbox}->set_border_width(0);
 
     # Create an HBox to contain a picture and a label
-    $w{window}{gui}{hbox} = Gtk3::HBox->new(0, 0);
+    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
     $w{window}{gui}{vbox}->pack_start($w{window}{gui}{hbox}, 0, 0, 0);
     $w{window}{gui}{hbox}->set_border_width(0);
 
@@ -597,7 +597,7 @@ sub _buildKeePassGUI {
     my $width = 150;
 
     # Build a vbox
-    $w{vbox} = Gtk3::VBox->new(0,0);
+    $w{vbox} = Gtk3::Box->new('vertical', 0);
 
     # Attach to class attribute
     $$self{container} = $w{vbox};
@@ -618,12 +618,12 @@ sub _buildKeePassGUI {
     $w{help}->set_image(Gtk3::Image->new_from_stock('asbru-help', 'button'));
 
     # Hbox to arrange first
-    $w{hbox} = Gtk3::HBox->new(1,0);
+    $w{hbox} = Gtk3::Box->new('horizontal', 0); $w{hbox}->set_homogeneous(1);
     $w{hbox}->pack_start($w{cbUseKeePass}, 0, 1, 0);
     $w{hbox}->pack_start($w{help},0,1,0);
     $w{vbox}->pack_start($w{hbox}, 0, 0, 0);
 
-    $w{hboxkpmain} = Gtk3::HBox->new(0, 4);
+    $w{hboxkpmain} = Gtk3::Box->new('horizontal', 4);
     $w{vbox}->pack_start($w{hboxkpmain}, 0, 1, 3);
 
     $w{dblabel} = Gtk3::Label->new('Database file');
@@ -644,7 +644,7 @@ sub _buildKeePassGUI {
     $w{entryKeePassPassword}->set_visibility(0);
 
     # Key file selection
-    $w{hboxkpkeyfile} = Gtk3::HBox->new(0, 3);
+    $w{hboxkpkeyfile} = Gtk3::Box->new('horizontal', 3);
     $w{keylabel} = Gtk3::Label->new('Key file');
     $w{vbox}->pack_start($w{hboxkpkeyfile}, 0, 1, 0);
     $w{hboxkpkeyfile}->pack_start($w{keylabel}, 0, 0, 0);
@@ -673,7 +673,7 @@ sub _buildKeePassGUI {
     $w{fcbCliFile} = Gtk3::FileChooserButton->new('','GTK_FILE_CHOOSER_ACTION_OPEN');
     $w{fcbCliFile}->set_show_hidden(0);
     $w{btnClearclifile} = Gtk3::Button->new('Clear');
-    $w{hboxkpclifile} = Gtk3::HBox->new(0, 3);
+    $w{hboxkpclifile} = Gtk3::Box->new('horizontal', 3);
     $w{hboxkpclifile}->pack_start($w{clilabel}, 0, 0, 0);
     $w{hboxkpclifile}->pack_start($w{fcbCliFile}, 0, 1, 0);
     $w{hboxkpclifile}->pack_start($w{btnClearclifile}, 0, 1, 0);

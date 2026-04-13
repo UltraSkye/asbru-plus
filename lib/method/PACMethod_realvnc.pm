@@ -221,14 +221,14 @@ sub _buildGUI {
 
     $w{vbox} = $container;
 
-    $w{hboxReal} = Gtk3::HBox->new(0, 5);
+    $w{hboxReal} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hboxReal}, 0, 1, 5);
     $w{lblClient} = Gtk3::Label->new();
     $w{lblClient}->set_markup('<b>RealVNC configuration</b>');
     $w{hboxReal}->pack_start($w{lblClient}, 0, 0, 0);
 
 
-    $w{hbox1R} = Gtk3::HBox->new(0, 5);
+    $w{hbox1R} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox1R}, 0, 1, 5);
     $w{frQualityR} = Gtk3::Label->new('Picture quality :');
     $w{hbox1R}->pack_start($w{frQualityR}, 0, 0, 0);
@@ -237,7 +237,7 @@ sub _buildGUI {
     $w{hbox1R}->pack_start($w{spQualityR}, 0, 0, 0);
 
     # Both
-    $w{hbox3} = Gtk3::HBox->new(0, 5);
+    $w{hbox3} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox3}, 0, 0, 0);
     $w{frDepth} = Gtk3::Label->new('Colour depth (bpp):');
     $w{hbox3}->pack_start($w{frDepth}, 0, 1, 0);
@@ -246,7 +246,7 @@ sub _buildGUI {
     $w{hbox3}->pack_start($w{cbDepth}, 0, 1, 0);
     foreach my $depth (8, 64, 256, 'full') {$w{cbDepth}->append_text($depth);};
 
-    $w{hbox2} = Gtk3::HBox->new(0, 5);
+    $w{hbox2} = Gtk3::Box->new('horizontal', 5);
     $w{vbox}->pack_start($w{hbox2}, 0, 1, 5);
 
     $w{chFullScreen} = Gtk3::RadioButton->new_with_label(undef, 'Fullscreen');
