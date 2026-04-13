@@ -49,62 +49,66 @@ use PACUtils;
 our $CONTAINER = Gtk3::Box->new('vertical', 0);
 my %METHODS;
 
-no strict 'refs'; # Trick or treat!! ;)
+no strict 'refs'; # stringified package dispatch below
 
-eval {require "$RealBin/lib/method/PACMethod_generic.pm";}; die $@ if $@;
+# Each require is a hard dependency — a bare require() dies with the
+# proper file and line context if a method module fails to load,
+# whereas the previous eval+die wrapper stripped all location info.
+require "$RealBin/lib/method/PACMethod_generic.pm";
 $METHODS{'Generic Command'} = "PACMethod_generic"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_ssh.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_ssh.pm";
 $METHODS{'SSH'} = "PACMethod_ssh"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_mosh.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_mosh.pm";
 $METHODS{'MOSH'} = "PACMethod_mosh"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_cadaver.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_cadaver.pm";
 $METHODS{'WebDAV'} = "PACMethod_cadaver"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_sftp.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_sftp.pm";
 $METHODS{'SFTP'} = "PACMethod_sftp"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_ftp.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_ftp.pm";
 $METHODS{'FTP'} = "PACMethod_ftp"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_telnet.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_telnet.pm";
 $METHODS{'Telnet'} = "PACMethod_telnet"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_cu.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_cu.pm";
 $METHODS{'Serial (cu)'} = "PACMethod_cu"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_remote_tty.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_remote_tty.pm";
 $METHODS{'Serial (remote-tty)'} = "PACMethod_remote_tty"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_3270.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_3270.pm";
 $METHODS{'IBM 3270/5250'} = "PACMethod_3270"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_rdesktop.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_rdesktop.pm";
 $METHODS{'RDP (rdesktop)'} = "PACMethod_rdesktop"->new($CONTAINER);
 
-eval {require "$RealBin/lib/method/PACMethod_xfreerdp.pm";}; die $@ if $@;
+require "$RealBin/lib/method/PACMethod_xfreerdp.pm";
 $METHODS{'RDP (xfreerdp)'} = "PACMethod_xfreerdp"->new($CONTAINER);
 
-my $tigervnc = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} vncviewer --help 2>&1 | /bin/grep TigerVNC`;
-my $realvnc = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} vncviewer --help 2>&1 | /bin/grep RealVNC`;
+# VNC flavour is selected at runtime based on whichever vncviewer
+# implementation is available on PATH. The probe shell pipeline is
+# fine because ASBRU_ENV_FOR_EXTERNAL is set by Asbru itself at boot.
+my $_vnc_env = $ENV{'ASBRU_ENV_FOR_EXTERNAL'} // '';
+my $tigervnc = `$_vnc_env vncviewer --help 2>&1 | /bin/grep TigerVNC`;
+my $realvnc  = `$_vnc_env vncviewer --help 2>&1 | /bin/grep RealVNC`;
 
 if ($tigervnc) {
-    # Use TigerVNC
-    eval {require "$RealBin/lib/method/PACMethod_tigervnc.pm";}; die $@ if $@;
+    require "$RealBin/lib/method/PACMethod_tigervnc.pm";
     $METHODS{'VNC'} = "PACMethod_tigervnc"->new($CONTAINER);
 } elsif ($realvnc) {
-    # Use RealVNC
-    eval {require "$RealBin/lib/method/PACMethod_realvnc.pm";}; die $@ if $@;
+    require "$RealBin/lib/method/PACMethod_realvnc.pm";
     $METHODS{'VNC'} = "PACMethod_realvnc"->new($CONTAINER);
 } else {
-    # Other VNC
-    eval {require "$RealBin/lib/method/PACMethod_vncviewer.pm";}; die $@ if $@;
+    require "$RealBin/lib/method/PACMethod_vncviewer.pm";
     $METHODS{'VNC'} = "PACMethod_vncviewer"->new($CONTAINER);
 }
 
-use strict 'refs'; # Here we go!
+use strict 'refs';
 
 # END: Define GLOBAL CLASS variables
 ###################################################################
