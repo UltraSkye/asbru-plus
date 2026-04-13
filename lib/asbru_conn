@@ -971,20 +971,21 @@ sub _setProxy {
             $user = $PASSPHRASE_USER;
         }
         if (-e "/etc/ssh/ssh_config") {
-            open (SSHC,"<:utf8","/etc/ssh/ssh_config");
-            while (my $l = <SSHC>) {
-                $l =~ s/\n//g;
-                $l =~ s/^[\t ]+//;
-                if (!$l) {
-                    next;
-                } elsif ($l =~ /^#/) {
-                    next;
-                } elsif ($l =~ /^Host \*/) {
-                    next;
+            if (open(my $sshc, '<:utf8', '/etc/ssh/ssh_config')) {
+                while (my $l = <$sshc>) {
+                    $l =~ s/\n//g;
+                    $l =~ s/^[\t ]+//;
+                    if (!$l) {
+                        next;
+                    } elsif ($l =~ /^#/) {
+                        next;
+                    } elsif ($l =~ /^Host \*/) {
+                        next;
+                    }
+                    $ssh_config .= "$l\n";
                 }
-                $ssh_config .= "$l\n";
+                close $sshc;
             }
-            close SSHC;
         }
     }
 
