@@ -56,7 +56,7 @@ jobs:
       - name: Install lint + test tooling
         run: |
           sudo apt-get install -y \
-            libtest-simple-perl libperl-critic-perl libperl-tidy-perl \
+            libtest-simple-perl libperl-critic-perl perltidy \
             libcrypt-pbkdf2-perl libtry-tiny-perl
 
       - name: Run full test suite (prove -lr t/)
