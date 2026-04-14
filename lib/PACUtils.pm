@@ -3223,6 +3223,11 @@ sub _subst {
         }
     }
 
+    # Honor escape sequences \n \r \t in multi-line command/send fields
+    $ret =~ s/\\n/\n/g;
+    $ret =~ s/\\r/\r/g;
+    $ret =~ s/\\t/\t/g;
+
     if (!$asbru_conn) {
         # Execute when not from asbru_conn
         # Replace '<ASK:#>' with user provided data for 'cmd' execution
