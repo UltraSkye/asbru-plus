@@ -1208,6 +1208,7 @@ sub _setupCallbacks {
             if (!$cmd) {
                 return 0;
             }
+            $cmd = _subst($cmd, $PACMain::FUNCS{_MAIN}{_CFG}, $$self{_UUID});
             if ($where eq 'local') {
                 $self->_execute('local', $cmd, $ask);
             } else {
@@ -1671,11 +1672,16 @@ sub _watchConnectionData {
             $PACMain::FUNCS{_MAIN}{_HAS_FOCUS} = '';
             my ($cmd, $lblup, $lbldown, $default, $visible) = split /\|:\|/, $data;
             my ($val, $pos) = _wEnterValue($$self{_PARENTWINDOW}, $lblup, $lbldown, $default, $visible);
-            if (defined $$self{_WINDOWTERMINAL}) {
-                $$self{_WINDOWTERMINAL}->grab_focus();
-                $PACMain::FUNCS{_MAIN}{_HAS_FOCUS} = $$self{_WINDOWTERMINAL};
+            if (defined $val) {
+                if (defined $$self{_WINDOWTERMINAL}) {
+                    $$self{_WINDOWTERMINAL}->grab_focus();
+                    $PACMain::FUNCS{_MAIN}{_HAS_FOCUS} = $$self{_WINDOWTERMINAL};
+                }
+                $self->_sendData("WENTER|:|$val|:|$pos");
+            } else {
+                print STDERR "WARN: Manual data entry cancelled.\n";
+                $self->_sendData("WENTER|:||:|");
             }
-            $self->_sendData("WENTER|:|$val|:|$pos");
         }
 
         $$self{_LAST_STATUS} = $data;
