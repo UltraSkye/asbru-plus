@@ -178,10 +178,10 @@ if (!defined $SALT || length($SALT) != 8) {
 }
 
 # Active cipher — initialized with legacy key, upgraded when master password is set
-our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => $SALT, -pbkdf => 'opensslv2') or die "ERROR: $!";
+our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => $SALT, -pbkdf => 'opensslv2') or die "ERROR: $!\n";
 # Legacy ciphers for reading old configs (use static legacy salt for backward compat)
-my $CIPHER_LEGACY_AES = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2') or die "ERROR: $!";
-my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $CIPHER_LEGACY_AES = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2') or die "ERROR: $!\n";
+my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!\n";
 my $_MASTER_PASSWORD_ACTIVE = 0;  # Flag: is a user-provided master password in use?
 
 # Initialize cipher with a user-provided master password
@@ -195,7 +195,7 @@ sub _initMasterCipher {
         -cipher => 'Crypt::Rijndael',
         -salt   => $SALT,
         -pbkdf  => 'opensslv2',
-    ) or die "ERROR: Could not initialize cipher: $!";
+    ) or die "ERROR: Could not initialize cipher: $!\n";
     $_MASTER_PASSWORD_ACTIVE = 1;
     return $CIPHER;
 }
@@ -3594,7 +3594,7 @@ sub _deleteOldestSessionLog {
         return 1;
     }
 
-    opendir(my $F, $folder) or die "ERROR: Could not open folder '$folder' for reading: $!";
+    opendir(my $F, $folder) or die "ERROR: Could not open folder '$folder' for reading: $!\n";
 
     my @total;
     foreach my $file (readdir $F) {
@@ -3613,7 +3613,7 @@ sub _deleteOldestSessionLog {
 
     my $i = 0;
     foreach my $file (sort {$a cmp $b} @total) {
-        unlink $file or die "ERROR: Could not delete oldest log file '$file': $!";
+        unlink $file or die "ERROR: Could not delete oldest log file '$file': $!\n";
         if ((scalar(@total) - $max) <= $i++) {
             last;
         }
@@ -3694,7 +3694,7 @@ sub _purgeUnusedOrMissingScreenshots {
         }
     }
 
-    opendir(my $dir, "$CFG_DIR/screenshots") or die "ERROR: Could not open dir '$CFG_DIR/screenshots' for reading: $!";
+    opendir(my $dir, "$CFG_DIR/screenshots") or die "ERROR: Could not open dir '$CFG_DIR/screenshots' for reading: $!\n";
     while (my $file = readdir($dir)) {
         if ($file =~ /^\.|\.\.$/go) {
             next;

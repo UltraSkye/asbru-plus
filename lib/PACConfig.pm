@@ -70,7 +70,7 @@ my $SALT = '12345678';
 # PACConfig delegates encryption to PACUtils::$CIPHER (supports master password)
 # These local ciphers are only used as fallback for GUI password verification
 my $_CIPHER_KEY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
-my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!";
+my $CIPHER_LEGACY = Crypt::CBC->new(-key => $_CIPHER_KEY, -cipher => 'Blowfish', -salt => pack('Q', $SALT), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!\n";
 
 # END: Define GLOBAL CLASS variables
 ###################################################################
@@ -700,8 +700,11 @@ sub cleanUpPersonalData {
     local $SIG{__WARN__} = sub {};
     print STDERR "SAVED IN : $file\nOUT: $out\n";
     # Remove all personal information
-    open(my $fh_in, '<:utf8', $file) or die "ERROR: Cannot open '$file' for reading: $!";
-    open(my $fh_out, '>:utf8', $out) or die "ERROR: Cannot open '$out' for writing: $!";
+    open(my $fh_in, '<:utf8', $file) or die "ERROR: Cannot open '$file' for reading: $!\n";
+    open(my $fh_out, '>:utf8', $out) or do {
+        close $fh_in;
+        die "ERROR: Cannot open '$out' for writing: $!\n";
+    };
     my $C = 0;
     while (my $line = <$fh_in>) {
         my $next = 0;

@@ -235,13 +235,13 @@ sub new {
         Type => SOCK_STREAM,
         Listen => 1,
         Local => $$self{_TMPSOCKET}
-    ) or die "ERROR:$!";
+    ) or die "ERROR:$!\n";
 
     $self->{_SOCKET_CONN_EXEC} = IO::Socket::UNIX->new(
         Type => SOCK_STREAM,
         Listen => 1,
         Local => $$self{_TMPSOCKETEXEC}
-    ) or die "ERROR:$!";
+    ) or die "ERROR:$!\n";
     umask($_prev_umask);
 
     # Add a Glib watcher to listen to new connections (in a non-blocking fashion)
@@ -439,7 +439,7 @@ sub start {
         $PACMain::SOCKS5PORTS{$$self{_UUID_TMP}} = $SOCKS5PORT;
         $new_cfg{'tmp'}{'randomSocksTunnel'} = $SOCKS5PORT;
     }
-    nstore(\%new_cfg, $$self{_TMPCFG}) or die"ERROR: Could not save Ásbrú config file '$$self{_TMPCFG}': $!";
+    nstore(\%new_cfg, $$self{_TMPCFG}) or die "ERROR: Could not save Ásbrú config file '$$self{_TMPCFG}': $!\n";
     chmod 0600, $$self{_TMPCFG};
     undef %new_cfg;
 
@@ -3383,7 +3383,7 @@ sub _execute {
         $tmp{ctrl} = $$data{ctrl};
         $tmp{intro} = $intro // 1;
         $tmp{cmd} = $cmd;
-        nstore_fd(\%tmp, $$self{_SOCKET_CLIENT}) or die "ERROR:$!";
+        nstore_fd(\%tmp, $$self{_SOCKET_CLIENT}) or die "ERROR:$!\n";
     } elsif ($where eq 'local') {
         system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} $cmd &");
     }
@@ -3691,7 +3691,7 @@ sub _wSelectChain {
                 # Send the UUID to chain with
                 $PACMain::RUNNING{$cluster_uuid}{terminal}{_SOCKET_CLIENT}->send("!!_PAC_CHAIN_[$drop_uuid]!!");
                 # And send the configuration for that UUID
-                nstore_fd(\%new_cfg, $PACMain::RUNNING{$cluster_uuid}{terminal}{_SOCKET_CLIENT}) or die "ERROR:$!";
+                nstore_fd(\%new_cfg, $PACMain::RUNNING{$cluster_uuid}{terminal}{_SOCKET_CLIENT}) or die "ERROR:$!\n";
             }
         } else {
             if (! kill('HUP', $$self{_PID})) {
@@ -3702,7 +3702,7 @@ sub _wSelectChain {
             # Send the UUID to chain with
             $$self{_SOCKET_CLIENT}->send("!!_PAC_CHAIN_[$drop_uuid]!!");
             # And send the configuration for that UUID
-            nstore_fd(\%new_cfg, $$self{_SOCKET_CLIENT}) or die "ERROR:$!";
+            nstore_fd(\%new_cfg, $$self{_SOCKET_CLIENT}) or die "ERROR:$!\n";
         }
 
         undef %new_cfg;

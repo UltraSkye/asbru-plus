@@ -1762,7 +1762,7 @@ sub _execScript {
             $tmp{script} = $txt;
             $tmp{shared} = \%SHARED;
 
-            nstore_fd(\%tmp, $PACMain::RUNNING{$tmp_uuid}{terminal}{_SOCKET_CLIENT}) or die "ERROR:$!";
+            nstore_fd(\%tmp, $PACMain::RUNNING{$tmp_uuid}{terminal}{_SOCKET_CLIENT}) or die "ERROR:$!\n";
 
             # Stop
             return 0;

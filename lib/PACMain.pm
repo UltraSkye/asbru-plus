@@ -3943,7 +3943,7 @@ sub _readConfiguration {
             } else {
                 print STDERR "INFO: Used config file '$CFG_FILE_NFREEZE'\n";
                 if ($R_CFG_FILE) {
-                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
                 }
                 $continue = 0;
             }
@@ -3956,9 +3956,9 @@ sub _readConfiguration {
         } else {
             print STDERR "INFO: Used config file '$CFG_FILE'\n";
             if ($R_CFG_FILE) {
-                nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
             }
-            nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+            nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
             $continue = 0;
         }
     }
@@ -3991,9 +3991,9 @@ sub _readConfiguration {
             } else {
                 print STDERR "INFO: Used config file '$CFG_FILE_DUMPER' (loaded via Safe compartment)\n";
                 $$self{_CFG} = $result;
-                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
                 if ($R_CFG_FILE) {
-                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
                 }
                 $continue = 0;
             }
@@ -4012,9 +4012,9 @@ sub _readConfiguration {
                 print STDERR "WARNING: There were errors reading the '$CFG_FILE_FREEZE' config file: $@\n";
             } else {
                 print STDERR "INFO: Used config file '$CFG_FILE_FREEZE'\n";
-                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die"ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+                nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
                 if ($R_CFG_FILE) {
-                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+                    nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
                 }
                 unlink($CFG_FILE_FREEZE);
                 $continue = 0;
@@ -4027,10 +4027,10 @@ sub _readConfiguration {
         print STDERR "INFO: Migrating config file to v3...\n";
         PACUtils::_splash(1, "$APPNAME (v$APPVERSION):Migrating config...", ++$PAC_START_PROGRESS, $PAC_START_TOTAL);
         $$self{_CFG} = _cfgCheckMigrationV3();
-        copy($CFG_FILE, "${CFG_FILE}.prev3") or die "ERROR: Could not copy pre v.3 cfg file '$CFG_FILE' to '$CFG_FILE.prev3': $!";
-        nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die"ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!";
+        copy($CFG_FILE, "${CFG_FILE}.prev3") or die "ERROR: Could not copy pre v.3 cfg file '$CFG_FILE' to '$CFG_FILE.prev3': $!\n";
+        nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
         if ($R_CFG_FILE) {
-            nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!";
+            nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
         }
         $continue = 0;
     }
@@ -4157,7 +4157,7 @@ sub _promptSetMasterPassword {
         my $cfg = $$self{_CFG};
         # Re-encrypt password fields with the (possibly new) active cipher
         _cipherCFG($cfg);
-        nstore($cfg, $CFG_FILE_NFREEZE) or die "nstore failed: $!";
+        nstore($cfg, $CFG_FILE_NFREEZE) or die "nstore failed: $!\n";
         _writeConfigHMAC($CFG_FILE_NFREEZE);
         # Restore plaintext for the rest of startup
         _decipherCFG($cfg);
@@ -4221,7 +4221,7 @@ sub _saveTreeExpanded {
     my $modelsort = $tree->get_model();
     my $model = $modelsort->get_model();
 
-    open(my $fh_tree, '>:utf8', "$CFG_FILE.tree") or die "ERROR: Could not save Tree Config file '$CFG_FILE.tree': $!";
+    open(my $fh_tree, '>:utf8', "$CFG_FILE.tree") or die "ERROR: Could not save Tree Config file '$CFG_FILE.tree': $!\n";
     $modelsort->foreach(sub {
         my ($store, $path, $iter, $tmp) = @_;
         my $uuid = $store->get_value($iter, 2);
@@ -4270,7 +4270,7 @@ sub _loadTreeExpanded {
     my %TREE_TABS;
 
     if (-f "$CFG_FILE.tree") {
-        open(my $fh, '<:utf8', "$CFG_FILE.tree") or die "ERROR: Could not read Tree Config file '$CFG_FILE.tree': $!";
+        open(my $fh, '<:utf8', "$CFG_FILE.tree") or die "ERROR: Could not read Tree Config file '$CFG_FILE.tree': $!\n";
         foreach my $uuid (<$fh>) {
 
             chomp $uuid;
@@ -4295,7 +4295,7 @@ sub _loadTreeExpanded {
 sub _saveGUIData {
     my $self = shift;
 
-    open(my $fh, '>:utf8', "$CFG_FILE.gui") or die "ERROR: Could not save GUI Config file '$CFG_FILE.gui': $!";
+    open(my $fh, '>:utf8', "$CFG_FILE.gui") or die "ERROR: Could not save GUI Config file '$CFG_FILE.gui': $!\n";
 
     # Save Top Window size/position
     if ($$self{_GUI}{maximized}) {
@@ -4327,7 +4327,7 @@ sub _loadGUIData {
         return 1;
     }
 
-    open(my $fh, '<:utf8', "$CFG_FILE.gui") or die "ERROR: Could not read GUI Config file '$CFG_FILE.gui': $!";
+    open(my $fh, '<:utf8', "$CFG_FILE.gui") or die "ERROR: Could not read GUI Config file '$CFG_FILE.gui': $!\n";
 
     # Read top level window's psize/position
     my $win = <$fh>;
