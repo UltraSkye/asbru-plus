@@ -5598,6 +5598,22 @@ sub _setVteCapabilities {
         $$self{_Vte}{vte_feed_binary} = 1;
     }
 
+    # Runtime probe for 'match_add_regex' support (VTE 0.46+).
+    # Version checks lie on distros that ship patched/backported VTEs —
+    # probe the actual API instead.
+    $$self{_Vte}{match_regex} = 0;
+    eval {
+        $vte->match_add_regex(Vte::Regex->new_for_match('.', -1, 2**10), 0);
+        $$self{_Vte}{match_regex} = 1;
+    };
+
+    # Runtime probe for 'get_text_range_format' support (VTE 0.72+).
+    $$self{_Vte}{get_text_range} = 0;
+    eval {
+        $vte->get_text_range_format('VTE_FORMAT_TEXT', 0, 0, 0, 0);
+        $$self{_Vte}{get_text_range} = 1;
+    };
+
     # Tell the world what we found out
     print STDERR "INFO: Virtual terminal emulator (VTE) version is $$self{_Vte}{major_version}.$$self{_Vte}{minor_version}\n";
     if ($$self{_VERBOSE}) {
