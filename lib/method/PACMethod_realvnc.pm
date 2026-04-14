@@ -201,7 +201,6 @@ sub _parseOptionsToCfg {
     }
     $txt .= " -quality $$hash{quality}";
 
-    #print "$txt\n";
     return $txt;
 }
 

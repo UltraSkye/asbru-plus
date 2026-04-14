@@ -307,7 +307,7 @@ sub _setupCallbacks {
         _updateSaveOnExit($self);
     });
 
-    #DevNote: option currently disabled
+    # option currently disabled
     #_($self, 'btnCheckVersion')->signal_connect('clicked' => sub {
     #    $PACMain::FUNCS{_MAIN}{_UPDATING} = 1;
     #    $self->_updateGUIPreferences();
@@ -556,7 +556,7 @@ sub _setupCallbacks {
     # Monitor the main notebook and detects when we are switching to the keybindings frame
     # When the keybindings frame is shown, all 'mnemonics' has to be disabled to avoid conflicts when assigning keyboard shortcuts
     # When another frame is shown, original mnemonics are restored
-    # DevNote: did not find a way to ignore the mnemonic, if use 'mnemonic_activate' ; the shortcut was not processed by the keybindings frame at all
+    # did not find a way to ignore the mnemonic, if use 'mnemonic_activate' ; the shortcut was not processed by the keybindings frame at all
     my $hasMnemonics = 1;
     my $labelClose = _($self, 'label86')->get_label();
     my $textClose = _($self, 'label86')->get_text();
@@ -694,12 +694,8 @@ sub cleanUpPersonalData {
         or die "ERROR: Could not rename '$file' to '$file.txt': $!\n";
     $file .= ".txt";
 
-    # Localized warning suppression — do NOT let it leak into the
-    # enclosing scope. Previously this was a bare $SIG assignment that
-    # silenced warnings for the rest of the process lifetime.
     local $SIG{__WARN__} = sub {};
     print STDERR "SAVED IN : $file\nOUT: $out\n";
-    # Remove all personal information
     open(my $fh_in, '<:utf8', $file) or die "ERROR: Cannot open '$file' for reading: $!\n";
     open(my $fh_out, '>:utf8', $out) or do {
         close $fh_in;
@@ -869,7 +865,7 @@ sub _updateGUIPreferences {
     _($self, 'entryCfgSelectByWordChars')->set_text($$cfg{'defaults'}{'word characters'});
     _($self, 'cbCfgShowTrayIcon')->set_active($$cfg{'defaults'}{'show tray icon'});
     _($self, 'cbCfgAutoStart')->set_active(-f "$ENV{'HOME'}/.config/autostart/asbru_start.desktop");
-    #DevNote: option currently disabled
+    # option currently disabled
     #_($self, 'cbCfgCheckVersions')->set_active($$cfg{'defaults'}{'check versions at start'});
     #_($self, 'btnCheckVersion')->set_sensitive(! $PACMain::FUNCS{_MAIN}{_UPDATING});
     _($self, 'cbCfgShowStatistics')->set_active($$cfg{'defaults'}{'show statistics'});
@@ -1191,7 +1187,7 @@ sub _saveConfiguration {
     $$self{_CFG}{'defaults'}{'enable tree lines'} = _($self, 'cbCfgEnableTreeLines')->get_active();
     $$self{_CFG}{'defaults'}{'show tree titles'} = _($self, 'cbCfgShowTreeTitles')->get_active();
     $$self{_CFG}{'defaults'}{'tree overlay scrolling'} = _($self, 'cbCfgEnableOverlayScrolling')->get_active();
-    #DevNote: option currently disabled
+    # option currently disabled
     #$$self{_CFG}{'defaults'}{'check versions at start'} = _($self, 'cbCfgCheckVersions')->get_active();
     $$self{_CFG}{'defaults'}{'show statistics'} = _($self, 'cbCfgShowStatistics')->get_active();
 

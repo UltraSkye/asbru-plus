@@ -1687,7 +1687,7 @@ $do_connection_cmd = "$ENV{'ASBRU_ENV_FOR_EXTERNAL'} cd '$external_dir' && $ENV{
 $EXP->spawn("$do_connection_cmd 2>&1") or die "Cannot spawn '$connection_txt': $!\n";
 ctrl("SPAWNED:'$connection_txt' (PID:$$)");
 
-$EXP->exp_internal($DEBUG); # EXPECT DEBUG!!
+$EXP->exp_internal($DEBUG);
 
 if (($METHOD =~ /^.*rdesktop$/) || ($METHOD =~ /^.*freerdp.*/) || ($METHOD eq 'RDP (Windows)')) {
     $CONNECTED = 1;

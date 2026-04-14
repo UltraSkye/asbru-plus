@@ -658,10 +658,8 @@ sub _initGUI {
                             $$self{_WINDOWSCRIPTS}{gui}{helpScript}->set_editable(0);
                             $$self{_WINDOWSCRIPTS}{gui}{helpScript}->set('can_focus', 1);
 
-            # Set notebook properties
             $$self{_WINDOWSCRIPTS}{nb}->set_scrollable(1);
             $$self{_WINDOWSCRIPTS}{nb}->set_tab_pos('top');
-# FIXME-HOMOGENEOUS            $$self{_WINDOWSCRIPTS}{nb}->set('homogeneous', 1);
             $$self{_WINDOWSCRIPTS}{nb}->set_current_page(0);
 
             # Action buttons

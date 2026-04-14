@@ -125,7 +125,7 @@ sub is_visible {
 sub get_geometry {
     my $self = shift;
 
-    # DevNote: there is no way API to retrieve the place of the icon ; returns dummy values
+    # there is no way API to retrieve the place of the icon ; returns dummy values
     return ({}, {}, {x => 0, y => 0});
 }
 

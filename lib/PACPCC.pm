@@ -97,9 +97,6 @@ sub new {
     # Setup callbacks
     _setupCallbacks($self);
 
-    # Autoload any text
-    #if (($$self{_WINDOWPCC}{cbAutoSave}->get_active // 1) && (open(F, "$CFG_DIR/asbru.pcc") ))
-
     my @content;
     if (open(my $fh, '<:utf8', "$CFG_DIR/asbru.pcc")) {
         @content = <$fh>;

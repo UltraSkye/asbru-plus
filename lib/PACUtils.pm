@@ -2412,7 +2412,7 @@ sub _cfgSanityCheck {
     $$cfg{'defaults'}{'skip first chain expect'} //= 1;
     $$cfg{'defaults'}{'enable tree lines'} //= 0;
     $$cfg{'defaults'}{'show tree titles'} //= 1;
-    #DevNote: option currently disabled
+    # option currently disabled
     $$cfg{'defaults'}{'check versions at start'} //= 0;
     $$cfg{'defaults'}{'show statistics'} //= 1;
     $$cfg{'defaults'}{'protected color'} //= '#FFB022'; #orange
@@ -3388,8 +3388,6 @@ sub _wakeOnLan {
     $w{window}{gui}{hbox}->pack_start($w{window}{gui}{lblup}, 1, 1, 0);
     $w{window}{gui}{lblup}->set_markup("<b>Enter the following data and press 'OK' to send Magic Packet:</b>");
 
-    # Modern Gtk3::Grid replaces deprecated Gtk3::Table. attach() takes
-    # (child, col, row, width, height) instead of Table's left/right/top/bottom.
     $w{window}{gui}{table} = Gtk3::Grid->new();
     $w{window}{gui}{table}->set_column_spacing(6);
     $w{window}{gui}{table}->set_row_spacing(4);

@@ -252,7 +252,6 @@ sub _initGUI {
     $$self{_WINDOWCLUSTER}{nb} = Gtk3::Notebook->new;
     $$self{_WINDOWCLUSTER}{nb}->set_scrollable(1);
     $$self{_WINDOWCLUSTER}{nb}->set_tab_pos('top');
-    # FIXME-HOMOGENEOUS            $$self{_WINDOWCLUSTER}{nb}->set('homogeneous', 1);
     $vbox0->pack_start($$self{_WINDOWCLUSTER}{nb}, 1, 1, 0);
 
     my $tablbl1 = Gtk3::Box->new('horizontal', 0);
@@ -1102,8 +1101,6 @@ sub _setupCallbacks {
 
         my $keyval = '' . ($event->keyval);
         my $state = '' . ($event->state);
-        #print "KEY MASK:" . ($event->state) . "\n";
-        #print "KEY PRESSED:" . $event->keyval . ":" . (chr($event->keyval) ) . "\n";
 
         my @sel = $$self{_WINDOWCLUSTER}{treeConnections}->_getSelectedUUIDs;
 

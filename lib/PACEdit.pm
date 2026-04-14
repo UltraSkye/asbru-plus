@@ -363,7 +363,7 @@ sub _setupCallbacks {
 
     # Capture 'Get Command line' button clicked
     _($self, 'btnEditGetCMD')->signal_connect('clicked' => sub {
-        # DevNote: please make sure to keep double quotes in "$RealBin/lib/asbru_conn" since it might be replaced by packagers (see RPM spec)
+        # please make sure to keep double quotes in "$RealBin/lib/asbru_conn" since it might be replaced by packagers (see RPM spec)
         if (!$ENV{'KPXC_MP'} && $PACMain::FUNCS{_KEEPASS}->hasKeePassField($$self{_CFG},$$self{_UUID})) {
             if ($$self{_CFG}{defaults}{keepass}{password}) {
                 $ENV{'KPXC_MP'} = $$self{_CFG}{defaults}{keepass}{password};

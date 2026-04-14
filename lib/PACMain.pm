@@ -608,7 +608,7 @@ sub _initGUI {
         _setWindowPaintable($$self{_GUI}{main});
     }
 
-    # DevNote: would be nice to have this inside the theme itself
+    # would be nice to have this inside the theme itself
     if ($$self{_THEME} =~ /dark/) {
         _setDefaultRGBA(56,56,56,1);
     } else {
@@ -645,7 +645,7 @@ sub _initGUI {
 
     # Create a main horizontal pane below the banner.
     $$self{_GUI}{hpane} = Gtk3::HPaned->new();
-    $$self{_GUI}{hpane}->set_wide_handle(1);  # DevNote: if not set, text selection in a terminal will not be possible near the handle
+    $$self{_GUI}{hpane}->set_wide_handle(1);  # if not set, text selection in a terminal will not be possible near the handle
     $$self{_GUI}{vboxRoot}->pack_start($$self{_GUI}{hpane}, 1, 1, 0);
 
     # Create a vboxCommandPanel: actions, connections and other tools
@@ -1203,7 +1203,7 @@ sub _initGUI {
         if (defined $$self{_GUI}{posx} && ($$self{_GUI}{posx} eq 'maximized')) {
             $$self{_GUI}{main}->maximize();
         } else {
-            # DevNote: there's no reliable way to restore the position, do only resize
+            # there's no reliable way to restore the position, do only resize
             #          (see https://wiki.gnome.org/HowDoI/SaveWindowState and https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-position)
             # $$self{_GUI}{main}->move($$self{_GUI}{posx} // 0, $$self{_GUI}{posy} // 0);
             $$self{_GUI}{main}->resize($$self{_GUI}{sw} // 1024, $$self{_GUI}{sh} // 768);
@@ -4811,7 +4811,7 @@ sub _pasteNodes {
     $$self{_CFG}{'environments'}{$uuid} = $$self{_COPY}{'data'}{$uuid};
     $$self{_CFG}{'environments'}{$uuid}{'parent'} = $parent;
     $$self{_CFG}{'environments'}{$parent}{'children'}{$uuid} = 1;
-    # DevNote: a pasted folder cannot be protected otherwise recursiveness will likely fail
+    # a pasted folder cannot be protected otherwise recursiveness will likely fail
     $$self{_CFG}{'environments'}{$uuid}{'_protected'} = $$self{_CFG}{'environments'}{$uuid}{'_protected'} && !$$self{_CFG}{'environments'}{$uuid}{'_is_group'};
 
     # Add new node to Connections Tree
