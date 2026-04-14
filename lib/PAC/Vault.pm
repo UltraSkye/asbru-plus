@@ -83,6 +83,7 @@ sub encrypt_field {
     my ($self, $plain) = @_;
     return '' unless defined $plain && length $plain;
     require PACUtils;
+    no warnings 'once';
     return $PACUtils::CIPHER->encrypt_hex($plain);
 }
 

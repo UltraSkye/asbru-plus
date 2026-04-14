@@ -148,7 +148,6 @@ my $THEME_DIR = "$RES_DIR/themes/default";
 my $SPLASH_IMG = "$RES_DIR/asbru-logo-400.png";
 my $CFG_DIR = $ENV{"ASBRU_CFG"} // '';
 my $CFG_FILE = $CFG_DIR ne '' ? "$CFG_DIR/asbru.yml" : '';
-my $R_CFG_FILE = $PACMain::R_CFG_FILE;
 my $_SALT_LEGACY = '12345678';  # Static 8-byte salt for backward compat
 my $_CIPHER_KEY_LEGACY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
 
