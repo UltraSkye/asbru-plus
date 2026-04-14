@@ -28,8 +28,10 @@ ok(-d '/opt/asbru/utils', 'utils/ directory installed');
 # --- Desktop integration ---
 ok(-f '/usr/share/applications/asbru-cm.desktop', '.desktop file installed');
 
-# --- Man page --- dpkg knows the file (man-db may compress/process it further)
-my $dpkg_files = `dpkg -L asbru-plus 2>/dev/null`;
+# --- Man page --- dpkg knows the file (man-db may compress/process it further).
+# Accept either asbru-plus (new package name) or asbru-cm (upstream package name)
+# so the test works against whichever .deb happens to be installed on the host.
+my $dpkg_files = `dpkg -L asbru-plus 2>/dev/null` || `dpkg -L asbru-cm 2>/dev/null`;
 ok($dpkg_files =~ m|/usr/share/man|, 'man page registered with dpkg');
 
 # --- Bash completion ---
