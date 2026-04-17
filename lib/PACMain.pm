@@ -3842,51 +3842,10 @@ sub _readConfiguration {
 require PAC::Dialog::MasterPasswordPrompt;
 sub _promptSetMasterPassword { goto &PAC::Dialog::MasterPasswordPrompt::prompt; }
 
-sub _loadTreeConfiguration {
-    my $self = shift;
-    my $group = shift;
-    my $tree = shift // $$self{_GUI}{treeConnections};
-
-    @{ $$self{_GUI}{treeConnections}{'data'} } =
-    ({
-        value => [ $GROUPICON_ROOT, '<b>My Connections</b>', '__PAC__ROOT__' ],
-        children => []
-    });
-    foreach my $child (keys %{ $$self{_CFG}{environments}{'__PAC__ROOT__'}{children} }) {
-        push(@{ $$tree{data} }, $self->__recurLoadTree($child));
-    }
-
-    # Select the root path
-    $tree->set_cursor($tree->_getPath('__PAC__ROOT__'), undef, 0);
-
-    return 1;
-}
-
-sub __recurLoadTree {
-    my $self = shift;
-    my $uuid = shift;
-
-    my $node_name = $self->__treeBuildNodeName($uuid);
-    my @list;
-
-    if (!$$self{_CFG}{environments}{$uuid}{'_is_group'}) {
-        push(@list, {
-            value => [ $$self{_METHODS}{ $$self{_CFG}{'environments'}{$uuid}{'method'} }{'icon'}, $node_name, $uuid ],
-            children => []
-        });
-    } else {
-        my @clist;
-        foreach my $child (keys %{ $$self{_CFG}{environments}{$uuid}{children} }) {
-            push(@clist, $self->__recurLoadTree($child));
-        }
-        push(@list, {
-            value => [ $GROUPICONCLOSED, $node_name, $uuid ],
-            children => \@clist
-        });
-    }
-
-    return @list;
-}
+# Connections-tree data builder lives in PAC::Tree::Build.
+require PAC::Tree::Build;
+sub _loadTreeConfiguration { goto &PAC::Tree::Build::load; }
+sub __recurLoadTree        { goto &PAC::Tree::Build::recur_load; }
 
 # Tree expanded-state persistence lives in PAC::Tree::State.
 require PAC::Tree::State;
