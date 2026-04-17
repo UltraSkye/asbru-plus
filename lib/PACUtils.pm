@@ -191,7 +191,7 @@ sub _decrypt_hex_compat { goto &PAC::Crypto::Cipher::decrypt_hex; }
 # my-lexical is no longer referenced — kept commented for diff readability.
 # my %WINDOWSPLASH;
 my %WINDOWPROGRESS;
-my $WIDGET_POPUP;
+# WIDGET_POPUP state moved to PAC::Dialog::PopupMenu (P3/18).
 my ($R,$G,$B,$A);
 
 our @DONATORS_LIST = (
@@ -361,128 +361,9 @@ sub _wEnterValue { goto &PAC::Dialog::_wEnterValue; }
 
 sub _wAddRenameNode { goto &PAC::Dialog::_wAddRenameNode; }
 
-sub _wPopUpMenu {
-    my $mref = shift;
-    our $event = shift;
-    my $below = shift // '0';
-    my $ref = shift // '0';
-
-    if (defined $WIDGET_POPUP && $WIDGET_POPUP->get_visible()) {
-        return 1;
-    }
-
-    our $jari = -1;
-    my @array;
-    my %props;
-
-    my $xml = "<ui>\n<popup name='Menu' accelerators='true'>\n";
-    $xml .= _buildMenuData(\@array, $mref, \%props);
-    $xml .= "</popup>\n</ui>";
-
-    my $actions = Gtk3::ActionGroup->new('Actions');
-    $actions->add_actions(\@array, undef);
-
-    my $ui = Gtk3::UIManager->new();
-    $ui->set_add_tearoffs(1);
-    $ui->insert_action_group($actions, 0);
-
-    $ui->add_ui_from_string($xml);
-
-    foreach my $path (keys %props) {
-        foreach my $prop (keys %{$props{$path}}) {
-            $ui->get_widget('/Menu' . $path)->set($prop, $props{$path}{$prop});
-        }
-    }
-
-    $WIDGET_POPUP = $ui->get_widget('/Menu');
-    $WIDGET_POPUP->show_all();
-    if ($ref) {
-        return $WIDGET_POPUP;
-    }
-
-    if (defined $event) {
-        $WIDGET_POPUP->popup(undef, undef, ($below ? \&_pos : undef), undef, $event->button, $event->time);
-    } else {
-        $WIDGET_POPUP->popup(undef, undef, undef, undef, 0, 0);
-    }
-
-    sub _buildMenuData {
-        my $menu_array = shift;
-        my $mref = shift;
-        my $props = shift;
-        my $path = shift // '';
-
-        my $xml = '';
-
-        for my $m (@{$mref}) {
-            my $label = $$m{label} // '';
-            my $sensitive = $$m{sensitive} // 1;
-            my $tooltip = $$m{tooltip} // '';
-
-            if (!$$m{shortcut}) {
-                $$m{shortcut} = '';
-            }
-
-            my $label_orig =  __text($label);
-            $label =~ s/\//__backslash__/go;
-            my $pre_path = $path;
-
-            ++$jari;
-            if ($$m{separator}) {
-                $xml .= "<separator/>\n";
-            } elsif ($$m{submenu}) {
-                $xml .= qq|<menu action="MenuParent@{[__($label)]}:$jari:EndMenuParent">\n|;
-                push(@{$menu_array}, ["MenuParent$label:$jari:EndMenuParent", $$m{stockicon}, $label_orig]);
-
-                $path .= "/MenuParent$label:$jari:EndMenuParent";
-                $$props{$path}{sensitive} = $sensitive;
-                $$props{$path}{tooltip_text} = $tooltip;
-                $$props{$path}{use_underline} = 0;
-
-                $xml .= _buildMenuData($menu_array, $$m{submenu}, $props, $path);
-                $xml .= "</menu>\n";
-            } else {
-                $xml .= qq|<menuitem action="MenuItem@{[__($label)]}:$jari:EndMenuItem"/>\n|;
-                push(@{$menu_array}, [
-                    "MenuItem$label:$jari:EndMenuItem",
-                    $$m{stockicon},
-                    $label_orig, $$m{shortcut},
-                    $$m{tooltip},
-                    sub {&{$$m{code}};}
-                ]);
-
-                $path .= "/MenuItem$label:$jari:EndMenuItem";
-                $$props{$path}{sensitive} = $sensitive;
-                $$props{$path}{tooltip_text} = $tooltip;
-                $$props{$path}{use_underline} = 0;
-            }
-
-            $path = $pre_path;
-        }
-
-        return $xml;
-    }
-
-    sub _pos {
-        my $h = $_[0]->size_request->height;
-        my $ymax = $event->get_screen()->get_height();
-        my ($x, $y) = $event->window->get_origin();
-        my $dy = $event->window->get_height();
-
-        # Over the event widget
-        if ($dy + $y + $h > $ymax) {
-            $y -= $h;
-            if ($y < 0) {
-                $y = 0;
-            }
-        # Below the event widget
-        } else {
-            $y += $dy;
-        }
-
-        return $x, $y;
-    }
- }
+# Popup menu builder lives in PAC::Dialog::PopupMenu.
+require PAC::Dialog::PopupMenu;
+sub _wPopUpMenu { goto &PAC::Dialog::PopupMenu::show; }
 
 sub _wMessage { goto &PAC::Dialog::_wMessage; }
 
