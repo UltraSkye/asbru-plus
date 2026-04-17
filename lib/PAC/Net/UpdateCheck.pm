@@ -46,15 +46,43 @@ sub fetch_latest {
     };
 }
 
-# is_newer($latest_tag, $current_version) — string-compare two version
-# tags ignoring a leading 'v'. Returns true if $latest_tag > $current.
-# Mirror of the comparison done in PACMain::_checkForUpdates.
+# is_newer($latest_tag, $current_version) — compare two semver-ish
+# version tags ignoring a leading 'v'. Returns true if $latest_tag is
+# strictly newer than $current.
+#
+# Component-wise NUMERIC comparison: '6.10.0' is correctly newer than
+# '6.9.0' (the previous string-compare implementation said no, because
+# '6.1' sorts before '6.9' lexically — a real bug that meant nobody
+# upgrading from 6.9 to 6.10+ would ever see the "update available"
+# banner).
+#
+# Non-numeric trailers (e.g. '6.6.0-rc1') compare lexically as a
+# tiebreaker after the numeric prefix matches. Tags with strictly
+# fewer components are treated as zero-padded ('6.5' == '6.5.0').
 sub is_newer {
     my ($latest, $current) = @_;
     return 0 unless defined $latest && defined $current;
     (my $l = $latest)  =~ s/^v//i;
     (my $c = $current) =~ s/^v//i;
-    return $l gt $c;
+
+    my @lp = split /\./, $l;
+    my @cp = split /\./, $c;
+    my $n = scalar(@lp) > scalar(@cp) ? scalar(@lp) : scalar(@cp);
+    for my $i (0 .. $n - 1) {
+        my $a = $lp[$i] // '0';
+        my $b = $cp[$i] // '0';
+        # Strict numeric comparison if BOTH components parse as ints.
+        if ($a =~ /^\d+$/ && $b =~ /^\d+$/) {
+            return 1 if $a + 0 > $b + 0;
+            return 0 if $a + 0 < $b + 0;
+        } else {
+            # Mixed / pre-release ('rc1', 'beta') — fall back to
+            # lexical compare on this component.
+            return 1 if $a gt $b;
+            return 0 if $a lt $b;
+        }
+    }
+    return 0;   # all components equal → not newer
 }
 
 1;

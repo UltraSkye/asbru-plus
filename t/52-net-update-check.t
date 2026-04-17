@@ -20,6 +20,29 @@ ok(!PAC::Net::UpdateCheck::is_newer('v6.4.0', 'v6.5.0'), '6.4.0 < 6.5.0 not newe
 ok(!PAC::Net::UpdateCheck::is_newer(undef, 'v6.5.0'),    'undef latest -> false');
 ok(!PAC::Net::UpdateCheck::is_newer('v6.5.0', undef),    'undef current -> false');
 
+# REGRESSION: the previous string-compare implementation said
+# '6.10.0' is NOT newer than '6.9.0' because '6.1' sorts before '6.9'
+# lexically. Real bug: anyone on 6.9 would never see the "update
+# available" banner once 6.10+ shipped.
+ok( PAC::Net::UpdateCheck::is_newer('v6.10.0', 'v6.9.0'),
+    'REGRESSION: 6.10.0 > 6.9.0 (was string-compared as no)');
+ok( PAC::Net::UpdateCheck::is_newer('6.10.0', '6.9.0'),
+    'REGRESSION: 6.10.0 > 6.9.0 without leading v');
+ok( PAC::Net::UpdateCheck::is_newer('10.0.0', '6.5.0'),
+    'REGRESSION: 10.0.0 > 6.5.0 (string-compare said no)');
+ok( PAC::Net::UpdateCheck::is_newer('6.6.0', '6.5.10'),
+    'REGRESSION: 6.6.0 > 6.5.10 (minor wins over patch double-digits)');
+ok(!PAC::Net::UpdateCheck::is_newer('6.5.10', '6.6.0'),
+    'REGRESSION: 6.5.10 < 6.6.0 (not the other way around)');
+
+# Length normalization: strict-less components zero-padded
+ok(!PAC::Net::UpdateCheck::is_newer('6.5',   '6.5.0'),
+    '6.5 == 6.5.0 (zero-padded, not newer)');
+ok(!PAC::Net::UpdateCheck::is_newer('6.5.0', '6.5'),
+    '6.5.0 == 6.5 (zero-padded, not newer)');
+ok( PAC::Net::UpdateCheck::is_newer('6.5.1', '6.5'),
+    '6.5.1 > 6.5 (with zero-pad)');
+
 # Source-level checks for fetch_latest (network call avoided)
 my $src = do {
     open my $f, '<', "$RealBin/../lib/PAC/Net/UpdateCheck.pm" or die "open: $!";
