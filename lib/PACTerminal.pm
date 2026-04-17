@@ -2534,7 +2534,9 @@ sub _setTabColour {
 
     # Set correct icon for hide/show button bar button
     # (it may have changed in another terminal)
-    $$self{_GUI}{btnShowButtonBar}->set_image(Gtk3::Image->new_from_stock($$self{_CFG}{'defaults'}{'auto hide button bar'} ? 'asbru-buttonbar-show' : 'asbru-buttonbar-hide', 'GTK_ICON_SIZE_BUTTON'));
+    if ($$self{_GUI}{btnShowButtonBar}) {
+        $$self{_GUI}{btnShowButtonBar}->set_image(Gtk3::Image->new_from_stock($$self{_CFG}{'defaults'}{'auto hide button bar'} ? 'asbru-buttonbar-show' : 'asbru-buttonbar-hide', 'GTK_ICON_SIZE_BUTTON'));
+    }
 
     # Once checked the availability of new data, reset its value
     $$self{_NEW_DATA} = 0;
@@ -4575,10 +4577,10 @@ sub _zoomHandler {
 
     if ($action eq 'zoomin') {
         $zoom = 1;
-        $scale += 0.1;
+        $scale = (100 * $scale + 10) / 100;
     } elsif ($action eq 'zoomout') {
         $zoom = 1;
-        $scale -= 0.1;
+        $scale = (100 * $scale - 10) / 100;
     } elsif ($action eq 'zoomreset') {
         $zoom = 1;
         $scale = 1;
