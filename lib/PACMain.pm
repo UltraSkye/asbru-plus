@@ -4616,10 +4616,6 @@ It will enable or disable options based on:
   * if there are elements selected
   * if there are elements to paste
 
-=head2 sub _showAboutWindow
-
-Shows about window
-
 =head2 sub _startCluster (cluster name)
 
 Start a cluster
@@ -4640,93 +4636,13 @@ Execute quit program logic.
     Ask for confirmations
     Gtk->main_quit
 
-=head2 sub _saveConfiguration (_CFG)
-
-Saves configuration data to $CFG_DIR
-
-Saves Tree configuration
-
-Last state en nfreez
-
 =head2 sub _readConfiguration
 
 Reads Configuraions into _CFG
 
-=head2 sub _loadTreeConfiguration
-
-Loads the last saved Tree Configuration using __recurLoadTree
-
-=head2 sub __recurLoadTree
-
-Recursively loads all tree configuration
-
-=head2 sub _saveTreeExpanded
-
-Saves configuration about node tree expanded in $CFG_FILE.tree
-
-=head2 sub _loadTreeExpanded
-
-Loas last information of expanded nodes from $CFG_FILE.tree
-
-=head2 sub _saveGUIData
-
-Saves general information about the GUI : x,y position and dimentions
-
-=head2 sub _loadGUIData
-
-Loads last saves GUI Data
-
-=head2 sub _updateGUIWithUUID
-
-Displays Welcome information in Message Area
-
-=head2 sub _updateGUIPreferences
-
-Update runtime GUI Preferences
-
-=head2 sub _updateGUIFavourites
-
-Updates GUI Favorites
-
-Updates GUII Favorites
-
-=head2 sub _updateGUIHistory
-
-Updates information on History
-
-=head2 sub _updateGUIClusters
-
-Updates Clusters
-
-=head2 sub _updateClustersList
-
-Updates cluster List
-
-=head2 sub _updateFavouritesList
-
-Update Favourited List
-
 =head2 sub _delNodes (@uuids)
 
 Deletes all @uuids from the nodes tree
-
-=head2 sub _showConnectionsList
-
-Pending
-
-=head2 sub _hideConnectionsList
-
-Hides the Connections list
-
-=head2 sub _toggleConnectionsList
-
-Activates or deactivate the button to toggle the display of the connections list.
-
-=head2 sub _doToggleConnectionsList
-
-Actually show or hide the connections list.
-Do not call this function directly but use _toggleConnectionsList that will also correctly
-set the corresponding button state.
 
 =head2 sub _copyNodes (cut [0,'cut'], parent, @selected_uuids)
 
@@ -4765,10 +4681,6 @@ Exporst current nodes to file
 
 Imports nodes from previous generated file
 
-=head2 sub _bulkEdit
-
-Creates GUI for a bulk editing of common properties to all selected nodes
-
 =head2 sub _setCFGChanged
 
 Updates runtime Configuration changes that affect the Main GUI: Readonly, Auto Save
@@ -4781,6 +4693,82 @@ Pending
 
 Returns the currently selected tree (from the left menu)
 
-=head2 sub _doFocusPage
+=head1 EXTRACTED MODULES
 
-Forces focus to the terminal inside the focused page
+The following functions used to live in PACMain and are now
+provided by dedicated modules — PACMain keeps 1-line goto-proxies
+so legacy callsites continue to work unchanged. Refer to each
+module's POD for the authoritative API documentation.
+
+=over
+
+=item *
+
+L<PAC::Window::About> — C<_showAboutWindow>
+
+=item *
+
+L<PAC::Window::ConnectionsList> — C<_showConnectionsList> /
+C<_hideConnectionsList> / C<_toggleConnectionsList> /
+C<_doToggleDisplayConnectionsList>
+
+=item *
+
+L<PAC::Window::Layout> — C<_setSafeLayoutOptions> / C<_ApplyLayout>
+
+=item *
+
+L<PAC::Window::State> — C<_saveGUIData> / C<_loadGUIData>
+
+=item *
+
+L<PAC::Tree::Build> — C<_loadTreeConfiguration> / C<__recurLoadTree>
+
+=item *
+
+L<PAC::Tree::State> — C<_saveTreeExpanded> / C<_loadTreeExpanded>
+
+=item *
+
+L<PAC::Terminal::Focus> — C<_doFocusPage>
+
+=item *
+
+L<PAC::Theme::Switch> — C<_toggleTheme> /
+C<_resetStyleRecursively> / C<_refreshImagesRecursively>
+
+=item *
+
+L<PAC::UI::Refresh> — C<_updateGUIWithUUID> /
+C<_clearLeftMenuTabLabels> / C<_updateGUIPreferences> /
+C<_updateGUIFavourites> / C<_updateGUIHistory> /
+C<_updateGUIClusters> / C<_updateClustersList> /
+C<_updateFavouritesList>
+
+=item *
+
+L<PAC::Config::Save> — C<_saveConfiguration>
+
+=item *
+
+L<PAC::Dialog::BulkEdit> — C<_bulkEdit>
+
+=item *
+
+L<PAC::Dialog::MasterPasswordPrompt> — C<_promptSetMasterPassword>
+
+=item *
+
+L<PAC::Crypto::HMAC> — C<_writeConfigHMAC> / C<_verifyConfigHMAC>
+/ C<_ct_eq>
+
+=item *
+
+L<PAC::Storage::Storable> — C<_safe_retrieve>
+
+=item *
+
+L<PAC::Util::ImportScan> — used by C<__importNodes>
+
+=back
+
