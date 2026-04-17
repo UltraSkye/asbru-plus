@@ -59,6 +59,7 @@ use Gtk3 -init;
 
 # PAC modules
 use PACUtils;
+use PACSshConfig;
 use PACWayland;
 use PACTray;
 use PACTerminal;
@@ -3061,6 +3062,14 @@ sub _treeConnections_menu {
         sensitive =>  (scalar(@sel) == 1) && ($$self{_CFG}{'environments'}{$sel[0]}{'_is_group'} || $sel[0] eq '__PAC__ROOT__'),
         code => sub { $self->__importNodes }
     });
+    # Import from ~/.ssh/config
+    push(@tree_menu_items, {
+        label => 'Import from ~/.ssh/config...',
+        stockicon => 'gtk-network',
+        tooltip => 'Bulk-import SSH connections from an OpenSSH client config file',
+        sensitive =>  (scalar(@sel) == 1) && ($$self{_CFG}{'environments'}{$sel[0]}{'_is_group'} || $sel[0] eq '__PAC__ROOT__'),
+        code => sub { $self->__importSshConfig }
+    });
     # Quick Edit variables
     my @var_submenu;
     my $i = 0;
@@ -5114,6 +5123,97 @@ sub __importNodes {
 
     $FUNCS{_TRAY}->set_tray_menu();
 
+    return 1;
+}
+
+sub __importSshConfig {
+    my $self = shift;
+
+    my @sel = $$self{_GUI}{treeConnections}->_getSelectedUUIDs();
+    my $parent_uuid = $sel[0];
+
+    my $default_path = ($ENV{HOME} // '/tmp') . '/.ssh/config';
+
+    my $choose = Gtk3::FileChooserDialog->new(
+        "$APPNAME (v.$APPVERSION) Choose an SSH client config file to import",
+        $$self{_WINDOWCONFIG},
+        'GTK_FILE_CHOOSER_ACTION_OPEN',
+        'Import' , 'GTK_RESPONSE_ACCEPT',
+        'Cancel' , 'GTK_RESPONSE_CANCEL',
+    );
+    $choose->set_current_folder($ENV{HOME} . '/.ssh') if -d ($ENV{HOME} // '') . '/.ssh';
+    $choose->set_filename($default_path) if -f $default_path;
+    $choose->set_show_hidden(1);
+
+    my $out = $choose->run();
+    my $file = $choose->get_filename();
+    $choose->destroy();
+    if (($out ne 'accept') || (!-f $file)) {
+        return 1;
+    }
+
+    my $hosts = PACSshConfig::parse($file);
+    if (!@$hosts) {
+        _wMessage($$self{_WINDOWCONFIG}, "No importable Host blocks found in <b>$file</b>.\n(Wildcard hosts and Match blocks are skipped.)");
+        return 1;
+    }
+
+    my $count = scalar @$hosts;
+    if (!_wConfirm($$self{_WINDOWCONFIG}, "Found <b>$count</b> SSH host(s) in <tt>$file</tt>.\nImport into <b>" . ($$self{_CFG}{'environments'}{$parent_uuid}{'name'} // 'My Connections') . "</b>?")) {
+        return 1;
+    }
+
+    my $imported = 0;
+    foreach my $h (@$hosts) {
+        my $name = $h->{alias};
+        if (defined $$self{_CFG}{'environments'}{$parent_uuid}{'children'}) {
+            my $clash = 0;
+            foreach my $child_uuid (keys %{ $$self{_CFG}{'environments'}{$parent_uuid}{'children'} }) {
+                if (($$self{_CFG}{'environments'}{$child_uuid}{'name'} // '') eq $name) {
+                    $clash = 1;
+                    last;
+                }
+            }
+            next if $clash;
+        }
+
+        my $txt_uuid = create_uuid_as_string(UUID_V4);
+        $$self{_CFG}{'environments'}{$txt_uuid}{'_is_group'} = 0;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'name'} = $name;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'parent'} = $parent_uuid;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'description'} = "Imported from $file";
+        $$self{_CFG}{'environments'}{$txt_uuid}{'screenshots'} = [];
+        $$self{_CFG}{'environments'}{$txt_uuid}{'title'} = $name;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'method'} = 'ssh';
+        $$self{_CFG}{'environments'}{$txt_uuid}{'ip'} = $h->{hostname} // $h->{alias};
+        $$self{_CFG}{'environments'}{$txt_uuid}{'port'} = $h->{port} // 22;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'user'} = $h->{user} // '';
+        $$self{_CFG}{'environments'}{$txt_uuid}{'pass'} = '';
+        $$self{_CFG}{'environments'}{$txt_uuid}{'use proxy'} = 0;
+        $$self{_CFG}{'environments'}{$txt_uuid}{'options'} = '';
+        if ($h->{identity_file}) {
+            $$self{_CFG}{'environments'}{$txt_uuid}{'auth type'} = 'publickey';
+            $$self{_CFG}{'environments'}{$txt_uuid}{'public key'} = $h->{identity_file};
+            $$self{_CFG}{'environments'}{$txt_uuid}{'passphrase user'} = $h->{user} // '';
+        }
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'local before'} } = ();
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'local connected'} } = ();
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'local after'} } = ();
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'macros'} } = ();
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'expect'} } = ();
+        @{ $$self{_CFG}{'environments'}{$txt_uuid}{'variables'} } = ();
+
+        $$self{_CFG}{'environments'}{$parent_uuid}{'children'}{$txt_uuid} = 1;
+        $$self{_GUI}{treeConnections}->_addNode($parent_uuid, $txt_uuid, $self->__treeBuildNodeName($txt_uuid), $$self{_METHODS}{ssh}{'icon'});
+        $imported++;
+    }
+
+    _cfgSanityCheck($$self{_CFG});
+    $self->_updateGUIPreferences();
+    $FUNCS{_TRAY}->set_tray_menu();
+    $self->_setCFGChanged(1);
+
+    _wMessage($$self{_WINDOWCONFIG}, "Imported <b>$imported</b> connection(s) from <b>$file</b>.\n" . ($count - $imported > 0 ? "Skipped <b>" . ($count - $imported) . "</b> due to name conflicts." : ''));
     return 1;
 }
 
