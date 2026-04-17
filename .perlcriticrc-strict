@@ -1,0 +1,42 @@
+# .perlcriticrc-strict — Ásbrú Plus
+#
+# Strict profile applied to NEW modules under lib/PAC/* and lib/PACSshConfig.pm.
+# Severity 3 catches buggy patterns the relaxed profile lets through:
+#   - missing return values
+#   - implicit list context
+#   - chained string ops without quoting
+#
+# As the rest of the codebase migrates into lib/PAC/*, it is automatically
+# subject to this stricter profile.
+
+severity = 3
+verbose  = 9
+
+# Same exemptions as the relaxed profile — these are stylistic, not buggy:
+[-Subroutines::ProhibitSubroutinePrototypes]
+[-ControlStructures::ProhibitPostfixControls]
+[-Modules::ProhibitMultiplePackages]
+[-NamingConventions::Capitalization]
+[-Subroutines::RequireFinalReturn]
+[-ValuesAndExpressions::ProhibitMagicNumbers]
+[-Variables::ProhibitPunctuationVars]
+[-References::ProhibitDoubleSigils]
+[-InputOutput::RequireBriefOpen]
+[-CodeLayout::RequireTidyCode]
+[-Documentation::RequirePodSections]
+[-Documentation::RequirePodAtEnd]
+
+# Allow our long _wakeOnLan-style dialog functions; complexity is acknowledged.
+[Subroutines::ProhibitExcessComplexity]
+max_mccabe = 30
+
+# Same hard lines as the relaxed profile.
+[BuiltinFunctions::ProhibitStringyEval]
+[InputOutput::ProhibitBacktickOperators]
+severity = 4
+[InputOutput::ProhibitTwoArgOpen]
+[InputOutput::ProhibitBarewordFileHandles]
+[Subroutines::ProhibitBuiltinHomonyms]
+[Variables::ProhibitConditionalDeclarations]
+[Variables::ProhibitLocalVars]
+severity = 4

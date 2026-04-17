@@ -62,12 +62,20 @@ jobs:
       - name: Run full test suite (prove -lr t/)
         run: prove -lr t/
 
-      - name: Perl::Critic gate (gentle, severity 4)
+      - name: Perl::Critic gate (legacy, severity 4 — informational)
         run: |
           perlcritic --gentle --severity 4 \
             --profile .perlcriticrc \
             lib/PACMain.pm lib/PACUtils.pm asbru-cm \
             || (echo '::warning::perlcritic findings (non-fatal during ratchet-down phase)' && true)
+
+      - name: Perl::Critic gate (new modules, severity 3 — enforced)
+        run: |
+          # All modules under lib/PAC/* and the small extracted modules at
+          # lib/PACSshConfig.pm must pass the stricter profile. New code
+          # is held to a higher bar than the legacy god-objects.
+          perlcritic --severity 3 --profile .perlcriticrc-strict \
+            lib/PAC/ lib/PACSshConfig.pm
 
       - name: Static asset linter (no dead Lucide refs)
         run: prove -lv t/20-no-dead-assets.t
