@@ -20,10 +20,24 @@ use warnings;
 use Test::More;
 use FindBin qw($RealBin);
 
-my @files = (
-    glob("$RealBin/../lib/PAC/*.pm"),
-    "$RealBin/../lib/PACSshConfig.pm",
-);
+# Recursively walk lib/PAC/ so nested modules (PAC::Config::Schema, etc.)
+# are gated, not just top-level ones.
+my @files;
+_walk("$RealBin/../lib/PAC", \@files);
+push @files, "$RealBin/../lib/PACSshConfig.pm";
+
+sub _walk {
+    my ($dir, $out) = @_;
+    return unless -d $dir;
+    opendir(my $dh, $dir) or return;
+    while (my $entry = readdir $dh) {
+        next if $entry =~ /^\.+$/;
+        my $path = "$dir/$entry";
+        if (-d $path) { _walk($path, $out); }
+        elsif ($path =~ /\.pm\z/) { push @$out, $path; }
+    }
+    closedir $dh;
+}
 
 unless (@files) {
     plan skip_all => 'no PAC::* modules to check';
@@ -48,13 +62,18 @@ sub check_file {
     my $src = <$fh>;
     close $fh;
 
-    # Split into code half and POD half. POD starts at the first =head /
-    # =encoding / etc. line (more permissive than Pod::Parser for our
-    # purposes — we just need to know which sub names are mentioned).
+    # Split into code half and POD half. POD directives MUST be at line
+    # start (^=word). Without this anchor, the regex would match strings
+    # like '# for type=enum' inside comments. Prefer __END__ as the split
+    # point when present (cleanest); otherwise fall back to the first
+    # ^=word line.
     my ($code, $pod);
-    if ($src =~ /^(.*?)(__END__\s*\n)?(=\w.*)\z/ms) {
+    if ($src =~ /^(.*?)__END__\s*\n(.*)\z/ms) {
         $code = $1;
-        $pod  = $3 // '';
+        $pod  = $2;
+    } elsif ($src =~ /^(.*?)(?=^=\w)/ms) {
+        $code = $1;
+        $pod  = substr($src, length $1);
     } else {
         $code = $src;
         $pod  = '';
