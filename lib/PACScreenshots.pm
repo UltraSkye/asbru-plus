@@ -345,8 +345,16 @@ sub _buildScreenshots {
                     $new_file = $dialog->get_filename;
                     $dialog->destroy;
 
-                    # Copy temporal log file to selected path
-                    copy($w{file}, $new_file);
+                    # Copy temporal log file to selected path. Surface
+                    # failure to the user — silent failure here means the
+                    # user thinks they exported the screenshot but the
+                    # destination is missing or stale.
+                    if (! copy($w{file}, $new_file)) {
+                        _wMessage(
+                            $PACMain::FUNCS{_MAIN}{_GUI}{main},
+                            "ERROR: Could not export screenshot to '$new_file': $!",
+                        );
+                    }
 
                     return 1;
                 }

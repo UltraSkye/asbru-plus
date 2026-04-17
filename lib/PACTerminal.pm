@@ -3363,8 +3363,15 @@ sub _saveSessionLog {
         print $fh_out _removeEscapeSeqs(join('', @lines));
         close $fh_out;
     } elsif ($confirm eq 'no') {
-        # Copy temporal log file to selected path
-        copy($$self{_LOGFILE}, $new_file);
+        # Copy temporal log file to selected path. Surface failure to
+        # the user — silent failure here means the user thinks they
+        # exported the session log but the destination is missing.
+        if (! copy($$self{_LOGFILE}, $new_file)) {
+            _wMessage(
+                $$self{_PARENTWINDOW},
+                "ERROR: Could not export session log to '$new_file': $!",
+            );
+        }
     }
 
     return 1;
