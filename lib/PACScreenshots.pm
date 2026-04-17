@@ -129,7 +129,19 @@ sub add {
         SUFFIX => '.png',
         UNLINK => 0
     );
-    copy($file, $screenshot_file);
+
+    # Don't push a phantom screenshot reference into the config when copy
+    # fails (disk full, source vanished between _pixBufFromFile and here,
+    # destination dir suddenly EROFS). The previous code pushed the
+    # tempfile path regardless and left an empty placeholder behind.
+    if (! copy($file, $screenshot_file)) {
+        unlink $screenshot_file;
+        _wMessage(
+            $PACMain::FUNCS{_MAIN}{_GUI}{main},
+            "ERROR: Could not copy screenshot from '$file' to '$screenshot_file': $!",
+        );
+        return 0;
+    }
 
     push(@{$$new_cfg{screenshots}}, $screenshot_file);
     $self->update();
