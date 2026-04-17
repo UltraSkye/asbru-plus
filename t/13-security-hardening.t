@@ -365,6 +365,26 @@ subtest 'Config file HMAC integrity' => sub {
         'PAC::Crypto::HMAC: missing HMAC sidecar REJECTED when master password is set');
     like($pac_main, qr/_safe_retrieve/,
         'PACMain: Storable retrieve goes through safety wrapper');
+
+    # REGRESSION: every nstore() write to CFG_FILE_NFREEZE in
+    # _readConfiguration migration paths must be paired with a
+    # _writeConfigHMAC($CFG_FILE_NFREEZE) on the next non-blank line.
+    # Otherwise master-password users lose their config on the next
+    # launch (HMAC verify_for() rejects sidecar-missing files when
+    # a master_password_verifier is set).
+    my @nfreeze_writes = ($pac_main =~ m{
+        nstore\([^)]*\$CFG_FILE_NFREEZE\)\s*or\s+die[^\n]*\n
+        \s*_writeConfigHMAC\(\$CFG_FILE_NFREEZE\)
+    }gx);
+    cmp_ok(scalar(@nfreeze_writes), '>=', 4,
+        'PACMain: every NFREEZE migration nstore() is paired with _writeConfigHMAC');
+
+    my @r_cfg_writes = ($pac_main =~ m{
+        nstore\([^)]*\$R_CFG_FILE\)\s*or\s+die[^\n]*\n
+        \s*_writeConfigHMAC\(\$R_CFG_FILE\)
+    }gx);
+    cmp_ok(scalar(@r_cfg_writes), '>=', 4,
+        'PACMain: every R_CFG_FILE migration nstore() is paired with _writeConfigHMAC');
     like($pac_storage_stor, qr/Storable::Eval\s*=\s*0/,
         'PAC::Storage::Storable: enforces Storable::Eval=0');
 };

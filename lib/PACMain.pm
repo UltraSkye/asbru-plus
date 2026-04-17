@@ -3661,6 +3661,7 @@ sub _readConfiguration {
                 print STDERR "INFO: Used config file '$CFG_FILE_NFREEZE'\n";
                 if ($R_CFG_FILE) {
                     nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
+                    _writeConfigHMAC($R_CFG_FILE);
                 }
                 $continue = 0;
             }
@@ -3674,8 +3675,10 @@ sub _readConfiguration {
             print STDERR "INFO: Used config file '$CFG_FILE'\n";
             if ($R_CFG_FILE) {
                 nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
+                _writeConfigHMAC($R_CFG_FILE);
             }
             nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
+            _writeConfigHMAC($CFG_FILE_NFREEZE);
             $continue = 0;
         }
     }
@@ -3709,8 +3712,10 @@ sub _readConfiguration {
                 print STDERR "INFO: Used config file '$CFG_FILE_DUMPER' (loaded via Safe compartment)\n";
                 $$self{_CFG} = $result;
                 nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
+                _writeConfigHMAC($CFG_FILE_NFREEZE);
                 if ($R_CFG_FILE) {
                     nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
+                    _writeConfigHMAC($R_CFG_FILE);
                 }
                 $continue = 0;
             }
@@ -3730,8 +3735,10 @@ sub _readConfiguration {
             } else {
                 print STDERR "INFO: Used config file '$CFG_FILE_FREEZE'\n";
                 nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
+                _writeConfigHMAC($CFG_FILE_NFREEZE);
                 if ($R_CFG_FILE) {
                     nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
+                    _writeConfigHMAC($R_CFG_FILE);
                 }
                 unlink($CFG_FILE_FREEZE);
                 $continue = 0;
@@ -3746,8 +3753,10 @@ sub _readConfiguration {
         $$self{_CFG} = _cfgCheckMigrationV3();
         copy($CFG_FILE, "${CFG_FILE}.prev3") or die "ERROR: Could not copy pre v.3 cfg file '$CFG_FILE' to '$CFG_FILE.prev3': $!\n";
         nstore($$self{_CFG}, $CFG_FILE_NFREEZE) or die "ERROR: Could not save config file '$CFG_FILE_NFREEZE': $!\n";
+        _writeConfigHMAC($CFG_FILE_NFREEZE);
         if ($R_CFG_FILE) {
             nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
+            _writeConfigHMAC($R_CFG_FILE);
         }
         $continue = 0;
     }
