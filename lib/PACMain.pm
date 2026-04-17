@@ -3497,108 +3497,11 @@ sub _toggleTheme {
     return 1;
 }
 
+# About dialog lives in PAC::Window::About.
+require PAC::Window::About;
 sub _showAboutWindow {
     my $self = shift;
-
-    my $dlg = Gtk3::Dialog->new();
-    $dlg->set_transient_for($$self{_GUI}{main});
-    $dlg->set_modal(1);
-    $dlg->set_title("About $APPNAME");
-    $dlg->set_default_size(560, 0);
-    $dlg->set_icon_name('asbru-app-big');
-    $dlg->set_resizable(0);
-    $dlg->get_style_context->add_class('asbru-about');
-
-    my $content = $dlg->get_content_area;
-    $content->set_border_width(28);
-    $content->set_spacing(16);
-
-    # Logo (smaller than 400px to keep dialog compact)
-    my $logo = Gtk3::Image->new_from_file("$RES_DIR/asbru-logo-256.png");
-    $logo->set_pixel_size(120);
-    $logo->set_halign('center');
-    $content->pack_start($logo, 0, 0, 0);
-
-    # Title block
-    my $title = Gtk3::Label->new();
-    $title->set_markup("<span size='xx-large' weight='bold'>$APPNAME</span>");
-    $title->set_halign('center');
-    $content->pack_start($title, 0, 0, 0);
-
-    my $tagline = Gtk3::Label->new();
-    $tagline->set_markup("<span size='medium'>A modern fork of <b>Ásbrú Connection Manager</b></span>");
-    $tagline->set_halign('center');
-    $content->pack_start($tagline, 0, 0, 0);
-
-    my $version = Gtk3::Label->new();
-    $version->set_markup("<span size='small' alpha='65%'>Version $APPVERSION</span>");
-    $version->set_halign('center');
-    $content->pack_start($version, 0, 0, 0);
-
-    # Separator
-    my $sep = Gtk3::Separator->new('horizontal');
-    $sep->set_margin_top(8);
-    $sep->set_margin_bottom(8);
-    $content->pack_start($sep, 0, 0, 0);
-
-    # Info grid: maintainer / repo / license / based on
-    my $grid = Gtk3::Grid->new();
-    $grid->set_column_spacing(16);
-    $grid->set_row_spacing(8);
-    $grid->set_halign('center');
-
-    my @rows = (
-        ['Fork by',     '<a href="https://github.com/UltraSkye/asbru-plus">UltraSkye/asbru-plus</a>'],
-        ['Upstream',    '<a href="https://github.com/asbru-cm/asbru-cm">asbru-cm/asbru-cm</a>'],
-        ['Original',    'David Torrejón Vaquerizas (2010–2016)'],
-        ['Maintainers', 'Ásbrú Connection Manager team (2017–2026)'],
-        ['License',     'GPL-3.0-or-later'],
-        ['Platform',    'Linux · GTK 3'],
-    );
-    my $r = 0;
-    for my $row (@rows) {
-        my ($k, $v) = @$row;
-        my $key = Gtk3::Label->new();
-        $key->set_markup("<b>$k</b>");
-        $key->set_halign('end');
-        $grid->attach($key, 0, $r, 1, 1);
-        my $val = Gtk3::Label->new();
-        $val->set_markup($v);
-        $val->set_halign('start');
-        $val->set_use_markup(1);
-        $val->set_selectable(1);
-        $grid->attach($val, 1, $r, 1, 1);
-        $r++;
-    }
-    $content->pack_start($grid, 0, 0, 0);
-
-    # Action area: Close + Visit repo
-    my $area = $dlg->get_action_area;
-    $area->set_layout('end');
-    $area->set_spacing(8);
-    $area->set_border_width(12);
-
-    my $btnClose = Gtk3::Button->new_with_label('Close');
-    $btnClose->signal_connect('clicked' => sub { $dlg->destroy; });
-
-    my $btnRepo = Gtk3::Button->new_with_label('Visit Repository');
-    $btnRepo->get_style_context->add_class('suggested-action');
-    $btnRepo->signal_connect('clicked' => sub {
-        my $url = 'https://github.com/UltraSkye/asbru-plus';
-        my $opened = 0;
-        for my $cmd (['xdg-open', $url], ['gio', 'open', $url], ['sensible-browser', $url], ['firefox', $url]) {
-            if (system(@$cmd) == 0) { $opened = 1; last; }
-        }
-        _wMessage($dlg, "Open this URL manually:\n$url") unless $opened;
-    });
-
-    $area->pack_end($btnRepo, 0, 0, 0);
-    $area->pack_end($btnClose, 0, 0, 0);
-
-    $dlg->show_all;
-    $dlg->run;
-    $dlg->destroy if Gtk3::Widget::is_visible($dlg);
-    return 1;
+    return PAC::Window::About::show($$self{_GUI}{main});
 }
 
 sub _startCluster {
