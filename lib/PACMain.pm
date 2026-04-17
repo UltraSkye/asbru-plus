@@ -4882,68 +4882,12 @@ sub _sendAppMessage {
 }
 
 # Set and recover conflictive options
-sub _setSafeLayoutOptions {
-    my ($self,$layout) = @_;
-
-    if ($layout eq 'Compact') {
-        # This layout to work implies some configuration settings to work correctly
-        $$self{_CFG}{'defaults'}{'tabs in main window'} = 0;
-        $$self{_CFG}{'defaults'}{'auto hide connections list'} = 0;
-        if (!$STRAY) {
-            $$self{_CFG}{'defaults'}{'start iconified'} = 0;
-        } else {
-            $$self{_CFG}{'defaults'}{'close to tray'} = 1;
-        }
-    } else {
-        # Traditional
-        if ((!defined $$self{_CFG}{'defaults'}{'layout traditional settings'})||($$self{_CFG}{'defaults'}{'layout previous'} eq $layout)) {
-            # Load current traditional options that are changed in Compact mode
-            $$self{_CFG}{'defaults'}{'lt tabs in main window'} = $$self{_CFG}{'defaults'}{'tabs in main window'};
-            $$self{_CFG}{'defaults'}{'layout traditional settings'} = 1;
-            $$self{_CFG}{'defaults'}{'lt start iconified'} = $$self{_CFG}{'defaults'}{'start iconified'};
-            $$self{_CFG}{'defaults'}{'lt close to tray'} = $$self{_CFG}{'defaults'}{'close to tray'};
-            $$self{_CFG}{'defaults'}{'lt auto save'} = $$self{_CFG}{'defaults'}{'auto save'};
-        } elsif (($$self{_CFG}{'defaults'}{'layout previous'} ne $layout) && (defined defined $$self{_CFG}{'defaults'}{'layout traditional settings'})) {
-            # Recover previous know settings after comming back from compact layout
-            $$self{_CFG}{'defaults'}{'tabs in main window'} = $$self{_CFG}{'defaults'}{'lt tabs in main window'};
-            $$self{_CFG}{'defaults'}{'start iconified'} = $$self{_CFG}{'defaults'}{'lt start iconified'};
-            $$self{_CFG}{'defaults'}{'close to tray'} = $$self{_CFG}{'defaults'}{'lt close to tray'};
-            $$self{_CFG}{'defaults'}{'auto save'} = $$self{_CFG}{'defaults'}{'lt auto save'};
-        }
-    }
-    $$self{_CFG}{'defaults'}{'layout previous'} = $layout;
-}
+# Layout helpers live in PAC::Window::Layout.
+require PAC::Window::Layout;
+sub _setSafeLayoutOptions { goto &PAC::Window::Layout::set_safe_options; }
 
 # Apply layout to window and widgets
-sub _ApplyLayout {
-    my ($self,$layout) = @_;
-
-    if ($layout eq 'Compact') {
-        my $H = Gtk3::Gdk::Screen::get_default()->get_height()-100;
-        $$self{wheight} = 600;
-
-        if ($H < $$self{wheight}) {
-            # Set a good height on smaller screens
-            $$self{wheight} = int($H*0.8);
-        }
-        # This layout to work implies some configuration settings to work correctly
-        foreach my $e ('hbuttonbox1','connSearch','connExecBtn','connQuickBtn','connFavourite','vboxConnectionPanel','vboxInfo') {
-            $$self{_GUI}{$e}->hide();
-        }
-        if (!$STRAY) {
-            if (!$$self{_GUI}{main}->get_visible()) {
-                $self->_showConnectionsList();
-            }
-        } else {
-            if ($$self{_GUI}{main}->get_visible()) {
-                $self->_hideConnectionsList();
-            }
-            $$self{_GUI}{main}->set_type_hint('popup-menu');
-        }
-        $$self{_GUI}{main}->set_default_size(220, $$self{wheight});
-        $$self{_GUI}{main}->resize(220, $$self{wheight});
-    }
-}
+sub _ApplyLayout { goto &PAC::Window::Layout::apply; }
 
 # Test various options supported by the VTE library
 # to centralize all tests concerning VTE into a single function
