@@ -568,22 +568,42 @@ sub _locateEntries {
         $search_command = 'locate';
         $search_term = '/';
     }
-    $timestamp = stat($$cfg{database})->mtime;
+    # stat() returns false (not undef) on missing/unreadable file;
+    # calling ->mtime on the returned value would die with "Can't call
+    # method 'mtime' on an undefined value", killing the whole search
+    # (and surfacing as an unhelpful crash) when the user moves /
+    # deletes the KeePass DB while Asbru is running. Treat a stat()
+    # failure as "DB inaccessible" and bail out cleanly.
+    my $stat = stat($$cfg{database});
+    if (!$stat) {
+        warn "PACKeePass: cannot stat KeePass database '$$cfg{database}': $!\n";
+        return ();
+    }
+    $timestamp = $stat->mtime;
     if (!@KPXC_LIST || $$self{'last_timestamp'} != $timestamp) {
         @KPXC_LIST = ();
         $$self{'last_timestamp'} = $timestamp;
         {
+            # Wrap in eval{} so a die() from open2() (e.g. keepassxc-cli
+            # not in PATH, or DB suddenly gone) doesn't escape with our
+            # STDERR still redirected to /dev/null. Without this, every
+            # subsequent error in the session would silently disappear
+            # because the dup-back at the end of the block would never run.
             open(my $saverr, '>&', \*STDERR) or warn "Cannot dup STDERR: $!";
             open(STDERR, '>', '/dev/null') or warn "Cannot redirect STDERR: $!";
-            # SECURITY: Use list form to prevent shell injection via search term or database path
-            my @cmd = _kpxc_cmd_list($self, $search_command, $cfg, $search_term);
-            $pid = open2(my $reader, my $writer, @cmd);
-            print $writer "$KPXC_MP\n";
-            close $writer;
-            @KPXC_LIST = <$reader>;
-            waitpid($pid, 0);
-            close $reader;
+            eval {
+                # SECURITY: Use list form to prevent shell injection via search term or database path
+                my @cmd = _kpxc_cmd_list($self, $search_command, $cfg, $search_term);
+                $pid = open2(my $reader, my $writer, @cmd);
+                print $writer "$KPXC_MP\n";
+                close $writer;
+                @KPXC_LIST = <$reader>;
+                waitpid($pid, 0);
+                close $reader;
+            };
+            my $err = $@;
             open(STDERR, '>&', $saverr) if $saverr;
+            warn "PACKeePass: keepassxc-cli search failed: $err" if $err;
         };
     }
     @out = sort grep(/$str/i,@KPXC_LIST);

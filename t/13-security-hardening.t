@@ -487,6 +487,17 @@ subtest 'KeePass uses list-form open3' => sub {
         'PACKeePass: open2 called with list form (@cmd)');
     unlike($pac_keepass, qr/open3\(.*"'\$CLI'/,
         'PACKeePass: no string-form open3 with shell interpolation');
+    # REGRESSION: stat()->mtime crashes when DB is missing/unreadable.
+    # Defensive check: stat result must be assigned and tested before
+    # being dereferenced.
+    like($pac_keepass,
+        qr/my \$stat = stat\(\$\$cfg\{database\}\);\s*\n\s*if \(!\$stat\)/,
+        'PACKeePass: defensive stat() before ->mtime (DB-missing-safe)');
+    # REGRESSION: STDERR redirect must not leak past a die() inside the
+    # open2 block — eval-wrap and restore on every path.
+    like($pac_keepass,
+        qr/eval \{[^}]*open2\([^}]*\};.*?\n\s*my \$err = \$\@;\s*\n\s*open\(STDERR/s,
+        'PACKeePass: STDERR is restored even when open2 dies');
 };
 
 # ── H-3: YAML LoadBlessed disabled ──────────────────────────────────────────
