@@ -117,6 +117,7 @@ sub update
     $$self{gui}{cbSSHProtocol}->set_active($IP_PROTOCOL{$$options{ipVersion} // 'any'});
     $$self{gui}{chNoRemoteCmd}->set_active($$options{noRemoteCmd});
     $$self{gui}{chpseudoTerminal}->set_active($$options{pseudoTerminal});
+    $$self{gui}{chKeepAlive}->set_active($$options{keepAlive});
     $$self{gui}{chForwardX}->set_active($$options{forwardX});
     $$self{gui}{chUseCompression}->set_active($$options{useCompression});
     $$self{gui}{chAllowPortConnect}->set_active($$options{allowRemoteConnection});
@@ -208,6 +209,7 @@ sub get_cfg
     $options{ipVersion} = $$self{gui}{cbSSHProtocol}->get_active_text();
     $options{noRemoteCmd} = $$self{gui}{chNoRemoteCmd}->get_active();
     $options{pseudoTerminal} = $$self{gui}{chpseudoTerminal}->get_active();
+    $options{keepAlive} = $$self{gui}{chKeepAlive}->get_active();
     $options{forwardX} = $$self{gui}{chForwardX}->get_active();
     $options{useCompression} = $$self{gui}{chUseCompression}->get_active();
     $options{allowRemoteConnection} = $$self{gui}{chAllowPortConnect}->get_active();
@@ -290,6 +292,7 @@ sub _parseCfgToOptions
     my %options;
     $options{noRemoteCmd} = 0;
     $options{pseudoTerminal} = 0;
+    $options{keepAlive} = 0;
     $options{allowRemoteConnection} = 0;
     $options{forwardAgent} = 0;
     @{$options{forwardPort}} = ();
@@ -366,6 +369,7 @@ sub _parseOptionsToCfg
     $txt .= ' -' . ($$hash{forwardX} ? 'X' : 'x');
     $txt .= ' -N' if $$hash{noRemoteCmd};
     $txt .= ' -T' if $$hash{pseudoTerminal};
+    $txt .= ' -o "ServerAliveInterval=60" -o "ServerAliveCountMax=3"' if $$hash{keepAlive};
     $txt .= ' -C' if $$hash{useCompression} ;
     $txt .= ' -g' if $$hash{allowRemoteConnection};
     $txt .= ' -A' if $$hash{forwardAgent};
@@ -498,6 +502,10 @@ sub _buildGUI
     $w{chpseudoTerminal} = Gtk3::CheckButton->new_with_label('Disable pseudo-terminal allocation');
     $hbox2->pack_start($w{chpseudoTerminal}, 1, 1, 0);
     $w{chpseudoTerminal}->set_tooltip_text('[-T]: Disable pseudo-terminal allocation');
+
+    $w{chKeepAlive} = Gtk3::CheckButton->new_with_label('Keep connection alive');
+    $hbox2->pack_start($w{chKeepAlive}, 1, 1, 0);
+    $w{chKeepAlive}->set_tooltip_text('Send a no-op packet every 60s to prevent NAT/firewall timeouts (-o ServerAliveInterval=60 -o ServerAliveCountMax=3)');
 
     $w{chRandomSocksTunnel} = Gtk3::CheckButton->new_with_label('Create random SOCKS tunnel');
     $hbox2->pack_start($w{chRandomSocksTunnel}, 1, 1, 0);
