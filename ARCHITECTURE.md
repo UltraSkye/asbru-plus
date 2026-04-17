@@ -82,9 +82,9 @@ state in commit c9e42c8 to see what changed.
 | Module | Was | Now | Notes |
 |--------|----:|----:|-------|
 | `lib/PACUtils.pm` | 4 479 | **712** | −84%. Mostly proxies + translation helpers + `our $CIPHER` alias for back-compat |
-| `lib/PACMain.pm`  | 6 211 | **5 736** | −8%. Several focused pieces extracted; the bulk is the application class itself |
+| `lib/PACMain.pm`  | 6 211 | **4 761** | −23%. Phase 4 extractions cover sidebar refresh, connections-list panel, config save, tree build, master-password prompt, terminal focus, etc. The bulk that remains is the application class itself |
 | `lib/PACTerminal.pm` | 5 020 | 5 020 | unchanged |
-| `lib/asbru_conn` | 2 759 | 2 759 | unchanged |
+| `lib/asbru_conn` | 2 759 | 2 753 | dead helpers + PPK passphrase temp-file leak fix |
 | `lib/ex/KeePass.pm` | 2 317 | 2 317 | vendored, do not modify |
 | `lib/PACScripts.pm` | 1 985 | 1 985 | unchanged |
 | `lib/PACCluster.pm` | 1 728 | 1 728 | unchanged |
@@ -94,7 +94,7 @@ state in commit c9e42c8 to see what changed.
 | `lib/PACKeePass.pm` | 1 032 | 1 032 | unchanged |
 | `lib/PACEdit.pm` | 1 026 | 1 026 | unchanged |
 
-### New (PAC::* hierarchy — 36 modules)
+### New (PAC::* hierarchy — 46 modules)
 
 The new namespace organizes by responsibility. Every entry has POD,
 strict perlcritic gate (severity 3), and at least one focused test
@@ -105,14 +105,19 @@ file.
 | `PAC::*` (top) | Globals, Logger, Vault, Subst, Methods, Menu, SessionLog, WakeOnLan, Clipboard, Dialog | Cross-cutting domain code |
 | `PAC::Crypto::*` | Cipher, HMAC | Symmetric crypto + integrity (extracted from PACUtils + PACMain) |
 | `PAC::Storage::*` | Yaml, Storable | Safe persistence wrappers (LoadBlessed=0, Storable::Eval=0) |
-| `PAC::Config::*` | Schema, SanityCheck, TmpSessions | Declarative + legacy config validation, tmp-session strip/restore |
+| `PAC::Config::*` | Schema, SanityCheck, TmpSessions, **Save** | Declarative + legacy config validation, tmp-session strip/restore, full save pipeline (flock + symlink-refusal + HMAC sidecar) |
 | `PAC::Net::*` | SshConfig, SshOptions, UpdateCheck, WindowList | SSH config parser, options normalizer, GitHub release check, X11 window list |
 | `PAC::Theme::*` | Icons, DesktopFile, Image, Widget, Switch | Icon factory, .desktop generator, pixbuf helpers, widget styling, theme toggle |
-| `PAC::Window::*` | Splash, About | Top-level windows (only About + Splash so far) |
-| `PAC::Dialog::*` | Dialog (top), PopupMenu | Modal dialogs + context menus |
-| `PAC::Tree::*` | Sort, State | Connection-tree comparator + expanded-state persistence |
-| `PAC::Terminal::*` | Encodings, Vte | Terminal-related domain (charsets + VTE version-tolerant wrappers) |
-| `PAC::Util::*` | ShellEscape, TreeSelection, Readme | Stateless utilities |
+| `PAC::Window::*` | Splash, About, **Layout**, **State**, **ConnectionsList** | Top-level windows + window-state persistence + Traditional/Compact layout switcher + sidebar panel show/hide |
+| `PAC::Dialog::*` | Dialog (top), PopupMenu, **BulkEdit**, **MasterPasswordPrompt** | Modal dialogs + context menus + bulk-edit grid + first-run vault prompt |
+| `PAC::Tree::*` | Sort, State, **Build** | Connection-tree comparator + expanded-state persistence + data-array builder |
+| `PAC::Terminal::*` | Encodings, Vte, **Focus** | Terminal-related domain (charsets + VTE version-tolerant wrappers + tab-focus management) |
+| `PAC::UI::*` | **Refresh** | Sidebar tab refresh + info-pane refresh (8 functions: connections/favourites/history/clusters tabs + their model rebuilders + with_uuid info-pane sync) |
+| `PAC::Util::*` | ShellEscape, TreeSelection, Readme, **ImportScan** | Stateless utilities + recursive scan of imported YAML for shell-injection patterns |
+
+Bold entries arrived during Phase 4 (post-2026-04 PACMain
+extraction wave); see `git log --grep "feat(.*): extract"` for
+the per-module history.
 
 The boundaries are **leaky**:
 
@@ -128,32 +133,59 @@ mass-style breaks `git blame` and complicates upstream merges, so the
 plan is to extract one well-bounded chunk at a time. Until then, here
 is where to look in each:
 
-### `lib/PACMain.pm` (5 736 lines, 64 subs)
+### `lib/PACMain.pm` (4 761 lines)
 
-Pieces already extracted in Phase 4: `_showAboutWindow` →
-`PAC::Window::About`, `_setVteCapabilities` →
-`PAC::Terminal::Vte::probe`, the HTTP half of `_checkForUpdates` →
-`PAC::Net::UpdateCheck`, theme machinery → `PAC::Theme::Switch`,
-tree-state persistence → `PAC::Tree::State`. Wrappers/proxies remain
-in PACMain so existing callsites are unchanged.
+Phase 4 extractions (each leaves a 1-line `goto`-proxy in PACMain
+so existing callsites stay unchanged — see the `=head1 EXTRACTED
+MODULES` POD section at the bottom of PACMain.pm for the full
+cross-reference list):
 
-Key remaining sections:
+- `_showAboutWindow` → `PAC::Window::About::show`
+- `_setVteCapabilities` → `PAC::Terminal::Vte::probe`
+- `_checkForUpdates` (HTTP half) → `PAC::Net::UpdateCheck`
+- `_toggleTheme` / `_resetStyleRecursively` /
+  `_refreshImagesRecursively` → `PAC::Theme::Switch`
+- `_saveTreeExpanded` / `_loadTreeExpanded` → `PAC::Tree::State`
+- `_saveGUIData` / `_loadGUIData` → `PAC::Window::State`
+- `_setSafeLayoutOptions` / `_ApplyLayout` → `PAC::Window::Layout`
+- `_showConnectionsList` / `_hideConnectionsList` /
+  `_toggleConnectionsList` / `_doToggleDisplayConnectionsList`
+  → `PAC::Window::ConnectionsList`
+- `_doFocusPage` → `PAC::Terminal::Focus::focus_page`
+- `_updateGUIWithUUID` / `_clearLeftMenuTabLabels` /
+  `_updateGUIPreferences` / `_updateGUIFavourites` /
+  `_updateGUIHistory` / `_updateGUIClusters` /
+  `_updateClustersList` / `_updateFavouritesList`
+  → `PAC::UI::Refresh`
+- `_saveConfiguration` → `PAC::Config::Save::save`
+- `_loadTreeConfiguration` / `__recurLoadTree` →
+  `PAC::Tree::Build`
+- `_promptSetMasterPassword` →
+  `PAC::Dialog::MasterPasswordPrompt`
+- `_bulkEdit` → `PAC::Dialog::BulkEdit`
+- `_writeConfigHMAC` / `_verifyConfigHMAC` / `_ct_eq` →
+  `PAC::Crypto::HMAC`
+- `_safe_retrieve` → `PAC::Storage::Storable`
+- the YAML-import shell-injection scan inside `__importNodes` →
+  `PAC::Util::ImportScan`
 
-| Section | Functions |
-|---------|-----------|
-| App lifecycle | `new` (~330 lines), `start`, `DESTROY`, `_quitProgram` (~110) |
-| Main window UI build | `_initGUI` (~723 lines) |
-| GTK signal wiring | `_setupCallbacks` (~1 268 lines) |
-| Tree menus + favorites + lock | many small |
-| Save / load configuration | `_saveConfiguration`, `_readConfiguration` |
-| Master password + GUI prefs | `_promptSetMasterPassword`, `_loadTreeConfiguration` |
-| Clone / dup / export / import | `_pasteNodes`, `__dupNodes`, `__exportNodes`, `__importNodes`, `__importSshConfig` |
-| Bulk edit | `_bulkEdit` (~345 lines) |
+Key sections still implemented in PACMain itself:
+
+| Section | Functions | Notes |
+|---------|-----------|-------|
+| App lifecycle | `new`, `start`, `DESTROY`, `_quitProgram` (~110) | Lifecycle code; risky to split |
+| Main window UI build | `_initGUI` (~723 lines) | Glade widget wiring |
+| GTK signal wiring | `_setupCallbacks` (~1 268 lines) | Event handler installation |
+| Tree menus + favourites + lock | many small | `_treeConnections_menu*`, `_lockAsbru`, `_unlockAsbru`, `__treeBuildNodeName`, etc. |
+| Read configuration | `_readConfiguration` (~200) | Includes vendor-cfg overlay + HMAC verification + Safe-compartment fallback |
+| Cluster launch | `_startCluster`, `_launchTerminals` | |
+| Clone / dup / export / import | `_copyNodes`, `_cutNodes`, `_pasteNodes`, `__dupNodes`, `__exportNodes`, `__importNodes`, `__importSshConfig` | |
+| `_setCFGChanged` / `_sendAppMessage` / `_getCurrentTree` | small leaf helpers | |
 
 Most of the remaining bulk is the PACMain class itself: methods
-that mutate `\$\$self` and call into the GUI hierarchy. Further
+that mutate `$$self` and call into the GUI hierarchy. Further
 mechanical extraction has diminishing returns — a real reduction
-needs a class split (PAC::App + PAC::Window::Main), which is
+needs a class split (`PAC::App` + `PAC::Window::Main`), which is
 high-risk and out of scope for this phase.
 
 ### `lib/PACUtils.pm` (712 lines, mostly proxies)
