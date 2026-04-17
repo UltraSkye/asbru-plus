@@ -86,9 +86,19 @@ sub set_file {
         $LOG_FILE_PATH = undef;
         return;
     }
+    # SECURITY: log may contain sensitive context. Tighten umask to
+    # 0077 around the create so a brand-new log file is mode 0600
+    # atomically — the trailing chmod is now belt-and-suspenders for
+    # the case where the file already existed at wider perms (chmod
+    # under append-open does not by itself widen an already-tight
+    # file). Without the umask wrap, a process killed between open
+    # and chmod could leave a brand-new 0644 log on disk that
+    # subsequent appends would silently extend.
+    my $old_umask = umask(0077);
     open(my $fh, '>>', $path)
-        or Carp::croak("PAC::Logger::set_file: cannot open $path: $!");
-    chmod 0600, $path;        # log may contain sensitive context
+        or do { umask($old_umask); Carp::croak("PAC::Logger::set_file: cannot open $path: $!"); };
+    umask($old_umask);
+    chmod 0600, $path;
     $fh->autoflush(1);
     if ($LOG_FILE_FH) { close $LOG_FILE_FH; }
     $LOG_FILE_FH   = $fh;

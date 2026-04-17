@@ -63,6 +63,18 @@ PAC::Logger::info("file-info-msg");
 my $mode = (stat $log_path)[2] & 07777;
 is($mode, 0600, 'log file chmod 0600');
 
+# REGRESSION: the mode-0600 must come from a tightened umask wrapping
+# the open(), not just from the trailing chmod — otherwise a process
+# killed between open and chmod leaves a brand-new 0644 log on disk
+# that subsequent appends silently extend (logs may contain credentials).
+my $logger_src = do {
+    open my $fh_src, '<', "$RealBin/../lib/PAC/Logger.pm" or die "open: $!";
+    local $/; <$fh_src>;
+};
+like($logger_src,
+    qr/umask\(0077\).*?\n\s*open\(my \$fh,\s*'>>'\s*,\s*\$path\)/s,
+    'set_file: umask(0077) wraps the open (no TOCTOU)');
+
 # Check contents
 open(my $fh, '<', $log_path) or die "open: $!";
 my $contents = do { local $/; <$fh> };
