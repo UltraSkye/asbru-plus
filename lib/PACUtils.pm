@@ -379,27 +379,11 @@ sub _wSetPACPassword { goto &PAC::Dialog::_wSetPACPassword; }
 require PAC::Config::SanityCheck;
 sub _cfgSanityCheck { goto &PAC::Config::SanityCheck::run; }
 
-sub _cfgGetTmpSessions {
-    my $cfg = shift;
-    my %tmp;
+# Temp session strip/restore lives in PAC::Config::TmpSessions.
+require PAC::Config::TmpSessions;
+sub _cfgGetTmpSessions { goto &PAC::Config::TmpSessions::extract; }
 
-    foreach my $uuid (keys %{$$cfg{'environments'}}) {
-        if ($uuid =~ /^(HASH|_tmp_|pacshell_PID)/go) {
-            $tmp{$uuid} = $$cfg{'environments'}{$uuid};
-        }
-    }
-
-    return %tmp;
-}
-
-sub _cfgAddSessions {
-    my $cfg = shift;
-    my $tmp = shift;
-
-    foreach my $uuid (keys %{$tmp}) {
-        $$cfg{'environments'}{$uuid} = $tmp->{$uuid};
-    }
-}
+sub _cfgAddSessions { goto &PAC::Config::TmpSessions::restore; }
 
 # SSH options parser lives in PAC::Net::SshOptions.
 require PAC::Net::SshOptions;
@@ -465,17 +449,9 @@ sub _makeDesktopFile { goto &PAC::Theme::DesktopFile::generate; }
 require PAC::Theme::Widget;
 sub _updateWidgetColor { goto &PAC::Theme::Widget::update_color; }
 
-sub _getSelectedRows {
-    my $treeSelection = shift;
-    # https://metacpan.org/pod/Gtk3
-    # "Gtk3::TreeSelection: get_selected_rows() now returns two values: an array ref containing the selected paths, and the model."
-    # Go back to the Gtk2 behavior: drop the model, return the selected paths as array.
-    my ($aref, $model) = $treeSelection->get_selected_rows();
-    if (!$aref) {
-        return ();
-    }
-    return @$aref;
-}
+# Tree selection helper lives in PAC::Util::TreeSelection.
+require PAC::Util::TreeSelection;
+sub _getSelectedRows { goto &PAC::Util::TreeSelection::rows; }
 
 # VTE feed helpers live in PAC::Terminal::Vte.
 require PAC::Terminal::Vte;
