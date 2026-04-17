@@ -5795,15 +5795,10 @@ sub _writeConfigHMAC  { goto &PAC::Crypto::HMAC::write_for; }
 sub _verifyConfigHMAC { goto &PAC::Crypto::HMAC::verify_for; }
 sub _ct_eq            { goto &PAC::Crypto::HMAC::ct_eq; }
 
-# SECURITY: thin wrapper that disables Storable code execution paths
-# *before* every retrieve. Use this everywhere instead of bare retrieve().
-sub _safe_retrieve {
-    my $path = shift;
-    local $Storable::Eval     = 0;
-    local $Storable::Deparse  = 0;
-    local $Storable::forgive_me = 0;
-    return retrieve($path);
-}
+# Safe Storable retrieve lives in PAC::Storage::Storable. PACMain keeps
+# a 1-line proxy so the 4 internal callsites continue to work unchanged.
+require PAC::Storage::Storable;
+sub _safe_retrieve { goto &PAC::Storage::Storable::safe_retrieve; }
 
 # END: Define PRIVATE CLASS functions
 ###################################################################
