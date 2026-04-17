@@ -4001,65 +4001,11 @@ sub _saveTreeExpanded { goto &PAC::Tree::State::save; }
 
 sub _loadTreeExpanded { goto &PAC::Tree::State::load; }
 
-sub _saveGUIData {
-    my $self = shift;
+# Window position state lives in PAC::Window::State.
+require PAC::Window::State;
+sub _saveGUIData { goto &PAC::Window::State::save; }
 
-    open(my $fh, '>:utf8', "$CFG_FILE.gui") or die "ERROR: Could not save GUI Config file '$CFG_FILE.gui': $!\n";
-
-    # Save Top Window size/position
-    if ($$self{_GUI}{maximized}) {
-        print $fh 'maximized';
-    } else {
-        my ($x, $y) = $$self{_GUI}{main}->get_position();
-        my ($w, $h) = $$self{_GUI}{main}->get_size();
-        print $fh $x . ':' . $y . ':' . $w . ':' . $h;
-
-        if ($$self{_VERBOSE}) {
-            print STDERR "DEBUG: Saving window position = ($x, $y) ; window size ($w, $h)\n";
-        }
-    }
-    print $fh "\n";
-
-    # Save connections list width
-    my $treepos = $$self{_GUI}{hpane}->get_position();
-    print $fh $treepos . "\n";
-
-    close $fh;
-
-    return 1;
-}
-
-sub _loadGUIData {
-    my $self = shift;
-
-    if (!-f "$CFG_FILE.gui") {
-        return 1;
-    }
-
-    open(my $fh, '<:utf8', "$CFG_FILE.gui") or die "ERROR: Could not read GUI Config file '$CFG_FILE.gui': $!\n";
-
-    # Read top level window's psize/position
-    my $win = <$fh>;
-    chomp $win;
-
-    ($$self{_GUI}{posx}, $$self{_GUI}{posy}, $$self{_GUI}{sw}, $$self{_GUI}{sh}) =
-        $win eq 'maximized'
-        ? ('maximized', 'maximized', 'maximized', 'maximized')
-        : split(':', $win);
-
-    if ($$self{_VERBOSE}) {
-        print STDERR "DEBUG: Starting window position = ($$self{_GUI}{posx}, $$self{_GUI}{posy}} ; window size ($$self{_GUI}{sw}, $$self{_GUI}{sh})\n";
-    }
-
-    # Read connections list width
-    my $tree = <$fh> // '-1';
-    chomp $tree;
-    $$self{_GUI}{hpanepos} = $tree;
-
-    close $fh;
-
-    return 1;
-}
+sub _loadGUIData { goto &PAC::Window::State::load; }
 
 sub _updateGUIWithUUID {
     my $self = shift;
