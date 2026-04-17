@@ -31,9 +31,15 @@ Tested on Ubuntu 20.04–24.04, Debian 11/12/13, Fedora 39+, RHEL 8/9, AlmaLinux
 - SOCKS5 proxy and SSH jump host support
 - Dynamic SSH port forwarding
 - Local and global variables (password vault, reusable strings)
-- Session logging and statistics
+- Session logging and statistics (now with auto-rotation on reopen)
 - Wake on LAN
 - GTK3 / GNOME integration with tray icon
+- **Bulk-import** SSH connections from `~/.ssh/config`
+- **Keep-alive** one-click toggle for SSH (`ServerAliveInterval=60`)
+- **Active forwards** shown in connection status tooltip
+- **Master password** vault with AES-256 + opensslv2 PBKDF (10 000 iter)
+- **Dark mode auto-detection** (GNOME `color-scheme`, GTK_THEME fallback)
+- **Wayland-aware** routing (auto-fallback to Xwayland for problem widgets)
 
 ## Installation
 
@@ -151,7 +157,27 @@ Allow the container access to your X server first: `xhost +local:docker`
 `--network host` is needed so SSH local port forwards and SOCKS tunnels bind
 to ports reachable from your host browser/tools.
 
+## What's new in 6.5.0
+
+User-facing additions ported from upstream and original to this fork:
+
+- **Import from ~/.ssh/config** — right-click → bulk-import OpenSSH hosts
+- **Keep connection alive** — checkbox in SSH options panel
+- **Disable bold** — terminal preference for low-contrast themes
+- **Hide Info tab** — preference; Ctrl+PgUp/Dn won't cycle through it
+- **Active SSH forwards in tooltip** — green status icon now lists `-L/-R/-D`
+- **Session log auto-rotation** — appends `.HHMMSS` instead of overwriting
+- **`<<ASK_PASS>>` keyword** — interactive password prompt in any subst-aware field
+- **`-T` (no PTY)** — checkbox in SSH options
+- **Backslash escapes** — `\n \r \t` honored in send/command fields
+
+Plus upstream fixes ported in: compact-mode crash, zoom drift,
+multi-select connect, `_getSelectedTerminals` arrayref, VTE feature
+detection (eval-probe), GNOME dark-mode detection.
+
 ## What's fixed vs upstream
+
+Bug fixes specific to this fork (not in upstream):
 
 - **Keyboard shortcuts** — modifier key detection was broken (`*` vs `->{}`)
 - **Telnet autologin** — now correctly sends `\r` per RFC 854
@@ -168,6 +194,10 @@ to ports reachable from your host browser/tools.
 - **Dark mode** — auto-detect GNOME `color-scheme` setting
 - **Screenshot cleanup** — automatic purge of orphaned files
 - **AlmaLinux 9 / RHEL 9 builds** — added to package build matrix
+- **Compact-mode crash** — guard for `btnShowButtonBar` when not built
+- **Zoom drift** — integer-cent arithmetic instead of `+= 0.1` floats
+- **OSSP::uuid → UUID::Tiny** — pure-Perl, no system library dep
+- **Wide-char STDERR** — `:utf8` layer in `asbru_conn` diagnostic output
 
 ## Security hardening
 
@@ -196,12 +226,14 @@ beyond what's in upstream:
 ## Running tests
 
 ```bash
-prove t/
+prove -lr t/
 ```
 
-Test suite covers security hardening, cryptography, config handling,
-connection methods, shell escaping, message framing, HMAC integrity, and
-Wake-on-LAN packet construction. 466 tests across 15 files.
+Test suite covers syntax, packaging, security hardening, cryptography,
+config handling, connection methods, shell escaping, message framing,
+HMAC integrity, Wake-on-LAN packet construction, dark-mode detection,
+Wayland routing, dump-uuid redaction, vault scaffold, dead-asset gates,
+and SSH config import. 540+ tests across 23 files.
 
 ## Relation to upstream
 
