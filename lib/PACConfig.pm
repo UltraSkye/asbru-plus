@@ -818,6 +818,9 @@ sub _updateGUIPreferences {
     if (!defined $$cfg{'defaults'}{'disable bold'}) {
         $$cfg{'defaults'}{'disable bold'} = 0;
     }
+    if (!defined $$cfg{'defaults'}{'hide info tab'}) {
+        $$cfg{'defaults'}{'hide info tab'} = 0;
+    }
     if (!defined $$cfg{'defaults'}{'unprotected set'}) {
         $$cfg{'defaults'}{'unprotected set'} = 'foreground';
     }
@@ -938,6 +941,7 @@ sub _updateGUIPreferences {
     _($self, 'colorBold')->set_sensitive(! _($self, 'cbBoldAsText')->get_active());
     _($self, 'chkBoldIsBrigth')->set_active($$cfg{'defaults'}{'bold is brigth'});
     _($self, 'chkDisableBold')->set_active($$cfg{'defaults'}{'disable bold'});
+    _($self, 'cbCfgHideInfoTab')->set_active($$cfg{'defaults'}{'hide info tab'});
     _updateWidgetColor($self, $$cfg{'defaults'}, 'colorConnected', 'connected color', _($self, 'colorText')->get_color()->to_string());
     _updateWidgetColor($self, $$cfg{'defaults'}, 'colorDisconnected', 'disconnected color', _($self, 'colorBlack')->get_color()->to_string());
     _updateWidgetColor($self, $$cfg{'defaults'}, 'colorNewData', 'new data color', _($self, 'colorNewData')->get_color()->to_string());
@@ -1163,6 +1167,7 @@ sub _saveConfiguration {
     $$self{_CFG}{'defaults'}{'bold color like text'} = _($self, 'cbBoldAsText')->get_active();
     $$self{_CFG}{'defaults'}{'bold is brigth'} = _($self, 'chkBoldIsBrigth')->get_active();
     $$self{_CFG}{'defaults'}{'disable bold'} = _($self, 'chkDisableBold')->get_active();
+    $$self{_CFG}{'defaults'}{'hide info tab'} = _($self, 'cbCfgHideInfoTab')->get_active();
     $$self{_CFG}{'defaults'}{'connected color'} = _($self, 'colorConnected')->get_color()->to_string();
     $$self{_CFG}{'defaults'}{'disconnected color'} = _($self, 'colorDisconnected')->get_color()->to_string();
     $$self{_CFG}{'defaults'}{'new data color'} = _($self, 'colorNewData')->get_color()->to_string();

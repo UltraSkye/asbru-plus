@@ -991,6 +991,12 @@ sub _initGUI {
     # Create a vboxInfo: description
     $$self{_GUI}{vboxInfo} = Gtk3::Box->new('vertical', 0);
     $$self{_GUI}{nbConnectionPanel}->append_page($$self{_GUI}{vboxInfo}, $tablbl);
+    # #1082: optionally hide the Info tab so Ctrl+PgUp/PgDn doesn't cycle through it.
+    if ($$self{_CFG}{'defaults'}{'hide info tab'}) {
+        $$self{_GUI}{vboxInfo}->hide();
+        my $page_num = $$self{_GUI}{nbConnectionPanel}->page_num($$self{_GUI}{vboxInfo});
+        $$self{_GUI}{nbConnectionPanel}->remove_page($page_num) if defined $page_num && $page_num >= 0;
+    }
 
     # Create a scrolled2 scrolled window to contain the description textview
     $$self{_GUI}{scrollDescription} = Gtk3::ScrolledWindow->new();
