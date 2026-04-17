@@ -24,6 +24,19 @@ my $pac_tray     = read_file('lib/PACTray.pm');
 my $pac_screenshots = read_file('lib/PACScreenshots.pm');
 my $asbru_cm     = read_file('asbru-cm');
 
+# After the Phase 2/3 extractions, several security gates moved out of
+# PACUtils into focused PAC::* modules. Read them all so the gates can
+# point at the correct file. The "all" string is convenient for checks
+# that don't care which file holds the pattern any more.
+my $pac_crypto_cipher  = read_file('lib/PAC/Crypto/Cipher.pm');
+my $pac_crypto_hmac    = read_file('lib/PAC/Crypto/HMAC.pm');
+my $pac_subst          = read_file('lib/PAC/Subst.pm');
+my $pac_cfg_sanity     = read_file('lib/PAC/Config/SanityCheck.pm');
+my $pac_storage_stor   = read_file('lib/PAC/Storage/Storable.pm');
+my $pac_vault          = read_file('lib/PAC/Vault.pm');
+my $pac_utils_all      = $pac_utils . $pac_crypto_cipher . $pac_crypto_hmac
+                       . $pac_subst . $pac_cfg_sanity . $pac_vault;
+
 # ── Shell escape function ─────────────────────────────────────────────────────
 
 subtest '_doShellEscape covers all dangerous chars' => sub {
@@ -123,10 +136,11 @@ subtest 'KeePass CLI path is single-quoted' => sub {
 # ── CMD substitution has whitelist-based sanitization ────────────────────────
 
 subtest 'CMD substitution has injection protection' => sub {
-    like($pac_utils, qr/CMD.*Blocked.*disallowed/s,
-        'PACUtils: CMD substitution uses whitelist — blocks disallowed chars');
-    like($pac_utils, qr/\^\[\\w/,
-        'PACUtils: CMD whitelist uses character class approach');
+    # Moved to PAC::Subst in P3/1 extraction
+    like($pac_subst, qr/CMD.*Blocked.*disallowed/s,
+        'PAC::Subst: CMD substitution uses whitelist - blocks disallowed chars');
+    like($pac_subst, qr/\^\[\\w/,
+        'PAC::Subst: CMD whitelist uses character class approach');
 };
 
 # ── No rm -rf via shell in main files ────────────────────────────────────────
@@ -141,23 +155,29 @@ subtest 'No shell rm -rf in main files' => sub {
 # ── Encryption uses AES (Rijndael) not Blowfish for new data ────────────────
 
 subtest 'Encryption uses AES-256 / Rijndael' => sub {
-    like($pac_utils, qr/Crypt::Rijndael/,
-        'PACUtils: uses Crypt::Rijndael (AES)');
-    like($pac_utils, qr/opensslv2/,
-        'PACUtils: uses opensslv2 PBKDF');
+    # Moved to PAC::Crypto::Cipher in P2/1 extraction
+    like($pac_crypto_cipher, qr/Crypt::Rijndael/,
+        'PAC::Crypto::Cipher: uses Crypt::Rijndael (AES)');
+    like($pac_crypto_cipher, qr/opensslv2/,
+        'PAC::Crypto::Cipher: uses opensslv2 PBKDF');
 };
 
 # ── Master password infrastructure ──────────────────────────────────────────
 
 subtest 'Master password system exists' => sub {
+    # Compat proxies remain in PACUtils; real impl in PAC::Vault
     like($pac_utils, qr/sub _initMasterCipher/,
-        'PACUtils: _initMasterCipher function exists');
+        'PACUtils: _initMasterCipher proxy exists');
     like($pac_utils, qr/sub _createMasterVerifier/,
-        'PACUtils: _createMasterVerifier function exists');
+        'PACUtils: _createMasterVerifier proxy exists');
     like($pac_utils, qr/sub _verifyMasterPassword/,
-        'PACUtils: _verifyMasterPassword function exists');
+        'PACUtils: _verifyMasterPassword proxy exists');
     like($pac_utils, qr/sub _migrateCipherCFG/,
         'PACUtils: _migrateCipherCFG function exists');
+    like($pac_vault, qr/sub _create_verifier/,
+        'PAC::Vault: _create_verifier real impl exists');
+    like($pac_vault, qr/sub _verify\b/,
+        'PAC::Vault: _verify real impl exists');
     like($pac_main, qr/master_password_verifier/,
         'PACMain: master password flow integrated');
 };
@@ -250,21 +270,23 @@ subtest 'YAML import scans for suspicious patterns' => sub {
 # ── HIGH-04: SSH auto-accept-key defaults to OFF ────────────────────────────
 
 subtest 'SSH auto-accept-key defaults to OFF' => sub {
-    like($pac_utils, qr/auto accept key.*\/\/=\s*0/,
-        'PACUtils: auto accept key defaults to 0 (OFF)');
+    # Moved to PAC::Config::SanityCheck in P3/6 extraction
+    like($pac_cfg_sanity, qr/auto accept key.*\/\/=\s*0/,
+        'PAC::Config::SanityCheck: auto accept key defaults to 0 (OFF)');
 };
 
 # ── HIGH-06: Per-installation random salt ────────────────────────────────────
 
 subtest 'Per-installation random salt' => sub {
-    like($pac_utils, qr{/dev/urandom},
-        'PACUtils: uses /dev/urandom for salt generation');
-    like($pac_utils, qr/\.salt/,
-        'PACUtils: salt persisted to .salt file');
-    like($pac_utils, qr/chmod 0600.*SALT_FILE/s,
-        'PACUtils: salt file gets chmod 0600');
-    like($pac_utils, qr/_SALT_LEGACY.*12345678/,
-        'PACUtils: legacy salt preserved for backward compat');
+    # Moved to PAC::Crypto::Cipher in P2/1 extraction
+    like($pac_crypto_cipher, qr{/dev/urandom},
+        'PAC::Crypto::Cipher: uses /dev/urandom for salt generation');
+    like($pac_crypto_cipher, qr/\.salt/,
+        'PAC::Crypto::Cipher: salt persisted to .salt file');
+    like($pac_crypto_cipher, qr/chmod 0600,?\s*\$path/s,
+        'PAC::Crypto::Cipher: salt file gets chmod 0600');
+    like($pac_crypto_cipher, qr/LEGACY_SALT_STR\s*=\s*'12345678'/,
+        'PAC::Crypto::Cipher: legacy salt preserved for backward compat');
 };
 
 # ── MED-01/02: Temp files use File::Temp ─────────────────────────────────────
@@ -316,20 +338,23 @@ subtest 'Config dir permissions verified and fixed' => sub {
 # ── MED-08: HMAC integrity on config files ───────────────────────────────────
 
 subtest 'Config file HMAC integrity' => sub {
-    like($pac_main, qr/hmac_sha256_hex/,
-        'PACMain: uses HMAC-SHA256');
+    # Real impl moved to PAC::Crypto::HMAC in P2/2; PACMain has proxies
+    like($pac_crypto_hmac, qr/hmac_sha256_hex/,
+        'PAC::Crypto::HMAC: uses HMAC-SHA256');
     like($pac_main, qr/sub _writeConfigHMAC/,
-        'PACMain: _writeConfigHMAC function exists');
+        'PACMain: _writeConfigHMAC proxy exists');
     like($pac_main, qr/sub _verifyConfigHMAC/,
-        'PACMain: _verifyConfigHMAC function exists');
+        'PACMain: _verifyConfigHMAC proxy exists');
     like($pac_main, qr/_verifyConfigHMAC.*CFG_FILE_NFREEZE/s,
         'PACMain: HMAC verified on config load');
     like($pac_main, qr/_writeConfigHMAC.*CFG_FILE_NFREEZE/s,
         'PACMain: HMAC written on config save');
-    like($pac_main, qr/has a master password set but no HMAC sidecar/,
-        'PACMain: missing HMAC sidecar REJECTED when master password is set');
+    like($pac_crypto_hmac, qr/has a master password set but no HMAC sidecar/,
+        'PAC::Crypto::HMAC: missing HMAC sidecar REJECTED when master password is set');
     like($pac_main, qr/_safe_retrieve/,
         'PACMain: Storable retrieve goes through safety wrapper');
+    like($pac_storage_stor, qr/Storable::Eval\s*=\s*0/,
+        'PAC::Storage::Storable: enforces Storable::Eval=0');
 };
 
 # ── ASBRU_TMP mkdir uses explicit mode ──────────────────────────────────────
@@ -360,9 +385,11 @@ subtest 'HMAC verified before Storable::retrieve' => sub {
     # Verify that when HMAC fails, retrieve is NOT called
     like($pac_main, qr/HMAC verification failed.*refusing to load/s,
         'PACMain: HMAC failure blocks loading (not just warns)');
-    # Make sure retrieve() is inside the else branch (HMAC passed)
-    like($pac_main, qr/else \{\s*\n\s*eval \{ .* = retrieve/s,
-        'PACMain: retrieve() only called when HMAC passes');
+    # Retrieve happens through _safe_retrieve (after the HMAC check
+    # in the same conditional). Match the _safe_retrieve callsite
+    # being inside the HMAC-passed branch.
+    like($pac_main, qr/_verifyConfigHMAC[^)]*\)[^{]*\{[\s\S]*?_safe_retrieve/s,
+        'PACMain: _safe_retrieve only called when HMAC passes');
 };
 
 # ── C-3: Pre/post hook commands have dangerous pattern blocking ──────────────
@@ -497,8 +524,9 @@ subtest 'Expect patterns validated before use' => sub {
 # ── ASBRU_ENV_FOR_EXTERNAL validated ─────────────────────────────────────────
 
 subtest 'ASBRU_ENV_FOR_EXTERNAL validated in CMD execution' => sub {
-    like($pac_utils, qr/ASBRU_ENV_FOR_EXTERNAL.*suspicious/s,
-        'PACUtils: ASBRU_ENV_FOR_EXTERNAL validated before use');
+    # Moved to PAC::Subst in P3/1 extraction
+    like($pac_subst, qr/ASBRU_ENV_FOR_EXTERNAL.*suspicious/s,
+        'PAC::Subst: ASBRU_ENV_FOR_EXTERNAL validated before use');
     like($asbru_conn, qr/ASBRU_ENV_FOR_EXTERNAL.*suspicious/s,
         'asbru_conn: ASBRU_ENV_FOR_EXTERNAL validated before use');
 };
@@ -522,8 +550,9 @@ subtest 'Vendor config scanned for malicious patterns' => sub {
 # ── HMAC key derived from salt ───────────────────────────────────────────────
 
 subtest 'HMAC key derived from installation salt' => sub {
-    like($pac_main, qr/hmac_sha256_hex.*integrity.*salt/s,
-        'PACMain: HMAC key derived from salt file');
+    # Moved to PAC::Crypto::HMAC in P2/2 extraction
+    like($pac_crypto_hmac, qr/hmac_sha256_hex.*integrity.*salt/s,
+        'PAC::Crypto::HMAC: HMAC key derived from salt file');
 };
 
 # ── EXPLORER path validated ──────────────────────────────────────────────────
@@ -556,10 +585,11 @@ subtest 'IP validation blocks extended metacharacters' => sub {
 # ── Global variable values escaped ───────────────────────────────────────────
 
 subtest 'Global variable values sanitized against shell injection' => sub {
-    like($pac_utils, qr/GV.*shell metacharacters.*sanitizing/s,
-        'PACUtils: global variable values checked for shell metacharacters');
-    like($pac_utils, qr/V:.*shell metacharacters.*sanitizing/s,
-        'PACUtils: session variable values checked for shell metacharacters');
+    # Moved to PAC::Subst in P3/1 extraction
+    like($pac_subst, qr/Global variable.*shell metacharacters/s,
+        'PAC::Subst: global variable values checked for shell metacharacters');
+    like($pac_subst, qr/Session variable.*shell metacharacters/s,
+        'PAC::Subst: session variable values checked for shell metacharacters');
 };
 
 # ── AppRun quoted $@ ────────────────────────────────────────────────────────
