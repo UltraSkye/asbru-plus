@@ -4916,42 +4916,9 @@ sub _getCurrentTree {
 }
 
 # Forces focus to the terminal inside the focused page
-sub _doFocusPage {
-    my $self = shift;
-    my $pnum = shift;
-    my $tab_page = $$self{_GUI}{nb}->get_nth_page($pnum);
-
-    $$self{_HAS_FOCUS} = '';
-    foreach my $tmp_uuid (keys %RUNNING) {
-        my $check_gui = $RUNNING{$tmp_uuid}{terminal}{_SPLIT} ? $RUNNING{$tmp_uuid}{terminal}{_SPLIT_VPANE} : $RUNNING{$tmp_uuid}{terminal}{_GUI}{_VBOX};
-
-        if (!defined($check_gui) || ($check_gui ne $tab_page)) {
-            next;
-        }
-
-        my $uuid = $RUNNING{$tmp_uuid}{uuid};
-        my $path = $$self{_GUI}{treeConnections}->_getPath($uuid);
-        if ($path) {
-            $$self{_GUI}{treeConnections}->expand_to_path($path);
-            $$self{_GUI}{treeConnections}->set_cursor($path, undef, 0);
-        }
-
-        $RUNNING{$tmp_uuid}{terminal}->_setTabColour();
-
-        if (!$RUNNING{$tmp_uuid}{terminal}{EMBED}) {
-            eval {
-                if (defined $RUNNING{$tmp_uuid}{terminal}{FOCUS}->get_window()) {
-                    $RUNNING{$tmp_uuid}{terminal}{FOCUS}->get_window()->focus(time);
-                }
-            };
-            $RUNNING{$tmp_uuid}{terminal}{_GUI}{_VTE}->grab_focus();
-        }
-        $$self{_HAS_FOCUS} = $RUNNING{$tmp_uuid}{terminal}{_GUI}{_VTE};
-
-        # When found, do not process further
-        last;
-    }
-}
+# Tab focus management lives in PAC::Terminal::Focus.
+require PAC::Terminal::Focus;
+sub _doFocusPage { goto &PAC::Terminal::Focus::focus_page; }
 
 # Config-integrity functions live in PAC::Crypto::HMAC. PACMain keeps
 # 1-line proxies so the existing _writeConfigHMAC / _verifyConfigHMAC
