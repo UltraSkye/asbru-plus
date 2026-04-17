@@ -1,19 +1,37 @@
-# Editor swap files
+# ── Editor swap files / backups ──────────────────────────────────────
 *.sw?
+*.swp
+*.swo
 *.*~
+*~
+.netrwhist
 
-# Build output
+# ── Build output ─────────────────────────────────────────────────────
 /out
 /build
 /packpack
+dist/appimage/build/
 
-# Compiled/generated
+# ── Compiled / generated ─────────────────────────────────────────────
 lib/lib
 lib/res
+blib/
+pm_to_blib
 
-# Debian build artifacts
+# ── Coverage / profiling ─────────────────────────────────────────────
+cover_db/
+coverage.txt
+nytprof/
+nytprof.out
+
+# ── Local CPAN install (cpanm --local-lib) ───────────────────────────
+local/
+perl5/
+
+# ── Debian build artifacts ───────────────────────────────────────────
 *.deb
 *.rpm
+*.AppImage
 *.changes
 *.buildinfo
 *.dsc
@@ -25,25 +43,45 @@ debian/*.debhelper
 debian/*.substvars
 debian/debhelper-build-stamp
 
-# Claude Code
+# ── Claude Code / agent scratch ──────────────────────────────────────
 .claude/
 tasks/
 CLAUDE.md
 *.claude
 
-# IDE / editors
+# ── IDE / editors ────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.code-workspace
-
-# OS
+.kdev4/
+*.kdev*
+.project
+.settings/
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# ── OS ───────────────────────────────────────────────────────────────
+*.pid
+core
+core.[0-9]*
 
-# Temp
+# ── Logs ─────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Temp / scratch ───────────────────────────────────────────────────
 *.tmp
 *.bak
 *.orig
+*.rej
+.scratch/
+TODO.local
+NOTES.local
+
+# ── Secrets (defensive — should never be in repo) ────────────────────
+*.pem
+*.key
+*.p12
+.env
+.env.local
+.netrc
