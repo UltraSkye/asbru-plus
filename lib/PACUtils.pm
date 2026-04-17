@@ -52,6 +52,8 @@ use Gtk3 '-init';
 use Gtk3::Gdk;
 use Wnck; # for the windows list
 
+use PAC::Dialog; # _wEnterValue / _wMessage / _wConfirm / _wYesNoCancel impls
+
 # Module's functions/variables to export
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 require Exporter;
@@ -1696,130 +1698,7 @@ sub _menuAvailableConnections {
     return \@tray_menu_items;
 }
 
-sub _wEnterValue {
-    my $parent = shift;
-    my $lblup = shift;
-    my $lbldown = shift;
-    my $default = shift;
-    my $visible = shift // 1;
-    my $stock_icon = shift // 'asbru-help';
-    my $entry;
-    my @list;
-    my $pos = -1;
-    my %w;
-
-    if (!defined $default) {
-        $default = '';
-    } elsif (ref($default)) {
-        @list = @{$default};
-    } elsif ($default =~ /.+?\|.+?\|/) {
-        @list = split /\|/,$default;
-    }
-
-    # If no parent given, try to use an existing "global" window (main window or splash screen)
-    if (defined $parent && ref $parent ne 'Gtk3::Window') {
-        print STDERR "WARN: Wrong parent parameter received _wEnterValue ",ref $parent,"\n";
-        undef $parent;
-    }
-    if (!defined $parent) {
-        if (defined $PACMain::FUNCS{_MAIN}{_GUI}{main}) {
-            $parent = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-        } elsif (defined $WINDOWSPLASH{_GUI}) {
-            $parent = $WINDOWSPLASH{_GUI};
-        }
-    }
-    if (!$stock_icon) {
-        $stock_icon = 'asbru-help';
-    }
-    # Create the dialog window,
-    $w{window}{data} = Gtk3::Dialog->new_with_buttons(
-        "$APPNAME : Enter data",
-        $parent,
-        'modal',
-        'gtk-cancel' => 'cancel',
-        'gtk-ok' => 'ok'
-    );
-    # and setup some dialog properties.
-    $w{window}{data}->set_decorated(0);
-    $w{window}{data}->get_style_context()->add_class('w-entervalue');
-    $w{window}{data}->set_default_response('ok');
-    if (!$parent) {
-        $w{window}{data}->set_position('center');
-    }
-    $w{window}{data}->set_icon_name('asbru-app-big');
-    $w{window}{data}->set_resizable(0);
-    $w{window}{data}->set_border_width(15);
-
-    # Create a VBox to avoid vertical expansions
-    $w{window}{gui}{vbox} = Gtk3::Box->new('vertical', 0);
-    $w{window}{data}->get_content_area->pack_start($w{window}{gui}{vbox}, 0, 0, 0);
-
-    # Create an HBox to contain a picture and a label
-    $w{window}{gui}{hbox} = Gtk3::Box->new('horizontal', 0);
-    $w{window}{gui}{hbox}->set_border_width(0);
-    $w{window}{gui}{vbox}->pack_start($w{window}{gui}{hbox}, 0, 0, 5);
-
-    # Create image
-    $w{window}{gui}{img} = Gtk3::Image->new_from_stock($stock_icon, 'dialog');
-    $w{window}{gui}{hbox}->pack_start($w{window}{gui}{img}, 0, 1, 5);
-
-    # Create 1st label
-    $w{window}{gui}{lblup} = Gtk3::Label->new();
-    $w{window}{gui}{hbox}->pack_start($w{window}{gui}{lblup}, 0, 0, 0);
-    $w{window}{gui}{lblup}->set_markup($lblup // '');
-
-    # Create 2nd label
-    $w{window}{gui}{lbldwn} = Gtk3::Label->new();
-    $w{window}{gui}{vbox}->pack_start($w{window}{gui}{lbldwn}, 0, 0, 5);
-    $w{window}{gui}{lbldwn}->set_markup($lbldown // '');
-
-    if (@list) {
-        # Create combobox widget
-        $w{window}{gui}{comboList} = Gtk3::ComboBoxText->new();
-        $w{window}{gui}{vbox}->pack_start($w{window}{gui}{comboList}, 0, 1, 5);
-        $w{window}{gui}{comboList}->set_property('can_focus', 0);
-        foreach my $text (@list) {
-            $w{window}{gui}{comboList}->append_text($text)
-        };
-        $w{window}{gui}{comboList}->set_active(0);
-    } else {
-        # Create the entry widget
-        $w{window}{gui}{entry} = Gtk3::Entry->new();
-        $entry = $w{window}{gui}{entry};
-        $w{window}{gui}{vbox}->pack_start($w{window}{gui}{entry}, 0, 1, 5);
-        $w{window}{gui}{entry}->set_text($default);
-        $w{window}{gui}{entry}->set_width_chars(30);
-        $w{window}{gui}{entry}->set_activates_default(1);
-        $w{window}{gui}{entry}->set_visibility($visible);
-        $w{window}{gui}{entry}->grab_focus();
-    }
-
-    # Show the window (in a modal fashion)
-    if ($entry) {
-        $entry->grab_focus();
-    }
-    $w{window}{data}->show_all();
-    my $ok = $w{window}{data}->run();
-    my $val = undef;
-
-    if (@list) {
-        if ($ok eq 'ok') {
-            $val = $w{window}{gui}{comboList}->get_active_text();
-        }
-        $pos = $w{window}{gui}{comboList}->get_active();
-    } else {
-        if ($ok eq 'ok') {
-            $val = $w{window}{gui}{entry}->get_chars(0, -1);
-        }
-    }
-
-    $w{window}{data}->destroy();
-    while (Gtk3::events_pending) {
-        Gtk3::main_iteration();
-    }
-
-    return wantarray ? ($val, $pos) : $val;
-}
+sub _wEnterValue { goto &PAC::Dialog::_wEnterValue; }
 
 sub _wAddRenameNode {
     my $action = shift;
@@ -2053,76 +1932,7 @@ sub _wPopUpMenu {
     }
  }
 
-sub _wMessage {
-    my $window = shift;
-    my $msg = shift;
-    my $modal = shift // 1;
-    my $selectable = shift // 0;
-    my $class =  shift // 'w-warning';
-    my $msg_type = 'GTK_MESSAGE_WARNING';
-
-    if (defined $window && ref $window ne 'Gtk3::Window') {
-        print STDERR "WARN: Wrong parent parameter received _wMessage ",ref $window,"\n";
-        undef $window;
-    }
-    if (!$window) {
-        $window = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-    }
-    if ($msg =~ /error/i) {
-        $msg_type = 'GTK_MESSAGE_ERROR';
-        $class = 'w-error';
-    }
-    my $windowConfirm = Gtk3::MessageDialog->new(
-        $window,
-        'GTK_DIALOG_DESTROY_WITH_PARENT',
-        $msg_type,
-        'none',
-        ''
-    );
-    $windowConfirm->set_decorated(0);
-    $windowConfirm->set_border_width(15);
-    $windowConfirm->get_style_context()->add_class($class);
-    $windowConfirm->set_markup($msg);
-    $windowConfirm->set_icon_name('asbru-app-big');
-    $windowConfirm->set_title("$APPNAME : Message");
-
-    # The message can be selected by user (eg for copy/paste)
-    if ($selectable) {
-        $windowConfirm->get_message_area()->foreach(sub {
-            my $child = shift;
-            if (ref($child) eq 'Gtk3::Label') {
-                $child->set_selectable(1);
-            }
-        });
-    }
-
-    if ($modal) {
-        $windowConfirm->add_buttons('gtk-ok' => 'ok');
-        # Constrain action area buttons so the OK button does not stretch
-        # across the dialog width.
-        eval {
-            my $area = $windowConfirm->get_action_area;
-            if ($area) {
-                $area->set_layout('end');
-                $area->set_spacing(8);
-                foreach my $child ($area->get_children) {
-                    $child->set_hexpand(0);
-                    $child->set_halign('center');
-                }
-            }
-        };
-        $windowConfirm->show_all();
-        my $close = $windowConfirm->run();
-        $windowConfirm->destroy();
-    } else {
-        $windowConfirm->show_all();
-        while (Gtk3::events_pending()) {
-            Gtk3::main_iteration();
-        }
-    }
-
-    return $windowConfirm;
-}
+sub _wMessage { goto &PAC::Dialog::_wMessage; }
 
 sub _wProgress {
     my $window = shift;
@@ -2188,89 +1998,9 @@ sub _wProgress {
     return $WINDOWPROGRESS{_RET};
 }
 
-sub _wConfirm {
-    my $window = shift;
-    my $msg = shift;
-    my $default = shift // 'no';
+sub _wConfirm { goto &PAC::Dialog::_wConfirm; }
 
-    if (!$window) {
-        $window = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-    }
-    # Why no Gtk3::MessageDialog->new_with_markup() available??
-    if (defined $window && ref $window ne 'Gtk3::Window') {
-        print STDERR "WARN: Wrong parent parameter received _wMessage ",ref $window,"\n";
-        undef $window;
-    }
-    if (!$window) {
-        $window = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-    }
-    my $windowConfirm = Gtk3::MessageDialog->new(
-        $window,
-        'GTK_DIALOG_DESTROY_WITH_PARENT',
-        'GTK_MESSAGE_QUESTION',
-        'none',
-        ''
-    );
-    $windowConfirm->set_decorated(0);
-    $windowConfirm->set_border_width(15);
-    $windowConfirm->get_style_context()->add_class('w-confirm');
-    $windowConfirm->set_markup($msg);
-    $windowConfirm->add_buttons('gtk-cancel'=> 'no', 'gtk-ok' => 'yes');
-    $windowConfirm->set_icon_name('asbru-app-big');
-    $windowConfirm->set_title("Confirm action : $APPNAME");
-    $windowConfirm->set_default_response($default);
-    # Constrain dialog action buttons
-    eval {
-        my $area = $windowConfirm->get_action_area;
-        if ($area) {
-            $area->set_layout('end'); $area->set_spacing(8);
-            foreach my $c ($area->get_children) { $c->set_hexpand(0); $c->set_halign('center'); }
-        }
-    };
-
-    $windowConfirm->show_all();
-    my $close = $windowConfirm->run();
-    $windowConfirm->destroy();
-
-    return ($close eq 'yes');
-}
-
-sub _wYesNoCancel {
-    my $window = shift;
-    my $msg = shift;
-
-    # Why no Gtk3::MessageDialog->new_with_markup() available??
-    if (!$window) {
-        $window = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-    }
-    my $windowConfirm = Gtk3::MessageDialog->new(
-        $window,
-        'GTK_DIALOG_DESTROY_WITH_PARENT',
-        'GTK_MESSAGE_QUESTION',
-        'none',
-        ''
-    );
-    $windowConfirm->set_decorated(0);
-    $windowConfirm->set_border_width(15);
-    $windowConfirm->get_style_context()->add_class('w-confirm');
-    $windowConfirm->set_markup($msg);
-    $windowConfirm->add_buttons('gtk-cancel'=> 'cancel','gtk-no'=> 'no','gtk-yes' => 'yes');
-    $windowConfirm->set_icon_name('asbru-app-big');
-    $windowConfirm->set_title("Confirm action : $APPNAME");
-    eval {
-        my $area = $windowConfirm->get_action_area;
-        if ($area) {
-            $area->set_layout('end'); $area->set_spacing(8);
-            foreach my $c ($area->get_children) { $c->set_hexpand(0); $c->set_halign('center'); }
-        }
-    };
-
-    $windowConfirm->show_all();
-    my $close = $windowConfirm->run();
-    $windowConfirm->destroy();
-
-    return (($close eq 'delete-event') || ($close eq 'cancel')) ? 'cancel' : $close;
-}
+sub _wYesNoCancel { goto &PAC::Dialog::_wYesNoCancel; }
 
 sub _wSetPACPassword {
     my $self = shift;
