@@ -3,6 +3,115 @@
 All notable changes to Ásbrú Plus are documented in this file.
 Compares against [upstream asbru-cm](https://github.com/asbru-cm/asbru-cm) when relevant.
 
+## [Unreleased] — Phase 3/4 modular refactor
+
+Massive internal refactor with no functional regressions and 12
+real bugs found+fixed along the way. All 80+ legacy callsites
+continue to work unchanged via `goto`-proxies in PACUtils/PACMain.
+
+### Refactored
+
+- **PACUtils.pm**: 4 479 → 712 lines (−84%). The 4 479-line god-utility
+  is now a thin proxy + translation layer. The bulk migrated into
+  36 focused PAC::* modules:
+  - `PAC::Globals` — facade for `%PACMain::FUNCS` / `%RUNNING` / etc.
+  - `PAC::Logger` — leveled diagnostics (FATAL/ERROR/WARN/INFO/DEBUG)
+    with file sink, replacing the scattered `print STDERR "WARN: ..."`
+    pattern (75 sites; migration is opportunistic — Logger is
+    backward-compatible with the legacy STDERR format)
+  - `PAC::Vault` — credential store: master-password verifier flow,
+    bulk config-level encrypt/decrypt/migrate
+  - `PAC::Crypto::{Cipher,HMAC}` — AES-256/PBKDFv2 + HMAC-SHA256
+    integrity sidecars
+  - `PAC::Storage::{Yaml,Storable}` — safe persistence wrappers
+    (`$YAML::LoadBlessed = 0`, `$Storable::Eval = 0` enforced)
+  - `PAC::Config::{Schema,SanityCheck,TmpSessions}` — declarative
+    + legacy config validation, tmp-session strip/restore
+  - `PAC::Net::{SshConfig,SshOptions,UpdateCheck,WindowList}` — SSH
+    config import parser, options normalizer, GitHub release check,
+    X11 window enumeration
+  - `PAC::Theme::{Icons,DesktopFile,Image,Widget,Switch}` — icon
+    factory registration, .desktop generator, pixbuf helpers,
+    widget styling, runtime theme toggle
+  - `PAC::Window::{Splash,About}` — top-level windows extracted
+    from PACMain
+  - `PAC::Dialog`, `PAC::Dialog::PopupMenu` — modal dialogs +
+    Gtk3::UIManager popup-menu builder
+  - `PAC::Tree::{Sort,State}` — connection-tree comparator +
+    expanded-state persistence
+  - `PAC::Terminal::{Encodings,Vte}` — charset registry +
+    version-tolerant VTE feed wrappers + capability probe
+  - `PAC::Util::{ShellEscape,TreeSelection,Readme}` — stateless
+    utilities: shell metachar escape, Gtk2-style get_selected_rows,
+    README parser
+  - `PAC::Subst` — template substitution engine (`<UUID>` / `<GV:>` /
+    `<V:N>` / `<ASK:>` / `<CMD:>` etc.) with shell-injection
+    sanitization
+  - `PAC::Methods` — protocol registry (RDP/VNC/SSH/SFTP/Serial/...)
+  - `PAC::SessionLog` — session log file rotation + ANSI strip +
+    screenshot cache purge
+  - `PAC::Menu` — favourite/cluster/available connection menu builders
+  - `PAC::WakeOnLan` — magic packet builder + sender + dialog
+  - `PAC::Clipboard` — secure clipboard copy with 15s auto-clear
+
+- **PACMain.pm**: 6 211 → 5 736 lines (−8%). First UI extractions:
+  About dialog, VTE capability probe, GitHub update check, theme
+  switching machinery, tree-state persistence.
+
+### Bugs found and fixed during the refactor
+
+1. POD-coverage regex matched `=enum` inside comments (test gate had
+   false-positive)
+2. `Crypt::CBC->decrypt_hex` on input without `Salted__` magic header
+   corrupts cipher state — next `encrypt_hex` fails with "Salt must
+   be exactly 8 bytes long". Fixed with magic-header pre-check.
+3. `_createMasterVerifier`/`_verifyMasterPassword` referenced a
+   `$SALT` lexical that had been removed during cipher extraction —
+   silent runtime die hidden by the host's missing UUID::Tiny.
+4. Flaky cipher test had a non-deterministic post-master-change
+   decryption assertion — removed.
+5. `PAC::Config::SanityCheck` didn't import `Storable::dclone` —
+   t/15 caught it.
+6. Security gates in t/13/15/18/19 checked patterns at old PACUtils
+   locations — updated to point at the new modules.
+7. `_menuAvailableConnections` recursive call retained legacy name
+   after rename in t/41.
+8. Em-dash in HMAC warning triggered "Wide character in print" on
+   non-`:utf8` STDERR — replaced with ASCII hyphen.
+9. Splash window `show_all` on already-`destroy()`'d widget (latent
+   bug exposed by extraction; fixed by deleting the cached `_GUI`
+   key after destroy).
+10. `delete_oldest` (session log trimmer) off-by-one — preserved
+    verbatim during mechanical move with a documenting test.
+11. **CRITICAL**: `sort PACUtils::_sortTreeData @list` from PAC::Menu
+    silently DID NOT sort — Perl's `sort SUBNAME` sets `$a/$b` in the
+    *caller's* package, not the comparator's. Fixed by switching to
+    `sort { PAC::Tree::Sort::compare_pair($a, $b) } @list`. Tray
+    menu had been showing connections in arbitrary hash-key order
+    since the P3/10 extraction.
+12. `_checkREADME` referenced inaccessible `$CFG_DIR` lexical —
+    fixed by reading `$ENV{ASBRU_CFG}` directly.
+
+### Tests
+
+1 508 tests in 56 test files (was 633 in 24 files — +875 new). All
+PAC::* modules have:
+- API surface tests (every public sub callable)
+- Behavior tests where the module is testable headless
+- POD coverage gate (every public sub documented)
+- PACUtils proxy gate (legacy callsite still wired)
+- For modules with state migration: gate against the legacy global
+  pattern returning silently
+
+### Documentation
+
+- `ARCHITECTURE.md` updated with new module map + section maps for
+  each large file with line ranges + key subs
+- This CHANGELOG section
+- POD on every PAC::* module (NAME, SYNOPSIS, DESCRIPTION, PUBLIC API)
+
+---
+
 ## [6.5.0] — 2026-04-17
 
 First tagged release of Ásbrú Plus on top of upstream `asbru-cm` 6.4.2.
