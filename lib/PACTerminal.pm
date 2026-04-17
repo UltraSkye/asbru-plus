@@ -182,6 +182,17 @@ sub new {
             $self->{_LOGFILE} = '/dev/null';
         }
     }
+    # #1009: when reopening a session, rotate the logfile rather than overwrite.
+    # If the resolved path already exists, append a HHMMSS suffix.
+    if (defined $self->{_LOGFILE} && $self->{_LOGFILE} ne '/dev/null' && -e $self->{_LOGFILE}) {
+        my @t = localtime;
+        my $stamp = sprintf('%02d%02d%02d', $t[2], $t[1], $t[0]);
+        if ($self->{_LOGFILE} =~ /^(.+)(\.[^.\/]+)$/) {
+            $self->{_LOGFILE} = "$1.$stamp$2";
+        } else {
+            $self->{_LOGFILE} = $self->{_LOGFILE} . ".$stamp";
+        }
+    }
     $self->{_TMPCFG} = "$CFG_DIR/tmp/$$self{_UUID_TMP}freeze";
 
     # SECURITY: Use File::Temp for atomic temp path creation (no TOCTOU race).
