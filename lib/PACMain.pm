@@ -3837,61 +3837,10 @@ sub _readConfiguration {
     return 1;
 }
 
-sub _promptSetMasterPassword {
-    my $self = shift;
-
-    # Only prompt when verifier is undefined (true first run). Empty string
-    # means the user has been asked before and declined — do not re-ask.
-    return if defined $$self{_CFG}{'defaults'}{'master_password_verifier'};
-
-    my $answ = _wConfirm(undef, "<b>Security Warning — Master Password Required</b>\n\n" .
-        "Your connection passwords are encrypted with a <b>default key that is public</b>.\n" .
-        "Without a master password, anyone with access to your config files\n" .
-        "can decrypt all stored credentials.\n\n" .
-        "<b>Setting a master password is strongly recommended.</b>\n\n" .
-        "Set a master password now?");
-
-    if ($answ) {
-        my $new_pass = _wEnterValue(undef, '<b>Set Master Password</b>', 'Enter a new master password:', undef, 0, 'asbru-protected');
-        if (defined $new_pass && $new_pass ne '') {
-            my $confirm = _wEnterValue(undef, '<b>Confirm Master Password</b>', 'Re-enter your master password:', undef, 0, 'asbru-protected');
-            if (defined $confirm && $confirm eq $new_pass) {
-                # cfg is already plaintext (decrypted by _readConfiguration).
-                # Switch the active cipher to the new master password — the
-                # _cipherCFG call below in the persistence block will encrypt
-                # the now-plaintext fields with this new cipher.
-                _initMasterCipher($new_pass);
-                $$self{_CFG}{'defaults'}{'master_password_verifier'} = _createMasterVerifier($new_pass);
-                print STDERR "INFO: Master password set. All credentials re-encrypted.\n";
-            } else {
-                _wMessage(undef, "Passwords did not match. Skipping master password setup.");
-                $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-            }
-        } else {
-            $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-        }
-    } else {
-        # User declined — mark as offered so we don't ask again.
-        $$self{_CFG}{'defaults'}{'master_password_verifier'} = '';
-    }
-
-    # Persist the decision so the warning does not reappear next launch.
-    # We CANNOT call _saveConfiguration here because it touches GUI state
-    # (_saveTreeExpanded, statistics->saveStats) that doesn't exist yet.
-    # Instead do a minimal nstore+HMAC of the encrypted cfg.
-    eval {
-        my $cfg = $$self{_CFG};
-        # Re-encrypt password fields with the (possibly new) active cipher
-        _cipherCFG($cfg);
-        nstore($cfg, $CFG_FILE_NFREEZE) or die "nstore failed: $!\n";
-        _writeConfigHMAC($CFG_FILE_NFREEZE);
-        # Restore plaintext for the rest of startup
-        _decipherCFG($cfg);
-    };
-    if ($@) {
-        print STDERR "WARN: Could not persist master_password_verifier state: $@\n";
-    }
-}
+# First-run master-password prompt lives in
+# PAC::Dialog::MasterPasswordPrompt. PACMain retains a 1-line proxy.
+require PAC::Dialog::MasterPasswordPrompt;
+sub _promptSetMasterPassword { goto &PAC::Dialog::MasterPasswordPrompt::prompt; }
 
 sub _loadTreeConfiguration {
     my $self = shift;

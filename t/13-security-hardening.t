@@ -355,8 +355,12 @@ subtest 'Config file HMAC integrity' => sub {
         'PACMain: _verifyConfigHMAC proxy exists');
     like($pac_main, qr/_verifyConfigHMAC.*CFG_FILE_NFREEZE/s,
         'PACMain: HMAC verified on config load');
-    like($pac_main, qr/_writeConfigHMAC.*CFG_FILE_NFREEZE/s,
-        'PACMain: HMAC written on config save');
+    # HMAC sidecar emission now lives in PAC::Config::Save
+    # (extracted from PACMain::_saveConfiguration).
+    my $config_save = read_file('lib/PAC/Config/Save.pm');
+    like($config_save,
+        qr/PAC::Crypto::HMAC::write_for.*CFG_FILE_NFREEZE/s,
+        'PAC::Config::Save: HMAC written on config save');
     like($pac_crypto_hmac, qr/has a master password set but no HMAC sidecar/,
         'PAC::Crypto::HMAC: missing HMAC sidecar REJECTED when master password is set');
     like($pac_main, qr/_safe_retrieve/,
