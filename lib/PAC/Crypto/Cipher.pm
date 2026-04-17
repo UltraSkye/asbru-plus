@@ -190,11 +190,19 @@ sub _load_or_generate_salt {
         read($rng, $salt, 8);
         close $rng;
         if (defined $path) {
+            # SECURITY: salt is per-installation; combined with the public
+            # default key it enables offline cracking of stored passwords
+            # for users who never set a master password. Tighten umask
+            # around the create so the file is mode 0600 atomically — the
+            # trailing chmod is belt-and-suspenders for the case where the
+            # file already existed at wider perms.
+            my $old_umask = umask(0077);
             if (open(my $fh, '>:raw', $path)) {
                 print {$fh} $salt;
                 close $fh;
                 chmod 0600, $path;
             }
+            umask($old_umask);
         }
         return $salt;
     }

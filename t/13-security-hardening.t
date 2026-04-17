@@ -298,6 +298,12 @@ subtest 'Per-installation random salt' => sub {
         'PAC::Crypto::Cipher: salt persisted to .salt file');
     like($pac_crypto_cipher, qr/chmod 0600,?\s*\$path/s,
         'PAC::Crypto::Cipher: salt file gets chmod 0600');
+    # REGRESSION: salt + public default key enables offline pw cracking;
+    # the chmod after open is a TOCTOU window if the file is brand-new.
+    # Tighten umask around the open so creation is mode 0600 atomically.
+    like($pac_crypto_cipher,
+        qr/umask\(0077\).*?\n\s*if \(open\(my \$fh,\s*'>:raw',\s*\$path\)\)/s,
+        'PAC::Crypto::Cipher: umask(0077) wraps salt-file open (no TOCTOU)');
     like($pac_crypto_cipher, qr/LEGACY_SALT_STR\s*=\s*'12345678'/,
         'PAC::Crypto::Cipher: legacy salt preserved for backward compat');
 };
