@@ -74,36 +74,47 @@ sub save {
     my $lock_flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_TRUNC();
     $lock_flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
 
+    # Write the primary file (with or without flock). Only emit the
+    # HMAC sidecar when nstore succeeds — otherwise the sidecar would
+    # validate a stale or missing primary, and the next load would
+    # silently accept stale config as authentic.
     if (sysopen(my $lock_fh, $lock_path, $lock_flags, 0600)) {
         flock($lock_fh, LOCK_EX);
-        nstore($cfg, $primary)
-            or PACUtils::_wMessage(
+        if (nstore($cfg, $primary)) {
+            PAC::Crypto::HMAC::write_for($primary);
+        } else {
+            PACUtils::_wMessage(
                 $$self{_GUI}{main},
                 "ERROR: Could not save config file '$primary':\n\n$!",
             );
-        PAC::Crypto::HMAC::write_for($primary);
+        }
         flock($lock_fh, LOCK_UN);
         close $lock_fh;
     } else {
         # Lock-file open refused (e.g. directory permissions or symlink
         # caught by O_NOFOLLOW): write the config anyway, no flock.
-        nstore($cfg, $primary)
-            or PACUtils::_wMessage(
+        if (nstore($cfg, $primary)) {
+            PAC::Crypto::HMAC::write_for($primary);
+        } else {
+            PACUtils::_wMessage(
                 $$self{_GUI}{main},
                 "ERROR: Could not save config file '$primary':\n\n$!",
             );
-        PAC::Crypto::HMAC::write_for($primary);
+        }
     }
 
-    # Optional replica path (e.g. shared/synced config dir).
+    # Optional replica path (e.g. shared/synced config dir). Same
+    # nstore-then-HMAC ordering as the primary above.
     if ($PACMain::R_CFG_FILE) {
-        nstore($cfg, $PACMain::R_CFG_FILE)
-            or PACUtils::_wMessage(
+        if (nstore($cfg, $PACMain::R_CFG_FILE)) {
+            PAC::Crypto::HMAC::write_for($PACMain::R_CFG_FILE);
+        } else {
+            PACUtils::_wMessage(
                 $$self{_GUI}{main},
                 "ERROR: Could not save config file '$PACMain::R_CFG_FILE':\n\n$!\n\n"
                 . "Local copy saved at '$primary'",
             );
-        PAC::Crypto::HMAC::write_for($PACMain::R_CFG_FILE);
+        }
     }
 
     # Restore plaintext passwords + temporary sessions in memory.

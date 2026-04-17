@@ -52,6 +52,14 @@ like($src, qr/use Storable qw\(nstore\)/, 'imports nstore');
 like($src, qr/PAC::Crypto::HMAC::write_for/,
     'emits HMAC sidecar for primary');
 
+# REGRESSION: HMAC sidecar must be emitted ONLY when nstore succeeds.
+# Otherwise the sidecar would validate stale/missing primary content
+# and the next load would silently accept stale config as authentic.
+like($src, qr/if \(nstore\(\$cfg, \$primary\)\) \{\s*\n\s*PAC::Crypto::HMAC::write_for\(\$primary\)/s,
+    'HMAC sidecar gated on nstore success (primary)');
+like($src, qr/if \(nstore\(\$cfg, \$PACMain::R_CFG_FILE\)\) \{\s*\n\s*PAC::Crypto::HMAC::write_for\(\$PACMain::R_CFG_FILE\)/s,
+    'HMAC sidecar gated on nstore success (replica)');
+
 # Replica path handling
 like($src, qr/\$PACMain::R_CFG_FILE/, 'reads $PACMain::R_CFG_FILE');
 like($src, qr/\$PACMain::CFG_FILE_NFREEZE/,
