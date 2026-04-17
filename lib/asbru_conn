@@ -2294,10 +2294,27 @@ elsif (!$MANUAL) {
         $CONNECTED = 0;
         ctrl("DISCONNECTED:$error");
     }
-} else {    # TODO this should be an elsif
+} else {    # TODO this should be an elsif (MANUAL auth branch)
+    # SUSPICIOUS-LOGIC: The two branches below LOOK inverted at first
+    # reading — `! defined $EXP->error` (no error from Expect) leads to
+    # DISCONNECTING with an undef error in the message, while `defined
+    # $EXP->error` (error present) leads to a "CONNECTED" success path.
+    #
+    # However: this code is bit-identical to upstream Asbru-CM and has
+    # been in production since 2020 without reports of MANUAL auth being
+    # universally broken. That implies the conditions may be correct
+    # under some Expect behavior we don't currently understand (e.g.
+    # error() returning a non-undef sentinel after spawn-only with no
+    # expect() yet, on the Expect version actually used at runtime).
+    #
+    # If you are debugging a MANUAL-auth regression and the connection
+    # never reaches `$EXP->interact()` (~line 2552), this is the first
+    # place to look. Do NOT silently invert the conditions without
+    # verifying the actual return shape of $EXP->error in the live
+    # MANUAL flow.
     if (! defined $EXP->error) {
         $CONNECTED = 0;
-        ctrl("DISCONNECTING:" . ($EXP->error));
+        ctrl("DISCONNECTING:" . ($EXP->error // ''));
     } else {
         $CONNECTED = 1;
         ctrl("CONNECTING:Manual authentication requested");
