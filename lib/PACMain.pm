@@ -3911,45 +3911,9 @@ sub _updateGUIFavourites      { goto &PAC::UI::Refresh::favourites; }
 sub _updateGUIHistory         { goto &PAC::UI::Refresh::history; }
 sub _updateGUIClusters        { goto &PAC::UI::Refresh::clusters; }
 
-sub _updateClustersList {
-    my $self = shift;
-
-    @{ $$self{_GUI}{treeClusters}{data} } = ();
-    foreach my $ac (sort { $a cmp $b } keys %{ $$self{_CFG}{defaults}{'auto cluster'} }) {
-        push(@{ $$self{_GUI}{treeClusters}{data} }, ({ value => [ $AUTOCLUSTERICON, $ac ]}));
-    }
-    foreach my $cluster (sort { $a cmp $b } keys %{ $$self{_CLUSTER}->getCFGClusters() }) {
-        push(@{ $$self{_GUI}{treeClusters}{data} }, ({ value => [ $CLUSTERICON, $cluster ]}));
-    }
-
-    return 1;
-}
-
-sub _updateFavouritesList {
-    my $self = shift;
-    my ($name);
-
-    @{ $$self{_GUI}{treeFavourites}{data} } = ();
-    foreach my $uuid (keys %{ $$self{_CFG}{'environments'} }) {
-        if (!$$self{_CFG}{'environments'}{$uuid}{'favourite'}) {
-            next;
-        }
-        my $icon = $$self{_METHODS}{ $$self{_CFG}{'environments'}{$uuid}{'method'} }{'icon'};
-        my $group = $$self{_CFG}{'environments'}{$uuid}{'parent'};
-        if ($group) {
-            $name = __($$self{_CFG}{'environments'}{$uuid}{'name'});
-            $group = __("$$self{_CFG}{'environments'}{$group}{'name'} : ");
-            $name = "$group$name";
-        } else {
-            $name = __($$self{_CFG}{'environments'}{$uuid}{'name'});
-        }
-        push(@{ $$self{_GUI}{treeFavourites}{data} }, ({ value => [ $icon, $name, $uuid ] }));
-    }
-
-    $self->_updateGUIFavourites();
-
-    return 1;
-}
+# Sidebar list (model) rebuilders live in PAC::UI::Refresh too.
+sub _updateClustersList   { goto &PAC::UI::Refresh::cluster_list; }
+sub _updateFavouritesList { goto &PAC::UI::Refresh::favourite_list; }
 
 sub _delNodes {
     my $self = shift;

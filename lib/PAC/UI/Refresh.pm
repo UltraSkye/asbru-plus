@@ -282,6 +282,62 @@ sub clusters {
     return 1;
 }
 
+# cluster_list($self) — rebuild the Clusters sidebar tree's data
+# array from $CFG{defaults}{auto cluster} plus the cluster-manager's
+# saved clusters. Sorts each group alphabetically.
+sub cluster_list {
+    my $self = shift;
+
+    @{ $$self{_GUI}{treeClusters}{data} } = ();
+
+    foreach my $ac (sort { $a cmp $b }
+        keys %{ $$self{_CFG}{defaults}{'auto cluster'} })
+    {
+        push @{ $$self{_GUI}{treeClusters}{data} },
+            ({ value => [ $PACMain::AUTOCLUSTERICON, $ac ] });
+    }
+
+    foreach my $cluster (sort { $a cmp $b }
+        keys %{ $$self{_CLUSTER}->getCFGClusters() })
+    {
+        push @{ $$self{_GUI}{treeClusters}{data} },
+            ({ value => [ $PACMain::CLUSTERICON, $cluster ] });
+    }
+
+    return 1;
+}
+
+# favourite_list($self) — rebuild the Favourites sidebar tree's data
+# array from environments where favourite=1, prefixing the parent
+# group name when present. Then triggers a favourites() refresh.
+sub favourite_list {
+    my $self = shift;
+    my $name;
+
+    @{ $$self{_GUI}{treeFavourites}{data} } = ();
+
+    foreach my $uuid (keys %{ $$self{_CFG}{'environments'} }) {
+        if (!$$self{_CFG}{'environments'}{$uuid}{'favourite'}) {
+            next;
+        }
+        my $icon  = $$self{_METHODS}{ $$self{_CFG}{'environments'}{$uuid}{'method'} }{'icon'};
+        my $group = $$self{_CFG}{'environments'}{$uuid}{'parent'};
+        if ($group) {
+            $name  = __($$self{_CFG}{'environments'}{$uuid}{'name'});
+            $group = __("$$self{_CFG}{'environments'}{$group}{'name'} : ");
+            $name  = "$group$name";
+        } else {
+            $name = __($$self{_CFG}{'environments'}{$uuid}{'name'});
+        }
+        push @{ $$self{_GUI}{treeFavourites}{data} },
+            ({ value => [ $icon, $name, $uuid ] });
+    }
+
+    favourites($self);
+
+    return 1;
+}
+
 1;
 
 __END__
@@ -352,6 +408,18 @@ Refresh the History tab.
 =item clusters($self)
 
 Refresh the Clusters tab.
+
+=item cluster_list($self)
+
+Rebuild the Clusters sidebar tree's data model from
+C<$CFG{defaults}{auto cluster}> plus the cluster-manager's saved
+clusters. Each group is sorted alphabetically.
+
+=item favourite_list($self)
+
+Rebuild the Favourites sidebar tree's data model from environments
+where C<favourite=1>, prefixing the parent group name when present,
+then triggers a C<favourites()> refresh.
 
 =back
 

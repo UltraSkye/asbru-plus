@@ -9,7 +9,8 @@ use lib "$RealBin/../lib";
 
 require_ok('PAC::UI::Refresh');
 can_ok('PAC::UI::Refresh', $_)
-    for qw(with_uuid clear_tab_labels preferences favourites history clusters);
+    for qw(with_uuid clear_tab_labels preferences favourites history clusters
+           cluster_list favourite_list);
 
 my $src = do {
     open my $fh, '<', "$RealBin/../lib/PAC/UI/Refresh.pm" or die "open: $!";
@@ -24,6 +25,26 @@ like($src, qr/^sub preferences\b/m,      'has preferences');
 like($src, qr/^sub favourites\b/m,       'has favourites');
 like($src, qr/^sub history\b/m,          'has history');
 like($src, qr/^sub clusters\b/m,         'has clusters');
+like($src, qr/^sub cluster_list\b/m,     'has cluster_list');
+like($src, qr/^sub favourite_list\b/m,   'has favourite_list');
+
+# cluster_list rebuilds treeClusters from defaults + getCFGClusters
+like($src, qr/\{treeClusters\}\{data\}/,
+    'cluster_list writes treeClusters{data}');
+like($src, qr/auto cluster/, 'cluster_list reads auto-cluster defaults');
+like($src, qr/getCFGClusters/,
+    'cluster_list reads cluster-manager via getCFGClusters');
+like($src, qr/\$PACMain::AUTOCLUSTERICON/,
+    'cluster_list reads AUTOCLUSTERICON from PACMain');
+like($src, qr/\$PACMain::CLUSTERICON/,
+    'cluster_list reads CLUSTERICON from PACMain');
+
+# favourite_list rebuilds treeFavourites + chains favourites()
+like($src, qr/\{treeFavourites\}\{data\}/,
+    'favourite_list writes treeFavourites{data}');
+like($src, qr/'favourite'/, 'favourite_list filters by favourite=1');
+like($src, qr/favourites\(\$self\)/,
+    'favourite_list chains a favourites() refresh');
 
 # with_uuid welcome blurb + APP name from PACUtils
 like($src, qr/__PAC__ROOT__/, 'with_uuid handles root sentinel');
@@ -93,6 +114,10 @@ like($main, qr/sub _updateGUIHistory\s*\{\s*goto\s*&PAC::UI::Refresh::history\s*
     '_updateGUIHistory proxy');
 like($main, qr/sub _updateGUIClusters\s*\{\s*goto\s*&PAC::UI::Refresh::clusters\s*;\s*\}/,
     '_updateGUIClusters proxy');
+like($main, qr/sub _updateClustersList\s*\{\s*goto\s*&PAC::UI::Refresh::cluster_list\s*;\s*\}/,
+    '_updateClustersList proxy');
+like($main, qr/sub _updateFavouritesList\s*\{\s*goto\s*&PAC::UI::Refresh::favourite_list\s*;\s*\}/,
+    '_updateFavouritesList proxy');
 
 # POD
 like($src, qr/^=head1 NAME/m,            'POD: NAME');
@@ -103,5 +128,7 @@ like($src, qr/^=item preferences\b/m,    'POD =item preferences');
 like($src, qr/^=item favourites\b/m,     'POD =item favourites');
 like($src, qr/^=item history\b/m,        'POD =item history');
 like($src, qr/^=item clusters\b/m,       'POD =item clusters');
+like($src, qr/^=item cluster_list\b/m,   'POD =item cluster_list');
+like($src, qr/^=item favourite_list\b/m, 'POD =item favourite_list');
 
 done_testing();
