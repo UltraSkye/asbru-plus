@@ -88,3 +88,42 @@ jobs:
           name: "${{ matrix.os }}-${{ matrix.dist }}-${{ matrix.package }}"
           path: build/*
           if-no-files-found: warn
+
+  appimage:
+    runs-on: ubuntu-latest
+    # AppImage build is heavy (Alpine + glibc compat + CPAN modules) and
+    # currently best-effort. Don't fail the whole workflow if it dies.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build AppImage
+        run: |
+          chmod +x dist/appimage/make_appimage.sh
+          dist/appimage/make_appimage.sh
+
+      - name: Determine version
+        id: ver
+        run: |
+          APPVER="$(perl -ne "print \$1 if /our\s+\\\$APPVERSION\s*=\s*'([^']+)'/" lib/PACUtils.pm)"
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ -n "${GITHUB_REF_NAME:-}" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${APPVER}+$(git rev-parse --short HEAD)"
+          fi
+          SAFE="$(printf '%s' "${VERSION}" | tr '/+' '_._')"
+          echo "version=${SAFE}" >> "$GITHUB_OUTPUT"
+
+      - name: Rename AppImage with version
+        run: |
+          mv dist/appimage/build/Asbru-CM.AppImage \
+             "dist/appimage/build/asbru-plus-${{ steps.ver.outputs.version }}-x86_64.AppImage"
+
+      - name: Upload AppImage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "appimage-x86_64"
+          path: dist/appimage/build/*.AppImage
+          if-no-files-found: warn
