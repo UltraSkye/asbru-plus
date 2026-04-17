@@ -27,7 +27,11 @@ like($src, qr/submenu\s*=>\s*available_connections\(/,
     'recursive call to available_connections present');
 
 # 3. Cross-module references properly qualified
-like($src, qr/PACUtils::_sortTreeData/, '_sortTreeData qualified to PACUtils::');
+# After the P3/17 sort fix, the comparator is PAC::Tree::Sort::compare_pair
+# (via a sort block) — see commit comment for why the legacy SUBNAME form
+# was unsafe across packages.
+like($src, qr/PAC::Tree::Sort::compare_pair/,
+    'sort uses PAC::Tree::Sort::compare_pair (post-P3/17 sort fix)');
 like($src, qr/PACUtils::__\(/, '__() qualified to PACUtils::');
 like($src, qr/PACMain::FUNCS/, 'PACMain::FUNCS qualified (already was)');
 like($src, qr/PACMain::UNITY/, 'PACMain::UNITY qualified (already was)');

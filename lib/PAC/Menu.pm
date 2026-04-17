@@ -104,7 +104,8 @@ sub available_connections {
     my $cfg = $PACMain::FUNCS{_MAIN}{_CFG};
     my @tray_menu_items;
 
-    foreach my $elem_hash (sort PACUtils::_sortTreeData @{$tree}) {
+    require PAC::Tree::Sort;
+    foreach my $elem_hash (sort { PAC::Tree::Sort::compare_pair($a, $b) } @{$tree}) {
         my $this_icon = $$elem_hash{'value'}[0];
         my $this_name = $$elem_hash{'value'}[1];
         my $this_uuid = $$elem_hash{'value'}[2];

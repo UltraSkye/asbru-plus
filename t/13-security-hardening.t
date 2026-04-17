@@ -567,10 +567,12 @@ subtest 'EXPLORER path validated before xdg-open' => sub {
 # ── Clipboard auto-clear ────────────────────────────────────────────────────
 
 subtest 'Clipboard auto-clear after password copy' => sub {
-    like($pac_utils, qr/Glib::Timeout->add_seconds.*15/s,
-        'PACUtils: clipboard cleared after 15s timeout');
-    like($pac_utils, qr/\\0.*x length/,
-        'PACUtils: password reference zeroed after clipboard clear');
+    # Moved to PAC::Clipboard in P3/17 extraction
+    my $clip_pm = read_file('lib/PAC/Clipboard.pm');
+    like($clip_pm, qr/Glib::Timeout->add_seconds.*15/s,
+        'PAC::Clipboard: clipboard cleared after 15s timeout');
+    like($clip_pm, qr/\\0.*x length/,
+        'PAC::Clipboard: password reference zeroed after clipboard clear');
 };
 
 # ── IP validation strengthened ───────────────────────────────────────────────

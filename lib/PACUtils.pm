@@ -340,34 +340,14 @@ sub _getMethods { goto &PAC::Methods::registry; }
 require PAC::Theme::Icons;
 sub _registerPACIcons { goto &PAC::Theme::Icons::register; }
 
+# Tree-node comparator lives in PAC::Tree::Sort. Wrapper (not goto-proxy)
+# because Perl's `sort SUBNAME` sets $a/$b in the *caller's* package and
+# legacy callers (PACUtils internals + t/16) set $PACUtils::a/b — so we
+# resolve them here and forward via the explicit-args form.
+require PAC::Tree::Sort;
 sub _sortTreeData {
-    my ($a_name,$b_name,$a_is_group,$b_is_group);
-    my $cfg = $PACMain::FUNCS{_MAIN}{_CFG};
-    my $groups_1st = $$cfg{'defaults'}{'sort groups first'} // 1;
-
-    $a_name = lc($$a{'value'}[1]);
-    $a_name =~ s/<.+>(.+?)<\/.+>/$1/go;
-    $b_name = lc($$b{'value'}[1]);
-    $b_name =~ s/<.+>(.+?)<\/.+>/$1/go;
-    $a_is_group = $$cfg{'environments'}{$$a{'value'}[2]}{'_is_group'};
-    $b_is_group = $$cfg{'environments'}{$$b{'value'}[2]}{'_is_group'};
-
-    if ($groups_1st) {
-        if ($a_is_group && ! $b_is_group) {
-            return -1;
-        }
-        if (! $a_is_group && $b_is_group) {
-            return 1;
-        }
-        if (! $a_is_group && ! $b_is_group) {
-            return $a_name cmp  $b_name;
-        }
-        if ($a_is_group && $b_is_group) {
-            return $a_name cmp  $b_name;
-        }
-    } else {
-        return $a_name cmp $b_name;
-    }
+    no strict 'refs';
+    return PAC::Tree::Sort::compare_pair(${"PACUtils::a"}, ${"PACUtils::b"});
 }
 
 # TODO : displayed name should include group
@@ -686,34 +666,9 @@ sub _vteFeedChildBinary {
 
 sub _createBanner { goto &PAC::Theme::Image::banner; }
 
-sub _copyPass {
-    my $uuid = shift;
-    my $cfg = $PACMain::FUNCS{_MAIN}{_CFG};
-    my $clip;
-
-    my $clipboard = Gtk3::Clipboard::get(Gtk3::Gdk::Atom::intern('PRIMARY', 0));
-    if ($$cfg{environments}{$uuid}{'passphrase'} ne '') {
-        $clip = $$cfg{environments}{$uuid}{'passphrase'};
-    } else {
-        $clip = $$cfg{environments}{$uuid}{'pass'};
-    }
-    if ($$cfg{'defaults'}{'keepass'}{'use_keepass'} && PACKeePass->isKeePassMask($clip)) {
-        my $kpxc = $PACMain::FUNCS{_KEEPASS};
-        $clip = $kpxc->applyMask($clip);
-    }
-    use bytes;
-    $clipboard->set_text($clip,length($clip));
-
-    # SECURITY: Auto-clear clipboard after 15 seconds to prevent credential leakage.
-    # Store reference for zeroing.
-    my $clip_ref = \$clip;
-    Glib::Timeout->add_seconds(15, sub {
-        my $cb = Gtk3::Clipboard::get(Gtk3::Gdk::Atom::intern('PRIMARY', 0));
-        $cb->set_text('', 0);
-        $$clip_ref = "\0" x length($$clip_ref) if defined $$clip_ref && length($$clip_ref);
-        return 0;  # Don't repeat
-    });
-}
+# Clipboard helpers live in PAC::Clipboard.
+require PAC::Clipboard;
+sub _copyPass { goto &PAC::Clipboard::copy_password; }
 
 sub _appName {
     return "$APPNAME $APPVERSION";
