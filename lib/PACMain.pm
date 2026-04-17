@@ -4440,13 +4440,9 @@ sub _setSafeLayoutOptions { goto &PAC::Window::Layout::set_safe_options; }
 # Apply layout to window and widgets
 sub _ApplyLayout { goto &PAC::Window::Layout::apply; }
 
-# Test various options supported by the VTE library
-# to centralize all tests concerning VTE into a single function
 # VTE capability probe lives in PAC::Terminal::Vte.
-sub _setVteCapabilities {
-    require PAC::Terminal::Vte;
-    return PAC::Terminal::Vte::probe($_[0]);
-}
+require PAC::Terminal::Vte;
+sub _setVteCapabilities { goto &PAC::Terminal::Vte::probe; }
 
 # Returns the currently selected tree
 sub _getCurrentTree {
