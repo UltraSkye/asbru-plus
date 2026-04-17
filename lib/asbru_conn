@@ -2581,7 +2581,7 @@ _hardClose(undef, $UUID);
 
 my $why = $?;
 
-if (($why ne 0) && $RESTART) {
+if (($why != 0) && $RESTART) {
     ctrl('RESTART');
 }
 

@@ -195,7 +195,7 @@ $ENV{'LANG'} = $ASBRU_LANG;
 my $wl = `$ENV{'ASBRU_ENV_FOR_EXTERNAL'} gsettings get com.canonical.Unity.Panel systray-whitelist 2>/dev/null`;
 chomp $wl;
 
-if (($? eq 0) && (!grep(/'asbru'/, $wl))) {
+if (($? == 0) && (!grep(/'asbru'/, $wl))) {
     print "INFO: Adding 'asbru' to Unity's 'systray-whitelist'\n";
     $wl =~ s/'\s*]/', 'asbru']/;
     # Sanitize gsettings output before passing back to shell
