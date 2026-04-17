@@ -212,8 +212,12 @@ subtest 'mkdir uses explicit mode 0700' => sub {
 # ── File locking on config save ──────────────────────────────────────────────
 
 subtest 'Config save uses file locking' => sub {
-    like($pac_main, qr/flock.*LOCK_EX/s,
-        'PACMain: config save uses LOCK_EX');
+    # Save pipeline lives in PAC::Config::Save (extracted from PACMain).
+    my $save = read_file('lib/PAC/Config/Save.pm');
+    like($save, qr/flock.*LOCK_EX/s,
+        'PAC::Config::Save uses LOCK_EX');
+    like($pac_main, qr/PAC::Config::Save/,
+        'PACMain proxies to PAC::Config::Save');
 };
 
 # ── VNC password uses IPC::Open3, not shell echo ────────────────────────────

@@ -72,7 +72,9 @@ subtest 'Fix #1148 — known_hosts uses direct file open' => sub {
 # ── #968: readonly mode ───────────────────────────────────────────────────────
 
 subtest 'Fix #968 — readonly mode skips nstore' => sub {
-    like($pac_main, qr/return 1 if \$\$self\{_READONLY\}/,
+    # Save pipeline lives in PAC::Config::Save (extracted from PACMain).
+    my $save = read_file('lib/PAC/Config/Save.pm');
+    like($save, qr/return 1 if \$\$self\{_READONLY\}/,
         'nstore skipped in readonly mode');
 };
 

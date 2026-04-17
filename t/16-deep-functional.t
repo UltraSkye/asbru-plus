@@ -656,10 +656,15 @@ subtest 'asbru_conn — IPC::Open3 for VNC password' => sub {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 subtest 'config save — file locking used' => sub {
+    # The save pipeline now lives in PAC::Config::Save (extracted
+    # from PACMain::_saveConfiguration). Read both files so we
+    # cover the proxy + the implementation.
     my $main = read_file("$RealBin/../lib/PACMain.pm");
+    my $save = read_file("$RealBin/../lib/PAC/Config/Save.pm");
 
-    like($main, qr/flock.*LOCK_EX/, 'exclusive file lock on save');
-    like($main, qr/nstore/, 'uses Storable nstore');
+    like($main, qr/PAC::Config::Save/, 'PACMain proxies to PAC::Config::Save');
+    like($save, qr/flock.*LOCK_EX/, 'exclusive file lock on save');
+    like($save, qr/nstore/, 'uses Storable nstore');
 };
 
 subtest 'config load — HMAC verification' => sub {

@@ -3631,65 +3631,9 @@ sub _quitProgram {
     return 1;
 }
 
-sub _saveConfiguration {
-    my $self = shift;
-    my $cfg = shift // $$self{_CFG};
-    my $normal = shift // 1;
-    my %tmp_sessions;
-
-    # Purge screenshots
-    _purgeUnusedOrMissingScreenshots($cfg);
-    # Keep a reference to the temporary sessions
-    # (since they will be deleted by _cfgSanityCheck as we don't want to persist those on disk)
-    %tmp_sessions = _cfgGetTmpSessions($cfg);
-    # Cleanup the configuration before saving (sanityu check + remove of temporary sessions)
-    _cfgSanityCheck($cfg);
-    # Do not keep passwords in plain text in the configuration
-    _cipherCFG($cfg);
-    # Do not attempt to write when in read-only mode
-    return 1 if $$self{_READONLY};
-    # Do store the configuration on disk (with exclusive lock to prevent corruption)
-    # SECURITY: refuse symlinked config files / lock files — these would let
-    # an attacker redirect our writes to /etc/passwd or similar.
-    if (-l $CFG_FILE_NFREEZE) {
-        _wMessage($$self{_GUI}{main}, "ERROR: '$CFG_FILE_NFREEZE' is a symlink — refusing to save");
-        return 0;
-    }
-    my $lock_path = "$CFG_FILE_NFREEZE.lock";
-    unlink $lock_path if -l $lock_path;   # drop stale symlink before O_NOFOLLOW open
-    require Fcntl;
-    my $lock_flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_TRUNC();
-    $lock_flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
-    if (sysopen(my $lock_fh, $lock_path, $lock_flags, 0600)) {
-        flock($lock_fh, LOCK_EX);
-        nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
-        _writeConfigHMAC($CFG_FILE_NFREEZE);
-        flock($lock_fh, LOCK_UN);
-        close $lock_fh;
-    } else {
-        nstore($cfg, $CFG_FILE_NFREEZE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$CFG_FILE_NFREEZE':\n\n$!");
-        _writeConfigHMAC($CFG_FILE_NFREEZE);
-    }
-    if ($R_CFG_FILE) {
-        nstore($cfg, $R_CFG_FILE) or _wMessage($$self{_GUI}{main}, "ERROR: Could not save config file '$R_CFG_FILE':\n\n$!\n\nLocal copy saved at '$CFG_FILE_NFREEZE'");
-        _writeConfigHMAC($R_CFG_FILE);
-    }
-    # Restore passwords
-    _decipherCFG($cfg);
-    # Restore the temporary sessions
-    _cfgAddSessions($cfg, \%tmp_sessions);
-    # Save tree positions
-    $self->_saveTreeExpanded();
-    # Save satistics
-    $$self{_GUI}{statistics}->saveStats();
-
-    $normal and $self->_setCFGChanged(0);
-
-    # Prepare the .desktop file to contain list of favourites connections
-    #_makeDesktopFile($cfg);
-
-    return $CFG_FILE_NFREEZE;
-}
+# Configuration save pipeline lives in PAC::Config::Save.
+require PAC::Config::Save;
+sub _saveConfiguration { goto &PAC::Config::Save::save; }
 
 sub _readConfiguration {
     my $self = shift;
