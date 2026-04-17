@@ -639,127 +639,15 @@ sub _subst    { goto &PAC::Subst::subst; }
 
 sub _wakeOnLan { goto &PAC::WakeOnLan::_wakeOnLan; }
 
-sub _deleteOldestSessionLog {
-    my $uuid = shift;
-    my $folder = shift;
-    my $max = shift;
+# Session-log helpers live in PAC::SessionLog.
+require PAC::SessionLog;
+sub _deleteOldestSessionLog { goto &PAC::SessionLog::delete_oldest; }
 
-    # If MAX is 0, then keep ALL the logs.
-    if (!$max) {
-        return 1;
-    }
+sub _replaceBadChars { goto &PAC::SessionLog::replace_bad_chars; }
 
-    opendir(my $F, $folder) or die "ERROR: Could not open folder '$folder' for reading: $!\n";
+sub _removeEscapeSeqs { goto &PAC::SessionLog::remove_escape_seqs; }
 
-    my @total;
-    foreach my $file (readdir $F) {
-        if ($file !~ /^PAC_\[(.+)_Name_(.+)\]_\[(\d{8})_(\d{6})\]\.txt$/g) {
-            next;
-        }
-        my ($fenv, $fconn, $fdate, $ftime) = ($1, $2, $3, $4);
-        push(@total, "$folder/$file");
-    }
-
-    close $F;
-
-    if (scalar(@total) lt $max) {
-        return 1;
-    }
-
-    my $i = 0;
-    foreach my $file (sort {$a cmp $b} @total) {
-        unlink $file or die "ERROR: Could not delete oldest log file '$file': $!\n";
-        if ((scalar(@total) - $max) <= $i++) {
-            last;
-        }
-    }
-
-    return 1;
-}
-
-sub _replaceBadChars {
-    my $string = shift // '';
-
-    $string =~ s/\x0/'NUL (null)'/go;
-    $string =~ s/\x1/'SOH(start of heading)'/go;
-    $string =~ s/\x2/'STX (start of text)'/go;
-    $string =~ s/\x3/'ETX (end of text)'/go;
-    $string =~ s/\x4/'EOT (end of trans.)'/go;
-    $string =~ s/\x5/'ENQ (enquiry)'/go;
-    $string =~ s/\x6/'ACK (acknowledge)'/go;
-    $string =~ s/\x7/'BEL (bell)'/go;
-    $string =~ s/\x8/'BS (backspace)'/go;
-    $string =~ s/\x9/'AB (horizontal tab)'/go;
-    $string =~ s/\xA/'LF (NL New Line)'/go;
-    $string =~ s/\xB/'VT (vertical tab)'/go;
-    $string =~ s/\xC/'FF (NP new page)'/go;
-    $string =~ s/\xD/'CR (carriage return)'/go;
-    $string =~ s/\xE/'SO (shift out)'/go;
-    $string =~ s/\xF/'SI (shift in)'/go;
-    $string =~ s/\x10/'DLE (data link escape)'/go;
-    $string =~ s/\x11/'DC1 (device control 1)'/go;
-    $string =~ s/\x12/'DC2 (device control 2)'/go;
-    $string =~ s/\x13/'DC3 (device control 3)'/go;
-    $string =~ s/\x14/'DC4 (device control 4)'/go;
-    $string =~ s/\x15/'NAK (negative acknow.)'/go;
-    $string =~ s/\x16/'SYN (synchronous idle)'/go;
-    $string =~ s/\x17/'ETB (end of trans.blow)'/go;
-    $string =~ s/\x18/'CAN (cancel)'/go;
-    $string =~ s/\x19/'EM (end of medium)'/go;
-    $string =~ s/\x1A/'SUB (substitute)'/go;
-    $string =~ s/\x1B/'ESC (escape)'/go;
-    $string =~ s/\x1C/'FS (file separator)'/go;
-    $string =~ s/\x1D/'GS (group separator)'/go;
-    $string =~ s/\x1E/'RS (record separator)'/go;
-    $string =~ s/\x1F/'US (unit separator)'/go;
-    $string =~ s/\x7f/\(BACKSPACE\)/go;
-
-    return $string;
-}
-
-sub _removeEscapeSeqs {
-    my $string = shift // '';
-
-    $string =~ s/\x07/\x07\n/g;
-    $string =~ s/\x1B[=>]//g;
-    $string =~ s/\e\[[0-9;]*[a-zA-Z]%?//g;
-    $string =~ s/\e\[[0-9;]*m(?:\e\[K)?//g;
-    $string =~ s/\x1B\]1.+?\x07\n?//g;
-    $string =~ s/(\x1B|\x08|\x07)(\[w|=|\(B)?//g;
-    $string =~ s/\[\?\d+\w{1,2}//g;
-    $string =~ s/\]\d;//g;
-
-    return $string;
-}
-
-sub _purgeUnusedOrMissingScreenshots {
-    my $cfg = shift;
-
-    my %screenshots;
-
-    foreach my $uuid (keys %{$$cfg{'environments'}}) {
-        my $i = 0;
-        foreach my $screenshot (@{$$cfg{'environments'}{$uuid}{'screenshots'}}) {
-            if (! -f $screenshot) {
-                splice(@{$$cfg{'environments'}{$uuid}{'screenshots'}}, $i, 1);
-            } else {
-                ++$i;
-                $screenshots{$screenshot} = 1;
-            }
-        }
-    }
-
-    opendir(my $dir, "$CFG_DIR/screenshots") or die "ERROR: Could not open dir '$CFG_DIR/screenshots' for reading: $!\n";
-    while (my $file = readdir($dir)) {
-        if ($file =~ /^\.|\.\.$/go) {
-            next;
-        }
-        defined $screenshots{"$CFG_DIR/screenshots/$file"} or unlink "$CFG_DIR/screenshots/$file";
-    }
-    closedir $dir;
-
-    return 1;
-}
+sub _purgeUnusedOrMissingScreenshots { goto &PAC::SessionLog::purge_screenshots; }
 
 sub _getXWindowsList {
     my %list;
