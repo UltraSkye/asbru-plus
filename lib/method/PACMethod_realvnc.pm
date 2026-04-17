@@ -196,10 +196,19 @@ sub _parseOptionsToCfg {
     if ($$hash{viewOnly}) {
         $txt .= ' -viewonly';
     }
-    if ($$hash{depth}) {
+    # SECURITY: $txt is shell-interpreted by asbru_conn's spawn(). Both
+    # depth and quality flow through hash lookups (%depthR / %QUALITY)
+    # in the GUI's normal flow, but a hand-edited or imported asbru.yml
+    # can store arbitrary strings. Constrain to known keys / numeric +
+    # 'auto' so a value like "8;rm /tmp/foo" can't inject a command.
+    if ($$hash{depth} && exists $depthR{$$hash{depth}}) {
         $txt .= " -colorlevel $depthR{$$hash{depth}}";
     }
-    $txt .= " -quality $$hash{quality}";
+    if (defined $$hash{quality}
+        && ($$hash{quality} =~ /^\d+$/ || $$hash{quality} eq 'auto'))
+    {
+        $txt .= " -quality $$hash{quality}";
+    }
 
     return $txt;
 }

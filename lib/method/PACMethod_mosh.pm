@@ -162,7 +162,16 @@ sub _parseOptionsToCfg {
         if (!$$hash{udpPort2} || $$hash{udpPort2} <= $$hash{udpPort}) {
             $$hash{udpPort2} = $$hash{udpPort}+5;
         }
-        $txt .= " -p $$hash{udpPort}:$$hash{udpPort2}";
+        # SECURITY: $txt is shell-interpreted by Expect's spawn in
+        # asbru_conn. The GUI spinbutton enforces digits, but a hand-
+        # edited or imported asbru.yml can supply anything. Reject
+        # non-numeric ports so a value like "60000;rm /tmp/foo" can't
+        # inject a command.
+        if ($$hash{udpPort}  !~ /^\d+$/ || $$hash{udpPort2} !~ /^\d+$/) {
+            print STDERR "WARNING: mosh UDP ports must be numeric — skipping -p flag\n";
+        } else {
+            $txt .= " -p $$hash{udpPort}:$$hash{udpPort2}";
+        }
     }
 
     return $txt;

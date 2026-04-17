@@ -156,14 +156,26 @@ sub _parseOptionsToCfg {
 
     my $txt = '';
 
+    # SECURITY: $txt is shell-interpreted by asbru_conn's spawn(). The
+    # %COLOURS hash lookup constrains the colour value to known keys,
+    # but compressLevel / quality are user-supplied integers — guard
+    # against non-numeric values that would inject a shell command.
+    my $_int_only = qr/^\d+$/;
+
     ($$hash{colours} ne 'AutoSelect') and $txt .= ' -AutoSelect=0';
-    ($$hash{colours} ne 'AutoSelect') and $txt .= ' -LowColourLevel '    . ($COLOURS{$$hash{colours}});
-    $txt .= ' -FullScreen='        . ($$hash{fullScreen}    || '0');
-    $txt .= ' -listen='            . ($$hash{listen}        || '0');
-    $txt .= ' -ViewOnly='        . ($$hash{viewOnly}    || '0');
-    $txt .= ' -CompressLevel='    . $$hash{compressLevel};
-    $txt .= ' -QualityLevel='    . $$hash{quality};
-    $txt .= ' -DotWhenNoCursor=' . ($$hash{showDotCursor}    || '0');
+    if ($$hash{colours} ne 'AutoSelect' && exists $COLOURS{$$hash{colours}}) {
+        $txt .= ' -LowColourLevel ' . $COLOURS{$$hash{colours}};
+    }
+    $txt .= ' -FullScreen='        . ($$hash{fullScreen}    ? '1' : '0');
+    $txt .= ' -listen='            . ($$hash{listen}        ? '1' : '0');
+    $txt .= ' -ViewOnly='          . ($$hash{viewOnly}      ? '1' : '0');
+    if (defined $$hash{compressLevel} && $$hash{compressLevel} =~ $_int_only) {
+        $txt .= ' -CompressLevel=' . $$hash{compressLevel};
+    }
+    if (defined $$hash{quality} && $$hash{quality} =~ $_int_only) {
+        $txt .= ' -QualityLevel=' . $$hash{quality};
+    }
+    $txt .= ' -DotWhenNoCursor=' . ($$hash{showDotCursor}   ? '1' : '0');
 
     return $txt;
 }

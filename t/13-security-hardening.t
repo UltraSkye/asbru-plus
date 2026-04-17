@@ -741,6 +741,38 @@ subtest 'SSH/SFTP block dangerous options' => sub {
         'SSH: remotePort entries validated');
 };
 
+subtest 'Mosh / VNC handlers validate numeric fields' => sub {
+    # REGRESSION: $txt strings from these methods are spliced into the
+    # connection command which asbru_conn then SHELL-EVALUATES via
+    # Expect's spawn(). The GUI restricts these via spinbutton/combo,
+    # but a hand-edited or imported asbru.yml can supply arbitrary
+    # strings. Each method must validate at parse-to-cfg time.
+    my $mosh     = read_file('lib/method/PACMethod_mosh.pm');
+    my $vnc      = read_file('lib/method/PACMethod_vncviewer.pm');
+    my $tigervnc = read_file('lib/method/PACMethod_tigervnc.pm');
+    my $realvnc  = read_file('lib/method/PACMethod_realvnc.pm');
+
+    like($mosh, qr/udpPort.*\^\\d\+\$/s,
+        'mosh: udpPort validated as digits-only');
+    like($mosh, qr/UDP ports must be numeric/,
+        'mosh: skips -p flag with warning when ports are non-numeric');
+
+    like($vnc, qr/_int_only\s*=\s*qr\/\^\\d\+\$\//,
+        'vncviewer: numeric guard on compressLevel/quality');
+    like($vnc, qr/depth.*\^\\d\+\$/,
+        'vncviewer: depth must be numeric');
+
+    like($tigervnc, qr/_int_only\s*=\s*qr\/\^\\d\+\$\//,
+        'tigervnc: numeric guard on compressLevel/quality');
+    like($tigervnc, qr/exists \$COLOURS\{/,
+        'tigervnc: colours constrained to known hash keys');
+
+    like($realvnc, qr/exists \$depthR\{/,
+        'realvnc: depth constrained to known hash keys');
+    like($realvnc, qr/quality.*\^\\d\+\$.*'auto'/s,
+        'realvnc: quality must be numeric or "auto"');
+};
+
 subtest 'Serial/3270/Telnet handlers validate input' => sub {
     my $cu = read_file('lib/method/PACMethod_cu.pm');
     my $c3270 = read_file('lib/method/PACMethod_3270.pm');

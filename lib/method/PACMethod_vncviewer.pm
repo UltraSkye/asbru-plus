@@ -153,12 +153,25 @@ sub _parseOptionsToCfg {
 
     my $txt = '';
 
-    $txt .= ' -fullscreen'        if $$hash{fullScreen};
-    $txt .= ' -listen'            if $$hash{listen};
-    $txt .= ' -viewonly'        if $$hash{viewOnly};
-    $txt .= ' -depth '            . $$hash{depth} if ($$hash{depth} ne 'default');
-    $txt .= ' -compresslevel '    . $$hash{compressLevel};
-    $txt .= ' -quality '        . $$hash{quality};
+    # SECURITY: $txt is shell-interpreted by asbru_conn's spawn(). The
+    # GUI presents these as combo/spin-buttons so they're constrained
+    # in normal use, but a hand-edited or imported asbru.yml can ship
+    # anything. Reject non-numeric / non-allowed values so a value like
+    # "8;rm /tmp/foo" can't inject a separate shell command.
+    my $_int_only = qr/^\d+$/;
+
+    $txt .= ' -fullscreen' if $$hash{fullScreen};
+    $txt .= ' -listen'     if $$hash{listen};
+    $txt .= ' -viewonly'   if $$hash{viewOnly};
+    if ($$hash{depth} ne 'default' && $$hash{depth} =~ /^\d+$/) {
+        $txt .= ' -depth ' . $$hash{depth};
+    }
+    if (defined $$hash{compressLevel} && $$hash{compressLevel} =~ $_int_only) {
+        $txt .= ' -compresslevel ' . $$hash{compressLevel};
+    }
+    if (defined $$hash{quality} && $$hash{quality} =~ $_int_only) {
+        $txt .= ' -quality ' . $$hash{quality};
+    }
     $txt .= " -encodings \"$ENCODINGS\"";
     $txt .= ' -autopass';
 
