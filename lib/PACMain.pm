@@ -133,6 +133,13 @@ sub new {
     # Note: SIGSTOP and SIGKILL cannot be caught by POSIX contract,
     # so we only hook the signals we can actually intercept.
     $SIG{'TERM'} = $SIG{'QUIT'} = $SIG{'INT'} = sub {
+        # Re-entrancy guard: _quitProgram pumps Gtk3::main_iteration()
+        # which can yield, allowing a second SIGTERM to fire and
+        # re-enter this handler recursively (corrupting cleanup state
+        # and producing duplicate "save on exit?" prompts). Disarm all
+        # three handlers immediately so any further signal during
+        # shutdown is ignored.
+        $SIG{'TERM'} = $SIG{'QUIT'} = $SIG{'INT'} = 'IGNORE';
         print STDERR "INFO: Signal '$_[0]' received. Exiting Ásbrú...\n";
         _quitProgram($self, 'force');
         exit 0;

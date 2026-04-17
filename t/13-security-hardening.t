@@ -191,6 +191,12 @@ subtest 'Signal handlers protect against re-entrancy' => sub {
         'USR1 handler sets self to IGNORE');
     like($asbru_conn, qr/SIG\{'USR2'\}\s*=\s*'IGNORE'/,
         'USR2 handler sets self to IGNORE');
+    # PACMain's TERM/QUIT/INT handler also needs re-entrancy
+    # protection — _quitProgram pumps Gtk3::main_iteration() which
+    # can yield and let a second signal fire on the same handler.
+    like($pac_main,
+        qr/SIG\{'TERM'\}\s*=\s*\$SIG\{'QUIT'\}\s*=\s*\$SIG\{'INT'\}\s*=\s*'IGNORE'/,
+        'PACMain TERM/QUIT/INT handler disarms itself on entry');
 };
 
 # ── Temp config files have restricted permissions ───────────────────────────
