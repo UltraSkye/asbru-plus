@@ -395,14 +395,69 @@ sub _parseOptionsToCfg
         }
         $txt .= " -o \"$$opt{option}=$$opt{value}\"";
     }
+    # SECURITY: validate every -D / -L / -R field. The whole $txt is
+    # eventually shell-interpreted by Expect's spawn (asbru_conn line
+    # 1687: $EXP->spawn("$do_connection_cmd 2>&1")), so an unvalidated
+    # ';' / '|' / '`' / '$(...)' / etc. in any forwarding-host or port
+    # field would inject as a separate shell command.
+    #
+    # Ports are restricted to digits (SSH itself requires that anyway).
+    # IPs/hostnames must not contain shell metacharacters; we keep the
+    # set permissive enough for ipv6 brackets, hostnames, and dotted
+    # decimals — the same shape the SSH client actually accepts.
+    my $_shell_reject = qr/[`\$\(\)\{\};&|<>!\\"'\s\n\r]/;
+    my $_port_ok      = qr/^\d+$/;
+    my $_host_ok      = sub {
+        my $h = shift // '';
+        return 1 if $h eq '';                  # optional field, fine
+        return 0 if $h =~ $_shell_reject;
+        return 1;
+    };
+
     foreach my $dynamic (@{$$hash{dynamicForward}}) {
-        $txt .= ' -D ' . ($$dynamic{dynamicIP} ? "$$dynamic{dynamicIP}:" : '') . $$dynamic{dynamicPort};
+        if (! $_host_ok->($$dynamic{dynamicIP})) {
+            print STDERR "WARNING: dynamic-forward IP '$$dynamic{dynamicIP}' has shell metacharacters — skipping\n";
+            next;
+        }
+        if ($$dynamic{dynamicPort} !~ $_port_ok) {
+            print STDERR "WARNING: dynamic-forward port '$$dynamic{dynamicPort}' is not numeric — skipping\n";
+            next;
+        }
+        $txt .= ' -D '
+              . ($$dynamic{dynamicIP} ? "$$dynamic{dynamicIP}:" : '')
+              . $$dynamic{dynamicPort};
     }
+
     foreach my $forward (@{$$hash{forwardPort}}) {
-        $txt .= ' -L ' . ($$forward{localIP} ? "$$forward{localIP}:" : '') . $$forward{localPort} . ':' . $$forward{remoteIP} . ':' . $$forward{remotePort};
+        if (! $_host_ok->($$forward{localIP})
+            || ! $_host_ok->($$forward{remoteIP})
+            || $$forward{localPort}  !~ $_port_ok
+            || $$forward{remotePort} !~ $_port_ok)
+        {
+            print STDERR "WARNING: forwardPort entry has shell metacharacters or non-numeric ports — skipping\n";
+            next;
+        }
+        $txt .= ' -L '
+              . ($$forward{localIP} ? "$$forward{localIP}:" : '')
+              . $$forward{localPort} . ':'
+              . $$forward{remoteIP} . ':'
+              . $$forward{remotePort};
     }
+
     foreach my $remote (@{$$hash{remotePort}}) {
-        $txt .= ' -R ' . ($$remote{localIP} ? "$$remote{localIP}:" : '') . $$remote{localPort} . ':' . $$remote{remoteIP} . ':' . $$remote{remotePort};
+        if (! $_host_ok->($$remote{localIP})
+            || ! $_host_ok->($$remote{remoteIP})
+            || $$remote{localPort}  !~ $_port_ok
+            || $$remote{remotePort} !~ $_port_ok)
+        {
+            print STDERR "WARNING: remotePort entry has shell metacharacters or non-numeric ports — skipping\n";
+            next;
+        }
+        $txt .= ' -R '
+              . ($$remote{localIP} ? "$$remote{localIP}:" : '')
+              . $$remote{localPort} . ':'
+              . $$remote{remoteIP} . ':'
+              . $$remote{remotePort};
     }
 
     return $txt;

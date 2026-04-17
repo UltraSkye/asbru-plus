@@ -721,6 +721,24 @@ subtest 'SSH/SFTP block dangerous options' => sub {
         ok($has_quote_in_value,
             "$label: value-side regex rejects '\"' (no quote-break-out)");
     }
+
+    # REGRESSION: SSH -D / -L / -R forwarding fields are spliced into
+    # the connection command which is then SHELL-INTERPRETED by Expect's
+    # spawn (asbru_conn line ~1687). Without per-field validation, a
+    # malicious dynamicIP / remoteIP / localIP value with ';' or '|'
+    # would inject as a separate shell command. _parseOptionsToCfg must
+    # validate every host field with a shell-reject regex AND every
+    # port field as digits-only.
+    like($ssh, qr/_shell_reject\s*=\s*qr\/\[[^\]]*;/,
+        'SSH: forwarding-field reject regex covers ";"');
+    like($ssh, qr/_port_ok\s*=\s*qr\/\^\\d\+\$\//,
+        'SSH: forwarding-port regex restricts to digits');
+    like($ssh, qr/dynamicIP.*shell metacharacters/s,
+        'SSH: dynamicForward IP validated against shell metacharacters');
+    like($ssh, qr/forwardPort entry has shell metacharacters/,
+        'SSH: forwardPort entries validated');
+    like($ssh, qr/remotePort entry has shell metacharacters/,
+        'SSH: remotePort entries validated');
 };
 
 subtest 'Serial/3270/Telnet handlers validate input' => sub {
