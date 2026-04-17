@@ -4280,85 +4280,14 @@ sub _delNodes {
     return 1;
 }
 
-sub _showConnectionsList {
-    my $self = shift;
-    my $force = shift // 1;
-
-    if ($force) {
-        # Force hidden state so that the show operation is properly handled
-        # (otherwise the window may remain in the 'scratchpad' / 'withdrawn' state, as with i3wm)
-        $$self{_GUI}{main}->hide();
-        $$self{_GUI}{main}->show();
-    }
-
-    # Ensure compact panel is shown (could still be hidden if started iconified)
-    if ($$self{_CFG}{'defaults'}{'layout'} eq 'Compact') {
-        $$self{_GUI}{vboxCommandPanel}->show_all();
-        $$self{_GUI}{hpane}->show();
-    }
-
-    # The first first display when started iconified must be a show_all
-    if ($$self{_CMDLINETRAY} == 1) {
-        $$self{_GUI}{main}->show_all();
-        $$self{_CMDLINETRAY} = 2;
-    }
-
-
-    # Do show the main window
-    $$self{_GUI}{main}->present();
-
-    if ($force) {
-        $$self{_GUI}{main}->move($$self{_GUI}{posx} // 0, $$self{_GUI}{posy} // 0);
-    }
-}
-
-sub _hideConnectionsList {
-    my $self = shift;
-
-    if ($$self{_GUI}{main}->get_visible()) {
-        my ($x, $y) = $$self{_GUI}{main}->get_position();
-        if ($x > 0 || $y > 0) {
-            ($$self{_GUI}{posx}, $$self{_GUI}{posy}) = ($x, $y);
-        }
-    }
-
-    $$self{_GUI}{main}->hide();
-}
-
-sub _toggleConnectionsList {
-    my $self = shift;
-    $$self{_GUI}{showConnBtn}->set_active(!$$self{_GUI}{showConnBtn}->get_active());
-}
-
+# Connections-list panel show/hide/toggle lives in
+# PAC::Window::ConnectionsList. PACMain keeps 1-line proxies.
+require PAC::Window::ConnectionsList;
+sub _showConnectionsList         { goto &PAC::Window::ConnectionsList::show; }
+sub _hideConnectionsList         { goto &PAC::Window::ConnectionsList::hide; }
+sub _toggleConnectionsList       { goto &PAC::Window::ConnectionsList::toggle; }
 sub _doToggleDisplayConnectionsList {
-    my $self = shift;
-
-    if ($$self{_CFG}{'defaults'}{'layout'} eq 'Compact') {
-        if ($$self{_GUI}{showConnBtn}->get_active()) {
-            $PACMain::FUNCS{_MAIN}->_showConnectionsList();
-        } else {
-            $PACMain::FUNCS{_MAIN}->_hideConnectionsList();
-        }
-    } else {
-        if ($$self{_GUI}{showConnBtn}->get_active()) {
-            $$self{_GUI}{vboxCommandPanel}->show();
-        } else {
-            $$self{_GUI}{vboxCommandPanel}->hide();
-        }
-        if ($$self{_GUI}{showConnBtn}->get_active()) {
-            # Remeber that no VTE has te focus anymore
-            $$self{_HAS_FOCUS} = '';
-            # Get the currently displayed tray and move keyboard focus to it
-            my $tree = $self->_getCurrentTree();
-            if ($tree) {
-                $tree->grab_focus();
-            }
-        } else {
-            # Look for the current tab page and move keyboard focus to it
-            my $pnum = $$self{_GUI}{nb}->get_current_page();
-            $self->_doFocusPage($pnum);
-        }
-    }
+    goto &PAC::Window::ConnectionsList::apply_toggle;
 }
 
 sub _copyNodes {
