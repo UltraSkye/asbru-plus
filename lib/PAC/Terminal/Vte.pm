@@ -60,6 +60,75 @@ sub feed_child_binary {
     }
 }
 
+# probe($self) — populate $self->{_Vte}{...} with runtime-detected
+# capability flags. Called once at PACMain startup; the flags are
+# read by feed/feed_child/feed_child_binary above and by PACTerminal
+# for match_regex / get_text_range support.
+#
+# Mechanical extraction from PACMain::_setVteCapabilities. PACMain
+# retains a 1-line wrapper.
+sub probe {
+    my $self = shift;
+    require Vte;
+    my $vte = Vte::Terminal->new();
+
+    local $SIG{__WARN__} = sub {};
+    $self->{_Vte}{major_version} = Vte::get_major_version();
+    $self->{_Vte}{minor_version} = Vte::get_minor_version();
+
+    # set_bold_is_bright — added in VTE 0.52.
+    $self->{_Vte}{has_bright} = 0;
+    eval {
+        $vte->set_bold_is_bright(0);
+        $self->{_Vte}{has_bright} = 1;
+    };
+
+    # feed_child(): 1-arg (VTE 0.52+) vs 2-arg (older). Some Ubuntu
+    # VTE 0.52 packages were patched to keep the 2-arg signature, so
+    # we probe instead of trusting version numbers.
+    # See: https://bugs.launchpad.net/ubuntu/+source/ubuntu-release-upgrader/+bug/1780501
+    $self->{_Vte}{vte_feed_child} = 0;
+    eval {
+        local $SIG{__WARN__} = sub { die @_ };
+        $vte->feed_child('abc', 3);
+        1;
+    } or do {
+        $self->{_Vte}{vte_feed_child} = 1;
+    };
+
+    # feed_child_binary: 1-arg as of v0.46. (Version check is enough
+    # here — no known patched downstreams.)
+    $self->{_Vte}{vte_feed_binary} = 0;
+    if ($self->{_Vte}{major_version} >= 1
+        || $self->{_Vte}{minor_version} >= 46)
+    {
+        $self->{_Vte}{vte_feed_binary} = 1;
+    }
+
+    # Runtime probe for match_add_regex (VTE 0.46+).
+    $self->{_Vte}{match_regex} = 0;
+    eval {
+        $vte->match_add_regex(Vte::Regex->new_for_match('.', -1, 2 ** 10), 0);
+        $self->{_Vte}{match_regex} = 1;
+    };
+
+    # Runtime probe for get_text_range_format (VTE 0.72+).
+    $self->{_Vte}{get_text_range} = 0;
+    eval {
+        $vte->get_text_range_format('VTE_FORMAT_TEXT', 0, 0, 0, 0);
+        $self->{_Vte}{get_text_range} = 1;
+    };
+
+    print STDERR "INFO: Virtual terminal emulator (VTE) version is "
+               . "$self->{_Vte}{major_version}.$self->{_Vte}{minor_version}\n";
+    if ($self->{_VERBOSE}) {
+        foreach my $k (sort keys %{$self->{_Vte}}) {
+            print STDERR "       - $k = $self->{_Vte}{$k}\n";
+        }
+    }
+    return 1;
+}
+
 1;
 
 __END__
@@ -103,6 +172,15 @@ Feeds bytes to the child process as if typed at the keyboard.
 =item feed_child_binary($vte, $string)
 
 Like C<feed_child> but explicitly binary-safe.
+
+=item probe($self)
+
+Populates C<\$self-E<gt>{_Vte}{...}> with runtime-detected capability
+flags (major/minor version, has_bright, vte_feed_child, vte_feed_binary,
+match_regex, get_text_range). Called once at PACMain startup.
+
+Probes by C<eval>-ing the actual API rather than trusting version
+numbers (some Ubuntu/Debian backports keep the older signatures).
 
 =back
 

@@ -8,7 +8,26 @@ use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
 require_ok('PAC::Terminal::Vte');
-can_ok('PAC::Terminal::Vte', $_) for qw(feed feed_child feed_child_binary);
+can_ok('PAC::Terminal::Vte', $_) for qw(feed feed_child feed_child_binary probe);
+
+# probe() takes a $self that owns _Vte hash — verify it exists
+my $src_check = do {
+    open my $f, '<', "$RealBin/../lib/PAC/Terminal/Vte.pm" or die "open: $!";
+    local $/; <$f>;
+};
+like($src_check, qr/sub probe\b/, 'probe() declared');
+like($src_check, qr/_Vte}\{major_version}/, 'probe sets major_version');
+like($src_check, qr/_Vte}\{vte_feed_child}/, 'probe sets vte_feed_child');
+like($src_check, qr/_Vte}\{match_regex}/,    'probe sets match_regex');
+like($src_check, qr/_Vte}\{get_text_range}/, 'probe sets get_text_range');
+
+# PACMain wrapper still in place
+my $main = do {
+    open my $f, '<', "$RealBin/../lib/PACMain.pm" or die "open: $!";
+    local $/; <$f>;
+};
+like($main, qr/sub _setVteCapabilities \{[^}]*PAC::Terminal::Vte::probe/s,
+    'PACMain._setVteCapabilities wrapper calls probe');
 
 my $src = do {
     open my $f, '<', "$RealBin/../lib/PAC/Terminal/Vte.pm" or die "open: $!";

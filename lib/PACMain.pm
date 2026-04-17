@@ -5568,68 +5568,10 @@ sub _ApplyLayout {
 
 # Test various options supported by the VTE library
 # to centralize all tests concerning VTE into a single function
+# VTE capability probe lives in PAC::Terminal::Vte.
 sub _setVteCapabilities {
-    my $self = shift;
-    my $vte = Vte::Terminal->new();
-
-    local $SIG{__WARN__} = sub {};
-    $$self{_Vte}{major_version} = Vte::get_major_version();
-    $$self{_Vte}{minor_version} = Vte::get_minor_version();
-
-    # Does VTE supports 'set_bold_is_bright'
-    # (supposingly added in v0.52)
-    eval {
-        $vte->set_bold_is_bright(0);
-    };
-    if ($@) {
-        $$self{_Vte}{has_bright} = 0;
-    } else {
-        $$self{_Vte}{has_bright} = 1;
-    }
-
-    # Does VTE supports 1 or 2 parameters for 'feed_child'
-    # (supposingly 1 parameter as of v0.52 but some distros have a special patched version of v0.52 that
-    #  still requires 2 parameters; so let's discover this by trying ;
-    #  See https://bugs.launchpad.net/ubuntu/+source/ubuntu-release-upgrader/+bug/1780501)
-    $$self{_Vte}{vte_feed_child} = 0;
-    eval {
-        local $SIG{__WARN__} = sub { die @_ };
-        $vte->feed_child('abc', 3);
-        1;
-    } or do {
-        $$self{_Vte}{vte_feed_child} = 1;
-    };
-
-    # Does VTE supports 1 or 2 parameters for 'feed_child_binary'
-    # (1 parameter as of v0.46)
-    $$self{_Vte}{vte_feed_binary} = 0;
-    if ($$self{_Vte}{major_version} >= 1 or $$self{_Vte}{minor_version} >= 46) {
-        $$self{_Vte}{vte_feed_binary} = 1;
-    }
-
-    # Runtime probe for 'match_add_regex' support (VTE 0.46+).
-    # Version checks lie on distros that ship patched/backported VTEs —
-    # probe the actual API instead.
-    $$self{_Vte}{match_regex} = 0;
-    eval {
-        $vte->match_add_regex(Vte::Regex->new_for_match('.', -1, 2**10), 0);
-        $$self{_Vte}{match_regex} = 1;
-    };
-
-    # Runtime probe for 'get_text_range_format' support (VTE 0.72+).
-    $$self{_Vte}{get_text_range} = 0;
-    eval {
-        $vte->get_text_range_format('VTE_FORMAT_TEXT', 0, 0, 0, 0);
-        $$self{_Vte}{get_text_range} = 1;
-    };
-
-    # Tell the world what we found out
-    print STDERR "INFO: Virtual terminal emulator (VTE) version is $$self{_Vte}{major_version}.$$self{_Vte}{minor_version}\n";
-    if ($$self{_VERBOSE}) {
-        foreach my $k (sort keys %{$$self{_Vte}}) {
-            print STDERR "       - $k = $$self{_Vte}{$k}\n";
-        }
-    }
+    require PAC::Terminal::Vte;
+    return PAC::Terminal::Vte::probe($_[0]);
 }
 
 # Returns the currently selected tree
