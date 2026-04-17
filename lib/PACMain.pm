@@ -91,7 +91,7 @@ our $RES_DIR = "$RealBin/res";
 my $VENDOR_CFG_FILE = "$RealBin/vendor/asbru-conf-default-overrides.yml";
 my $INIT_CFG_FILE = "$RealBin/res/asbru.yml";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
-my $CFG_FILE = "$CFG_DIR/asbru.yml";
+our $CFG_FILE = "$CFG_DIR/asbru.yml";
 our $THEME_DIR = "$RES_DIR/themes/default";
 our $R_CFG_FILE = '';
 my $CFG_FILE_FREEZE = "$CFG_DIR/asbru.freeze";
@@ -3995,84 +3995,11 @@ sub __recurLoadTree {
     return @list;
 }
 
-sub _saveTreeExpanded {
-    my $self = shift;
-    my $tree = shift // $$self{_GUI}{treeConnections};
+# Tree expanded-state persistence lives in PAC::Tree::State.
+require PAC::Tree::State;
+sub _saveTreeExpanded { goto &PAC::Tree::State::save; }
 
-    my $selection = $tree->get_selection();
-    my $modelsort = $tree->get_model();
-    my $model = $modelsort->get_model();
-
-    open(my $fh_tree, '>:utf8', "$CFG_FILE.tree") or die "ERROR: Could not save Tree Config file '$CFG_FILE.tree': $!\n";
-    $modelsort->foreach(sub {
-        my ($store, $path, $iter, $tmp) = @_;
-        my $uuid = $store->get_value($iter, 2);
-        if (!($tree->row_expanded($path) && $uuid ne '__PAC__ROOT__')) {
-            return 0;
-        }
-        print $fh_tree $uuid . "\n";
-        return 0;
-    });
-
-    my $page0 = $$self{_GUI}{nbTree}->get_nth_page(0);
-    my $page1 = $$self{_GUI}{nbTree}->get_nth_page(1);
-    my $page2 = $$self{_GUI}{nbTree}->get_nth_page(2);
-    my $page3 = $$self{_GUI}{nbTree}->get_nth_page(3);
-
-    # Connections
-    $$self{_GUI}{scroll1} eq $page0 and print $fh_tree "tree_page_0:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page1 and print $fh_tree "tree_page_1:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page2 and print $fh_tree "tree_page_2:scroll1\n";
-    $$self{_GUI}{scroll1} eq $page3 and print $fh_tree "tree_page_3:scroll1\n";
-    # Favourites
-    $$self{_GUI}{scroll2} eq $page0 and print $fh_tree "tree_page_0:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page1 and print $fh_tree "tree_page_1:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page2 and print $fh_tree "tree_page_2:scroll2\n";
-    $$self{_GUI}{scroll2} eq $page3 and print $fh_tree "tree_page_3:scroll2\n";
-    # History
-    $$self{_GUI}{scroll3} eq $page0 and print $fh_tree "tree_page_0:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page1 and print $fh_tree "tree_page_1:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page2 and print $fh_tree "tree_page_2:scroll3\n";
-    $$self{_GUI}{scroll3} eq $page3 and print $fh_tree "tree_page_3:scroll3\n";
-    # Clusters
-    $$self{_GUI}{vboxclu} eq $page0 and print $fh_tree "tree_page_0:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page1 and print $fh_tree "tree_page_1:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page2 and print $fh_tree "tree_page_2:vboxclu\n";
-    $$self{_GUI}{vboxclu} eq $page3 and print $fh_tree "tree_page_3:vboxclu\n";
-
-    close $fh_tree;
-
-    return 1;
-}
-
-sub _loadTreeExpanded {
-    my $self = shift;
-    my $tree = shift // $$self{_GUI}{treeConnections};
-
-    my %TREE_TABS;
-
-    if (-f "$CFG_FILE.tree") {
-        open(my $fh, '<:utf8', "$CFG_FILE.tree") or die "ERROR: Could not read Tree Config file '$CFG_FILE.tree': $!\n";
-        foreach my $uuid (<$fh>) {
-
-            chomp $uuid;
-            if ($uuid =~ /^tree_page_(\d):(.+)$/go) {
-                $TREE_TABS{$1} = $2;
-            } else {
-                my $path = $$self{_GUI}{treeConnections}->_getPath($uuid) or next;
-                $tree->expand_row($path, 0);
-            }
-        }
-        close $fh;
-    }
-
-    defined $TREE_TABS{0} and $$self{_GUI}{nbTree}->reorder_child($$self{_GUI}{$TREE_TABS{0}}, 0);
-    defined $TREE_TABS{1} and $$self{_GUI}{nbTree}->reorder_child($$self{_GUI}{$TREE_TABS{1}}, 1);
-    defined $TREE_TABS{2} and $$self{_GUI}{nbTree}->reorder_child($$self{_GUI}{$TREE_TABS{2}}, 2);
-    defined $TREE_TABS{3} and $$self{_GUI}{nbTree}->reorder_child($$self{_GUI}{$TREE_TABS{3}}, 3);
-
-    return 1;
-}
+sub _loadTreeExpanded { goto &PAC::Tree::State::load; }
 
 sub _saveGUIData {
     my $self = shift;
