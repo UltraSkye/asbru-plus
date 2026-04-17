@@ -58,6 +58,46 @@ close $stray;
 PAC::SessionLog::delete_oldest('uuid', $dir, 1);
 ok(-f "$dir/random.txt", 'non-PAC files left alone');
 
+# 4b. purge_screenshots: REGRESSION — must actually interpolate _cfg_dir()
+# (an earlier extraction left "_cfg_dir()/screenshots" as a literal in a
+# double-quoted string, which made every save crash on opendir).
+{
+    my $cfg_dir = tempdir(CLEANUP => 1);
+    mkdir "$cfg_dir/screenshots" or die "mkdir: $!";
+
+    # Plant 3 screenshot files: 1 referenced, 1 orphaned, 1 missing-on-disk.
+    open my $f1, '>', "$cfg_dir/screenshots/used.png"     or die $!; close $f1;
+    open my $f2, '>', "$cfg_dir/screenshots/orphaned.png" or die $!; close $f2;
+    # No file for "missing.png" — it's a config ref to a deleted file.
+
+    local $ENV{ASBRU_CFG} = $cfg_dir;
+    my $cfg = {
+        environments => {
+            'uuid-1' => {
+                screenshots => [
+                    "$cfg_dir/screenshots/used.png",
+                    "$cfg_dir/screenshots/missing.png",
+                ],
+            },
+        },
+    };
+
+    eval { PAC::SessionLog::purge_screenshots($cfg); };
+    is($@, '', 'purge_screenshots runs without dying');
+
+    # Used: kept on disk, kept in cfg.
+    ok(-f "$cfg_dir/screenshots/used.png",
+        'purge_screenshots: referenced file kept on disk');
+    is(scalar(grep { /used\.png/ } @{$cfg->{environments}{'uuid-1'}{screenshots}}),
+        1, 'purge_screenshots: referenced file kept in cfg');
+    # Orphaned: file deleted from disk.
+    ok(! -f "$cfg_dir/screenshots/orphaned.png",
+        'purge_screenshots: orphaned file unlinked from disk');
+    # Missing: cfg ref dropped.
+    is(scalar(grep { /missing\.png/ } @{$cfg->{environments}{'uuid-1'}{screenshots}}),
+        0, 'purge_screenshots: missing-file cfg ref dropped');
+}
+
 # 5. PACUtils proxies wired
 my $utils = do {
     open my $f, '<', "$RealBin/../lib/PACUtils.pm" or die "open: $!";

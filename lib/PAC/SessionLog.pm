@@ -132,12 +132,22 @@ sub purge_screenshots {
         }
     }
 
-    opendir(my $dir, "_cfg_dir()/screenshots") or die "ERROR: Could not open dir '_cfg_dir()/screenshots' for reading: $!\n";
+    # Resolve $CFG_DIR once. The literal "_cfg_dir()/screenshots"
+    # this previously contained does NOT interpolate the function call
+    # in a double-quoted string — it was a regression introduced when
+    # this code was extracted from PACUtils (where `$CFG_DIR` was a
+    # file-scope lexical that DID interpolate). Result: opendir failed
+    # with "No such file or directory" on every save, killing
+    # PAC::Config::Save before the actual nstore could run.
+    my $screenshots_dir = _cfg_dir() . '/screenshots';
+    opendir(my $dir, $screenshots_dir)
+        or die "ERROR: Could not open dir '$screenshots_dir' for reading: $!\n";
     while (my $file = readdir($dir)) {
         if ($file =~ /^\.|\.\.$/go) {
             next;
         }
-        defined $screenshots{"_cfg_dir()/screenshots/$file"} or unlink "_cfg_dir()/screenshots/$file";
+        defined $screenshots{"$screenshots_dir/$file"}
+            or unlink "$screenshots_dir/$file";
     }
     closedir $dir;
 
