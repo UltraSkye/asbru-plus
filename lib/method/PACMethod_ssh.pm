@@ -379,8 +379,17 @@ sub _parseOptionsToCfg
             print STDERR "WARNING: Blocked dangerous SSH option '$$opt{option}' — use connection settings instead\n";
             next;
         }
-        # Reject shell metacharacters in option names/values
-        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\\n\r]/) {
+        # Reject shell metacharacters in option names/values.
+        # SECURITY: both sides must reject '"' — the value is wrapped in
+        # double-quotes when emitted as `-o "OPT=VAL"` below, so an
+        # un-rejected '"' in the value lets a malicious cfg break out:
+        #   value = q{yes" -o "ProxyCommand=evil}
+        # would become  -o "Compression=yes" -o "ProxyCommand=evil"
+        # injecting an additional, dangerous SSH option (and ProxyCommand
+        # is exactly what the early-return blocklist a few lines up tries
+        # to keep out). The value-side regex previously omitted '"',
+        # leaving exactly that quote-break-out open.
+        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/) {
             print STDERR "WARNING: SSH option '$$opt{option}' contains invalid characters — skipping\n";
             next;
         }

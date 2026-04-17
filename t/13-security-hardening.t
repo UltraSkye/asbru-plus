@@ -704,6 +704,23 @@ subtest 'SSH/SFTP block dangerous options' => sub {
         'SSH: blocks ProxyCommand/LocalCommand/PermitLocalCommand');
     like($sftp, qr/ProxyCommand.*LocalCommand.*PermitLocalCommand/s,
         'SFTP: blocks ProxyCommand/LocalCommand/PermitLocalCommand');
+
+    # REGRESSION: the value-side regex must also reject '"' so a
+    # malicious value can't break out of the surrounding double-quotes
+    # and inject an additional -o ProxyCommand=... that the explicit
+    # blocklist a few lines above tries to keep out. Previously the
+    # value-side regex omitted '"' (only the option-side rejected it).
+    for my $pair (['SSH', $ssh], ['SFTP', $sftp]) {
+        my ($label, $src) = @$pair;
+        # Both option-side AND value-side must contain the same character
+        # class — i.e. there should be exactly TWO matches of the regex
+        # `=~ /[..."...]/` on the same line, and `"` must appear in both.
+        my @lines = grep { /\$\$opt\{(?:option|value)\}\s*=~/ } split /\n/, $src;
+        my $has_quote_in_value =
+            grep { /\$\$opt\{value\}\s*=~\s*\/\[[^\]]*"[^\]]*\]/ } @lines;
+        ok($has_quote_in_value,
+            "$label: value-side regex rejects '\"' (no quote-break-out)");
+    }
 };
 
 subtest 'Serial/3270/Telnet handlers validate input' => sub {

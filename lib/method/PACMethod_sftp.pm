@@ -199,7 +199,12 @@ sub _parseOptionsToCfg
             print STDERR "WARNING: Blocked dangerous SFTP option '$$opt{option}'\n";
             next;
         }
-        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\\n\r]/) {
+        # SECURITY: both sides must reject '"' (mirror of PACMethod_ssh.pm).
+        # Value is emitted inside double-quotes as `-o "OPT=VAL"`; an
+        # un-rejected '"' in the value lets a malicious cfg break out and
+        # inject an additional -o ProxyCommand=... that the explicit
+        # blocklist a few lines up tries to keep out.
+        if ($$opt{option} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/ || $$opt{value} =~ /[`\$\(\)\{\};&|<>!\\"\n\r]/) {
             print STDERR "WARNING: SFTP option '$$opt{option}' contains invalid characters — skipping\n";
             next;
         }
