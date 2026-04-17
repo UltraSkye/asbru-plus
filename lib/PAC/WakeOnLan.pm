@@ -274,3 +274,68 @@ sub _wakeOnLan {
 }
 
 1;
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+PAC::WakeOnLan — Wake-on-LAN magic packet builder, sender, and dialog
+
+=head1 SYNOPSIS
+
+    use PAC::WakeOnLan;
+
+    # Pure helpers (no Gtk, no network):
+    my $bytes = PAC::WakeOnLan::magic_packet('00:11:22:33:44:55');
+    PAC::WakeOnLan::send_magic_packet($mac, $ip, $port, $broadcast);
+
+    # Modal dialog (legacy entry, requires Gtk + asbru env):
+    PAC::WakeOnLan::_wakeOnLan(\%cfg, $uuid);
+
+=head1 DESCRIPTION
+
+Wraps the WoL feature previously buried in C<PACUtils::_wakeOnLan>.
+Splits the packet construction and socket I/O into pure functions that
+are testable without Gtk or live sockets.
+
+=head2 Public functions
+
+=over
+
+=item magic_packet($mac)
+
+Returns the 102-byte magic packet for C<$mac>. The MAC may use C<:> or
+C<-> as separator and any case. Dies on malformed input. Pure: no
+side-effects, deterministic.
+
+The packet is C<6 × 0xFF> followed by C<16 ×> the packed 6-byte MAC,
+per the AMD WoL specification.
+
+=item send_magic_packet($mac, $ip, $port, $broadcast)
+
+Opens a UDP socket, sends the magic packet (with retries on best-effort
+basis), closes the socket. Returns 1 on success, dies on socket failure.
+
+C<$port> defaults to 9. C<$broadcast> (default 0) sends to
+C<255.255.255.255> instead of C<$ip>.
+
+=back
+
+=head2 Legacy entry point
+
+=over
+
+=item _wakeOnLan($cfg, $uuid)
+
+The original modal Gtk dialog. Compatible signature with the previous
+C<PACUtils::_wakeOnLan>.
+
+=back
+
+=head1 SEE ALSO
+
+L<https://en.wikipedia.org/wiki/Wake-on-LAN>
+
+=cut

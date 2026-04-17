@@ -254,3 +254,73 @@ sub _constrain_action_area {
 }
 
 1;
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+PAC::Dialog — modal Gtk3 dialog helpers
+
+=head1 SYNOPSIS
+
+    use PAC::Dialog;
+
+    my $val = PAC::Dialog::_wEnterValue($parent, '<b>Name?</b>', 'Helper text');
+    PAC::Dialog::_wMessage($parent, 'Operation completed.');
+    my $ok = PAC::Dialog::_wConfirm($parent, 'Delete this connection?');
+
+=head1 DESCRIPTION
+
+This module provides four modal Gtk3 dialogs that were previously inline
+in C<PACUtils.pm>:
+
+=over
+
+=item _wEnterValue($parent, $title_markup, $helper_markup, $default, $visible, $stock_icon)
+
+Single-line entry or combo dropdown. Returns the entered string (or
+C<undef> on cancel) in scalar context, or C<($val, $position)> in list
+context.
+
+C<$default> may be: a scalar (initial text), an arrayref (combo items),
+or a pipe-separated string with at least three pipes (combo items).
+C<$visible> defaults to 1; pass 0 for password entry.
+
+=item _wMessage($parent, $markup, $modal, $selectable, $css_class)
+
+Information / warning / error dialog. Auto-detects errors by matching
+C</error/i> in C<$markup>. C<$modal> defaults to 1; non-modal mode shows
+the dialog and returns immediately.
+
+=item _wConfirm($parent, $markup, $default)
+
+Yes / No question. Returns 1 on Yes, 0 on No or close.
+
+=item _wYesNoCancel($parent, $markup)
+
+Three-way choice. Returns C<'yes'>, C<'no'>, or C<'cancel'>.
+
+=back
+
+If C<$parent> is undef or not a C<Gtk3::Window>, the helpers fall back
+to the application's main window or the splash window during early
+startup.
+
+=head1 INTERNAL
+
+=over
+
+=item _constrain_action_area($dialog)
+
+Prevents OK/Cancel buttons from stretching across the dialog width.
+Used internally by all four helpers.
+
+=back
+
+=head1 SEE ALSO
+
+L<Gtk3::Dialog>, L<Gtk3::MessageDialog>.
+
+=cut

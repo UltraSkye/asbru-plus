@@ -143,6 +143,67 @@ The full implementation (decrypt-on-demand, Argon2id KDF, in-memory
 zeroization, audit log) is tracked in C<SECURITY.md> under "Known
 weaknesses" and the audit roadmap.
 
+=head1 PUBLIC API
+
+=over
+
+=item instance(%args)
+
+Class method. Returns the singleton vault instance, creating it on first
+call. Accepts C<cfg_path => '/path/to/asbru.nfreeze'>.
+
+=item is_unlocked
+
+Returns true iff the vault is currently in an unlocked state.
+
+=item unlock($password)
+
+Unlocks the vault using the supplied master password.
+
+=item verify($password, $verifier)
+
+Compares C<$password> against the stored C<$verifier> token using
+constant-time comparison. Returns true on match.
+
+=item create_verifier($password)
+
+Generates a verifier token to be stored in the config so future
+C<verify> calls can validate without exposing the master key.
+
+=item encrypt_field($plaintext)
+
+Encrypts a single config field using the active master key. Returns
+the ciphertext (currently delegates to legacy C<$PACUtils::CIPHER>).
+
+=item decrypt_field($ciphertext)
+
+Inverse of C<encrypt_field>.
+
+=item kdf_strength
+
+Returns the active KDF identifier — currently 1 (legacy opensslv2),
+will become 2 once Argon2id migration lands.
+
+=item get_secret($uuid, $key)
+
+Future API: decrypt-on-demand secret retrieval. Currently throws.
+
+=item put_secret($uuid, $key, $value)
+
+Future API: store an encrypted secret. Currently throws.
+
+=item rotate_kdf
+
+Future API: migrate the vault to a stronger KDF (Argon2id). Currently
+throws.
+
+=item zero_memory
+
+Future API: scrub decrypted secrets from process memory. Currently
+throws.
+
+=back
+
 =head1 SEE ALSO
 
 L<SECURITY.md>, L<ARCHITECTURE.md>

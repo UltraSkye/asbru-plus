@@ -57,3 +57,61 @@ sub importable {
 }
 
 1;
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+PACSshConfig — Parse OpenSSH client config (~/.ssh/config) for bulk import
+
+=head1 SYNOPSIS
+
+    use PACSshConfig;
+
+    my $hosts = PACSshConfig::parse("$ENV{HOME}/.ssh/config");
+    for my $h (@$hosts) {
+        printf "%-20s %s:%d as %s\n",
+            $h->{alias}, $h->{hostname} // '?', $h->{port} // 22,
+            $h->{user} // '?';
+    }
+
+=head1 DESCRIPTION
+
+Pure-Perl SSH client config parser used by the
+C<Import from ~/.ssh/config> menu entry. No Gtk, no network, no asbru
+internal state — kept small and isolated so it stays testable.
+
+=head2 Public functions
+
+=over
+
+=item parse($path)
+
+Returns an arrayref of importable host entries, each a hash with keys
+C<alias>, C<hostname>, C<port>, C<user>, C<identity_file>. Returns an
+empty arrayref if the file cannot be opened.
+
+Skipped: wildcard hosts (C<Host *>), C<Match> blocks, C<Include>
+directives. For C<Host alias1 alias2>, only the first alias becomes
+the importable entry.
+
+=item importable($host)
+
+Returns true iff C<$host> is a valid importable entry: has a non-empty
+C<alias> with no C<*> or C<?> wildcards.
+
+=back
+
+=head1 NOTES
+
+This module lives at C<lib/PACSshConfig.pm> rather than
+C<lib/PAC/SshConfig.pm> for transitional reasons; it will move into
+C<PAC::> once we standardize the namespace migration.
+
+=head1 SEE ALSO
+
+L<ssh_config(5)>.
+
+=cut
