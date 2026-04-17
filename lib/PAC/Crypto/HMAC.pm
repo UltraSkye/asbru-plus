@@ -126,7 +126,7 @@ sub verify_for {
     # Otherwise an attacker could simply delete the .hmac to bypass integrity.
     if (!-f $hmac_path) {
         return 1 unless _has_master_verifier($config_path);
-        print STDERR "SECURITY: '$config_path' has a master password set but no HMAC sidecar — refusing to load\n";
+        print STDERR "SECURITY: '$config_path' has a master password set but no HMAC sidecar - refusing to load\n";
         return 0;
     }
 
