@@ -21,6 +21,8 @@ use strict;
 use warnings;
 use utf8;
 
+use Storable qw(dclone);
+
 our $VERSION = '0.1.0';
 
 # Globals from PACUtils referenced fully-qualified to avoid a circular
