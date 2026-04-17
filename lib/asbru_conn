@@ -49,7 +49,7 @@ use POSIX qw(strftime);
 use Gtk3 '-init';
 
 binmode STDOUT;
-binmode STDERR;
+binmode STDERR, ':utf8';
 
 # SECURITY: Disable core dumps to prevent credential leakage from process memory.
 # Core dumps can contain decrypted passwords, SSH keys, and session tokens.
