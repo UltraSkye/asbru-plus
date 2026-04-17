@@ -505,45 +505,13 @@ sub _getSelectedRows {
     return @$aref;
 }
 
-sub _vteFeed {
-    my $vte = shift;
-    my $str = shift;
-    my @arr = unpack ('C*', $str);
-    $vte->feed(\@arr);
-}
+# VTE feed helpers live in PAC::Terminal::Vte.
+require PAC::Terminal::Vte;
+sub _vteFeed { goto &PAC::Terminal::Vte::feed; }
 
-sub _vteFeedChild {
-    my $vte = shift;
-    my $str = shift;
-    my $feedVersion = $PACMain::FUNCS{_MAIN}{_Vte}{vte_feed_child};
+sub _vteFeedChild { goto &PAC::Terminal::Vte::feed_child; }
 
-    use bytes;
-    my $b = length($str);
-    my @arr = unpack ('C*', $str);
-
-    if ($feedVersion == 1) {
-        # Newer version only requires 1 parameter
-        $vte->feed_child(\@arr);
-    } else {
-        # Elder versions requires 2 parameters
-        $vte->feed_child($str, $b);
-    }
-}
-
-sub _vteFeedChildBinary {
-    my $vte = shift;
-    my $str = shift;
-    my @arr = unpack ('C*', $str);
-    my $feedVersion = $PACMain::FUNCS{_MAIN}{_Vte}{vte_feed_binary};
-
-    if ($feedVersion == 1) {
-        # Newer version only requires 1 parameter
-        $vte->feed_child_binary(\@arr);
-    } else {
-        # Elder versions requires 2 parameters
-        $vte->feed_child_binary(\@arr, length(\@arr));
-    }
-}
+sub _vteFeedChildBinary { goto &PAC::Terminal::Vte::feed_child_binary; }
 
 sub _createBanner { goto &PAC::Theme::Image::banner; }
 
