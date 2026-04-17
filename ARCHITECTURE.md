@@ -74,19 +74,100 @@ Plus:
 
 ## Module boundaries (current)
 
-| Module | Lines | Owns |
-|--------|-------|------|
-| `PACMain.pm` | ~5300 | App lifecycle, main window, tree, save/load, theme switch, update banner |
-| `PACUtils.pm` | ~4400 | Crypto, icons, splash, dialog helpers, method definitions |
-| `PACConfig.pm` | ~2400 | Preferences window |
-| `PACEdit.pm` | ~3200 | Edit Connection dialog |
-| `PACTerminal.pm` | ~4500 | Per-connection terminal lifecycle, expect, log |
-| `PACScripts.pm` | ~1700 | Scripts manager (Perl + Python) |
-| `PACCluster.pm` | ~900 | Cluster manager |
-| `PACTray.pm` | ~250 | System tray icon |
-| `PACKeePass.pm` | ~900 | KeePass CLI bridge |
-| `PACPCC.pm` | ~500 | Power Cluster Controller |
-| `lib/method/*.pm` | ~3500 (total) | Per-protocol command builders |
+Numbers updated 2026-04-17 (post v6.5.0).
+
+| Module | Lines | Subs | Owns |
+|--------|------:|-----:|------|
+| `lib/PACMain.pm` | 6 211 | 64 | App lifecycle, main window, tree, save/load, theme switch, update banner, copy/cut/paste/import/export |
+| `lib/PACTerminal.pm` | 5 020 | 51 | Per-connection terminal lifecycle, expect, screenshots, session log |
+| `lib/PACUtils.pm` | 4 479 | 57 | Crypto, icons, splash, dialog helpers, method definitions, `_subst()`, `_cfgSanityCheck`, Wake-on-LAN |
+| `lib/asbru_conn` | 2 759 | — | Connection helper (separate process, talks back to PACTerminal via FIFO) |
+| `lib/ex/KeePass.pm` | 2 317 | — | Vendored copy of `File::KeePass` |
+| `lib/PACScripts.pm` | 1 985 | — | Scripts manager (Perl + Python) |
+| `lib/PACCluster.pm` | 1 728 | — | Cluster manager |
+| `lib/PACConfig.pm` | 1 331 | — | Preferences window |
+| `lib/method/PACMethod_ssh.pm` | 1 186 | — | SSH command builder + Edit-tab fields |
+| `lib/PACPCC.pm` | 1 074 | — | Power Cluster Controller |
+| `lib/PACKeePass.pm` | 1 032 | — | KeePass CLI bridge |
+| `lib/PACEdit.pm` | 1 026 | — | Edit Connection dialog |
+| `lib/edit/PACExpectEntry.pm` | 911 | — | Expect-pattern editor sub-tab |
+| `lib/PACKeyBindings.pm` | 681 | — | Keyboard shortcut registration / dispatch |
+| `lib/method/PACMethod_xfreerdp.pm` | 608 | — | xfreerdp command builder |
+| `lib/edit/PACExecEntry.pm` | 553 | — | Pre/post local exec editor |
+| `asbru-cm` | 531 | — | Entry script — argv, perms, `prctl(DUMPABLE,0)`, hand-off |
+| `lib/method/PACMethod_rdesktop.pm` | 521 | — | rdesktop command builder |
+
+The boundaries are **leaky**:
+
+- `PACUtils` calls `PACMain::FUNCS{...}` (circular)
+- Many modules reach into `$$self{_GUI}{main}` of PACMain by name
+- Global state via `our %SHARED`, `our %COMMON`, `$FUNCS{...}`, `%RUNNING`
+- Glade widgets fetched by string ID across module boundaries
+
+## Section maps for large files
+
+The biggest files are mostly inherited from upstream. Splitting them
+mass-style breaks `git blame` and complicates upstream merges, so the
+plan is to extract one well-bounded chunk at a time. Until then, here
+is where to look in each:
+
+### `lib/PACMain.pm` (6 211 lines, 64 subs)
+
+| Lines | Section | Key subs |
+|------:|---------|----------|
+|   30– 130 | imports + globals | — |
+|  130– 456 | constructor | `new` |
+|  463– 587 | finalize / start-up | `start`, `DESTROY` |
+|  587–1310 | main window UI build | `_initGUI` (723 lines) |
+| 1310–2578 | GTK signal wiring | `_setupCallbacks` (1268 lines) |
+| 2578–2941 | tree + favorites + lock | `_setFavourite`, `_lockAsbru`, `__search`, `__treeBuildNodeName` |
+| 2941–3331 | tree right-click menus | `_treeConnections_menu`, `_treeConnections_menu_lite` |
+| 3331–3500 | updates banner + theme | `_checkForUpdates`, `_toggleTheme`, `_resetStyleRecursively` |
+| 3500–3758 | about / cluster / terminals | `_showAboutWindow`, `_startCluster`, `_launchTerminals`, `_quitProgram` |
+| 3867–4129 | save / load configuration | `_saveConfiguration`, `_readConfiguration` |
+| 4129–4477 | tree state + GUI prefs | `_promptSetMasterPassword`, `_loadTreeConfiguration`, `_updateGUIWithUUID` |
+| 4477–4798 | favorites / clusters / hide-show / cut-paste | many small |
+| 4798–5135 | clone / dup / export / import | `_pasteNodes`, `__dupNodes`, `__exportNodes`, `__importNodes` |
+| 5135–5226 | import from `~/.ssh/config` | `__importSshConfig` |
+| 5226–5571 | bulk edit | `_bulkEdit` |
+| 5571–5806 | layout / focus / VTE caps | `_ApplyLayout`, `_setVteCapabilities`, `_doFocusPage` |
+| 5806–end  | HMAC integrity, safe retrieve | `_writeConfigHMAC`, `_verifyConfigHMAC`, `_safe_retrieve` |
+
+### `lib/PACUtils.pm` (4 479 lines, 57 subs)
+
+| Lines | Section | Key subs |
+|------:|---------|----------|
+|   30– 190 | imports + module-level state ($CIPHER) | — |
+|  190– 309 | master cipher / verifier | `_initMasterCipher`, `_verifyMasterPassword`, `_migrateCipherCFG` |
+|  309– 421 | legacy decrypt compat | `_decrypt_hex_compat` |
+|  421– 549 | translation + image helpers | `_`, `__`, `_splash`, `_screenshot`, `_pixBufFromFile` |
+|  549–1384 | **method definitions** (giant) | `_getMethods` (835 lines!) — **prime split target** |
+| 1384–1699 | icon registry + tree sort | `_registerPACIcons`, `_sortTreeData` |
+| 1699–2275 | **dialog helpers** | `_wEnterValue`, `_wMessage`, `_wConfirm`, `_wYesNoCancel`, `_wPopUpMenu` — **extracting now to `PAC::Dialog`** |
+| 2275–2316 | password dialog | `_wSetPACPassword` |
+| 2316–2978 | **`_cfgSanityCheck`** | schema validation + migration (massive) |
+| 2978–3074 | crypto on cfg | `_cipherCFG`, `_decipherCFG` — **belongs in `PAC::Vault`** |
+| 3074–3345 | **substitution engine** | `_substCFG`, `_subst` — `_subst` is 215 lines |
+| 3345–3590 | **Wake-on-LAN** | `_wakeOnLan` (245 lines) — **easy extraction** |
+| 3590–3712 | session log purge / regex / screenshots | `_deleteOldestSessionLog`, `_replaceBadChars`, `_purgeUnusedOrMissingScreenshots` |
+| 3712–3755 | X11 window list, README check | `_getXWindowsList`, `_checkREADME` |
+| 3755–4016 | encodings, desktop file | `_getEncodings`, `_makeDesktopFile` |
+| 4016+ | small helpers | `_updateWidgetColor`, `_vteFeed*`, `_createBanner`, `_doShellEscape`, `_appName` |
+
+### `lib/PACTerminal.pm` (5 020 lines, 51 subs)
+
+Less amenable to splitting — most of the file is one big `PACTerminal`
+class with lifecycle methods. Sections of interest:
+
+| Lines | Section |
+|------:|---------|
+|  150– 510 | `new` — constructor, log file resolution, expect setup |
+|  510– 750 | `start` — VTE spawn, FIFO pipe to asbru_conn |
+| 1380–1700 | socket reader — handles `CONNECTED`/`DISCONNECTED`/`WENTER`/expect events |
+| 2480–2545 | `_setTabColour` — title + icon update + status |
+| 3475–3540 | `_execLocalPPE` — local pre/post execution |
+| 4570–4610 | `_zoomHandler` |
+| 4670–4700 | `_summarizeForwards` — forward port tooltip helper (this fork) |
 
 The boundaries are **leaky**:
 
