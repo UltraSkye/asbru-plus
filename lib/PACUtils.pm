@@ -416,26 +416,9 @@ sub _purgeUnusedOrMissingScreenshots { goto &PAC::SessionLog::purge_screenshots;
 require PAC::Net::WindowList;
 sub _getXWindowsList { goto &PAC::Net::WindowList::all; }
 
-sub _checkREADME {
-    my $readme_file = "$CFG_DIR/tmp/latest_README";
-    open(my $fh, '<:utf8', $readme_file) or return 0;
-    my @readme;
-    while(my $line = <$fh>) {
-        chomp $line;
-        push(@readme, $line);
-    }
-    close $fh;
-
-    my $version = $readme[56] // 0;
-    $version =~ s/^\s+-\s+(.+):/$1/go;
-    $version or return 0;
-
-    my $i = 54;
-    my @changes = splice(@readme, 54);
-    unlink $readme_file;
-
-    return $version, \@changes;
-}
+# README change-detector lives in PAC::Util::Readme.
+require PAC::Util::Readme;
+sub _checkREADME { goto &PAC::Util::Readme::check; }
 
 # Encodings registry lives in PAC::Terminal::Encodings.
 require PAC::Terminal::Encodings;
