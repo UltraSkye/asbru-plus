@@ -83,6 +83,71 @@ jobs:
             t/18-storable-rce-gate.t \
             t/19-vault-ct-compare.t
 
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test
+    # Coverage is informational on every push, gate kicks in on PRs.
+    continue-on-error: ${{ github.event_name != 'pull_request' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            perl libgtk3-perl libvte-2.91-0 libexpect-perl libyaml-perl \
+            libcrypt-cbc-perl libcrypt-rijndael-perl libcrypt-pbkdf2-perl \
+            libsocket6-perl libnet-arp-perl libuuid-tiny-perl \
+            libgtk3-simplelist-perl libtry-tiny-perl libtest-exception-perl \
+            libdevel-cover-perl xvfb
+
+      - name: Start virtual display
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 -ac &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          for i in $(seq 1 10); do
+            xdpyinfo -display :99 >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+      - name: Run test suite under Devel::Cover
+        run: |
+          PERL5OPT='-MDevel::Cover=-silent,1,-summary,0,+ignore,^t/' \
+            prove -lr t/ || true
+          cover -summary -report text > coverage.txt 2>&1 || true
+          tail -50 coverage.txt
+
+      - name: Extract total coverage
+        id: cov
+        run: |
+          PCT=$(grep -E '^Total' coverage.txt | awk '{print $NF}' | tr -d '%' || echo 0)
+          echo "Total coverage: ${PCT}%"
+          echo "pct=${PCT}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare against baseline
+        run: |
+          BASELINE=$(cat .coverage-baseline 2>/dev/null || echo 0)
+          PCT=${{ steps.cov.outputs.pct }}
+          echo "Baseline: ${BASELINE}%   Current: ${PCT}%"
+          # Allow 1pp slip; fail PR if coverage drops more than that.
+          if awk "BEGIN{exit !($PCT + 1 < $BASELINE)}"; then
+            echo "::error::Coverage dropped from ${BASELINE}% to ${PCT}% (>1pp)"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.txt
+            cover_db/
+          if-no-files-found: warn
+
   shellcheck-scripts:
     runs-on: ubuntu-latest
 
