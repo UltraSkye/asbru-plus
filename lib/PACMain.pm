@@ -3331,26 +3331,16 @@ sub _treeConnections_menu {
 sub _checkForUpdates {
     my $self = shift;
     return unless $$self{_GUI}{updateBar};
-    my $url = 'https://api.github.com/repos/UltraSkye/asbru-plus/releases/latest';
-    my $body;
-    eval {
-        require HTTP::Tiny;
-        my $resp = HTTP::Tiny->new(timeout => 4)->get($url);
-        $body = $resp->{content} if $resp->{success};
-    };
-    return unless $body;
-    my ($latest_tag) = $body =~ /"tag_name"\s*:\s*"([^"]+)"/;
-    my ($html_url)   = $body =~ /"html_url"\s*:\s*"([^"]+)"/;
-    return unless $latest_tag;
 
-    my $clean_latest = $latest_tag; $clean_latest =~ s/^v//i;
-    my $current      = $APPVERSION;  $current      =~ s/^v//i;
-    return unless $clean_latest gt $current;
+    require PAC::Net::UpdateCheck;
+    my $rel = PAC::Net::UpdateCheck::fetch_latest() or return;
+    return unless PAC::Net::UpdateCheck::is_newer($rel->{tag}, $APPVERSION);
 
-    $$self{_GUI}{updateBarUrl} = $html_url || 'https://github.com/UltraSkye/asbru-plus/releases';
-    $$self{_GUI}{updateBarLabel}->set_markup(
-        sprintf("<b>A new version is available:</b> %s  (you have %s)", $latest_tag, $APPVERSION)
-    );
+    $$self{_GUI}{updateBarUrl} = $rel->{html_url};
+    $$self{_GUI}{updateBarLabel}->set_markup(sprintf(
+        "<b>A new version is available:</b> %s  (you have %s)",
+        $rel->{tag}, $APPVERSION
+    ));
     $$self{_GUI}{updateBar}->set_visible(1);
     $$self{_GUI}{updateBar}->show();
     return 1;
