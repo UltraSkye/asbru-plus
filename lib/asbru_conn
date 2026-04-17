@@ -333,6 +333,7 @@ $$CFG{'defaults'}{'proxy pass'} = subst($$CFG{'defaults'}{'proxy pass'});
 # The converted key has no passphrase; SSH won't ask for one — safe for automation.
 # Uses File::Temp for secure temp file creation (mode 0600, no TOCTOU window).
 my $_ppk_tmp;
+my $_ppk_pass_tmp;   # SECURITY: passphrase temp file (cleaned up in END if puttygen dies mid-conversion)
 my $_vnc_pfile;
 my $_rdp_pass_file;  # SECURITY: temp file for RDP password (cleaned up in END block)
 my $_cmd_file;       # SECURITY: temp command file (cleaned up in END block if spawn fails)
@@ -344,7 +345,6 @@ if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
         my @conv = ('puttygen', $PUBKEY, '-O', 'private-openssh', '-o', $_ppk_tmp);
 
         # If key has a passphrase, pass it via a temp file (avoids ps exposure)
-        my $_ppk_pass_tmp;
         if ($PASSPHRASE) {
             my ($pfh, $pass_path) = tempfile(SUFFIX => '.txt', UNLINK => 0);
             $_ppk_pass_tmp = $pass_path;
@@ -362,9 +362,11 @@ if ($PUBKEY && $PUBKEY =~ /\.ppk$/i) {
             print "$COLOR{'err'}WARNING: PPK conversion failed for $PUBKEY$COLOR{'norm'}\n";
         }
 
-        # Passphrase temp file no longer needed after puttygen exits
+        # Passphrase temp file no longer needed after puttygen exits.
+        # Clear $_ppk_pass_tmp so the END block doesn't try to unlink twice.
         if (defined $_ppk_pass_tmp) {
             unlink $_ppk_pass_tmp;
+            $_ppk_pass_tmp = undef;
         }
     } else {
         print "$COLOR{'err'}WARNING: .ppk key selected but puttygen not found — install putty-tools$COLOR{'norm'}\n";
@@ -377,11 +379,12 @@ END {
     $SUDO_PASSWORD = "\0" x length($SUDO_PASSWORD) if defined $SUDO_PASSWORD && length $SUDO_PASSWORD;
     $proxy_pass    = "\0" x length($proxy_pass)    if defined $proxy_pass    && length $proxy_pass;
     delete $ENV{'ASBRU_PROXY_AUTH'};
-    # Clean up temp files
-    unlink $_ppk_tmp  if defined $_ppk_tmp  && -f $_ppk_tmp;
-    unlink $_vnc_pfile if defined $_vnc_pfile && -f $_vnc_pfile;
+    # Clean up temp files (defensive — most are unlinked in normal flow)
+    unlink $_ppk_tmp       if defined $_ppk_tmp       && -f $_ppk_tmp;
+    unlink $_ppk_pass_tmp  if defined $_ppk_pass_tmp  && -f $_ppk_pass_tmp;
+    unlink $_vnc_pfile     if defined $_vnc_pfile     && -f $_vnc_pfile;
     unlink $_rdp_pass_file if defined $_rdp_pass_file && -f $_rdp_pass_file;
-    unlink $_cmd_file if defined $_cmd_file && -f $_cmd_file;
+    unlink $_cmd_file      if defined $_cmd_file      && -f $_cmd_file;
 }
 
 # Build initial SSH connection command
@@ -630,15 +633,6 @@ sub wEnterValue {
     # Wait for data to arrive
     ($val,$pos) = readData('WENTER');
     return wantarray ? ($val, $pos) : $val;
-}
-
-sub _hideSTDERR {
-    open OLDERR, ">&STDERR";
-    open STDERR, ">/dev/null";
-}
-
-sub _showSTDERR {
-    open STDERR, ">&OLDERR";
 }
 
 sub send_slow {
@@ -1097,7 +1091,7 @@ sub _getProxyCmd {
     }
 
     if ($proxy_user ne '') {
-        if (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which ncat 1>/dev/null 2>&1") eq 0) {
+        if (system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} which ncat 1>/dev/null 2>&1") == 0) {
             # Pass credentials via environment variable to avoid exposure in process list
             $ENV{'ASBRU_PROXY_AUTH'} = "$proxy_user:$proxy_pass";
             return "sh -c 'ncat --proxy $proxy_ip:$proxy_port --proxy-type $proxy_type --proxy-auth \"\$ASBRU_PROXY_AUTH\" \"\$@\"' -- ";
