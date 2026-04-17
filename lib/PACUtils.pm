@@ -151,59 +151,21 @@ my $THEME_DIR = "$RES_DIR/themes/default";
 my $SPLASH_IMG = "$RES_DIR/asbru-logo-400.png";
 my $CFG_DIR = $ENV{"ASBRU_CFG"} // '';
 my $CFG_FILE = $CFG_DIR ne '' ? "$CFG_DIR/asbru.yml" : '';
-my $_SALT_LEGACY = '12345678';  # Static 8-byte salt for backward compat
-my $_CIPHER_KEY_LEGACY = 'PAC Manager (David Torrejon Vaquerizas, david.tv@gmail.com)';
+# Crypto state lives in PAC::Crypto::Cipher; PACUtils keeps an `our $CIPHER`
+# alias so the 50+ legacy `$CIPHER->encrypt_hex / $PACUtils::CIPHER->...`
+# callsites continue to work unchanged. Same Crypt::CBC instance — mutations
+# from set_master() are visible everywhere.
+require PAC::Crypto::Cipher;
+PAC::Crypto::Cipher::init({ cfg_dir => $CFG_DIR });
+our $CIPHER = PAC::Crypto::Cipher::active();
 
-# SECURITY: Per-installation random salt (8 bytes for Crypt::CBC).
-# Persisted in $CFG_DIR/.salt. Falls back to legacy static salt.
-my $SALT;
-my $SALT_FILE = (defined $CFG_DIR && $CFG_DIR ne '') ? "$CFG_DIR/.salt" : undef;
-if (defined $SALT_FILE && -f $SALT_FILE) {
-    if (open(my $fh, '<:raw', $SALT_FILE)) {
-        read($fh, $SALT, 8);
-        close $fh;
-    }
-}
-if (!defined $SALT || length($SALT) != 8) {
-    if (open(my $rng, '<:raw', '/dev/urandom')) {
-        read($rng, $SALT, 8);
-        close $rng;
-        if (defined $SALT_FILE) {
-            if (open(my $fh, '>:raw', $SALT_FILE)) {
-                print $fh $SALT;
-                close $fh;
-                chmod 0600, $SALT_FILE;
-            }
-        }
-    } else {
-        $SALT = $_SALT_LEGACY;
-    }
-}
-
-# Active cipher — initialized with legacy key, upgraded when master password is set
-our $CIPHER = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => $SALT, -pbkdf => 'opensslv2') or die "ERROR: $!\n";
-# Legacy ciphers for reading old configs (use static legacy salt for backward compat)
-my $CIPHER_LEGACY_AES = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Crypt::Rijndael', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2') or die "ERROR: $!\n";
-my $CIPHER_LEGACY_BF = Crypt::CBC->new(-key => $_CIPHER_KEY_LEGACY, -cipher => 'Blowfish', -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv1', -nodeprecate => 1) or die "ERROR: $!\n";
-my $_MASTER_PASSWORD_ACTIVE = 0;  # Flag: is a user-provided master password in use?
-
-# Initialize cipher with a user-provided master password
-# Master password is encoded to UTF-8 bytes — Crypt::CBC's PBKDF expects bytes
-# and warns "Wide character in subroutine entry" if given a wide-char string.
 sub _initMasterCipher {
     my $master_pass = shift;
-    $master_pass = encode_utf8($master_pass) if defined $master_pass;
-    $CIPHER = Crypt::CBC->new(
-        -key    => $master_pass,
-        -cipher => 'Crypt::Rijndael',
-        -salt   => $SALT,
-        -pbkdf  => 'opensslv2',
-    ) or die "ERROR: Could not initialize cipher: $!\n";
-    $_MASTER_PASSWORD_ACTIVE = 1;
+    $CIPHER = PAC::Crypto::Cipher::set_master($master_pass);
     return $CIPHER;
 }
 
-sub _isMasterPasswordActive { return $_MASTER_PASSWORD_ACTIVE; }
+sub _isMasterPasswordActive { return PAC::Crypto::Cipher::is_master_active(); }
 
 sub _createMasterVerifier {
     my $master_pass = shift;
@@ -307,20 +269,10 @@ sub _migrateCipherCFG {
     return 1;
 }
 
-# Decrypt with migration support: try active cipher, then legacy AES (static salt),
-# then legacy Blowfish. Ensures backward compat with pre-random-salt configs.
-sub _decrypt_hex_compat {
-    my $hex = shift;
-    return '' unless defined $hex && $hex ne '';
-    my $result;
-    eval { $result = $CIPHER->decrypt_hex($hex); };
-    return $result unless $@;
-    eval { $result = $CIPHER_LEGACY_AES->decrypt_hex($hex); };
-    return $result unless $@;
-    eval { $result = $CIPHER_LEGACY_BF->decrypt_hex($hex); };
-    return $result unless $@;
-    return '';
-}
+# Backward-compat alias for the legacy decrypt-with-fallback helper.
+# Implementation now lives in PAC::Crypto::Cipher::decrypt_hex which tries
+# the active cipher, then legacy AES, then legacy Blowfish.
+sub _decrypt_hex_compat { goto &PAC::Crypto::Cipher::decrypt_hex; }
 
 my %WINDOWSPLASH;
 my %WINDOWPROGRESS;
