@@ -362,57 +362,15 @@ sub _splash {
     return 1;
 }
 
-sub _screenshot {
-    my $widget = shift;
-    my $file = shift;
-
-    my $gdkpixbuf = Gtk3::Gdk::pixbuf_get_from_window($widget->get_window, $widget->get_allocation->{'x'}, $widget->get_allocation->{'y'}, $widget->get_allocation->{'width'}, $widget->get_allocation->{'height'});
-
-    return defined $file ? $gdkpixbuf->save($file, 'png') : $gdkpixbuf;
-}
+# Image helpers live in PAC::Theme::Image.
+require PAC::Theme::Image;
+sub _screenshot { goto &PAC::Theme::Image::screenshot; }
 
 # TODO: This should validate for file existence, eval generates errors an warnings in verbose mode
-sub _scale {
-    my $file = shift;
-    my $w = shift;
-    my $h = shift;
-    my $ratio = shift // '';
-
-    my $gdkpixbuf;
-    eval {
-        $gdkpixbuf = ref($file) ? $file : Gtk3::Gdk::Pixbuf->new_from_file($file)
-    };
-    if ($@) {
-        print STDERR "WARN: Error while loading pixBuf from file '$file': $@";
-        return 0;
-    }
-
-    if ($ratio && (($gdkpixbuf->get_width > $w) || ($gdkpixbuf->get_height > $h))) {
-        if ($gdkpixbuf->get_width > $gdkpixbuf->get_height) {
-            $h = int(($w * $gdkpixbuf->get_height) / $gdkpixbuf->get_width);
-        } elsif ($gdkpixbuf->get_height >= $gdkpixbuf->get_width) {
-            $w = int(($h * $gdkpixbuf->get_width) / $gdkpixbuf->get_height);
-        }
-    }
-
-    return $gdkpixbuf->scale_simple($w, $h, 'GDK_INTERP_HYPER');
-}
+sub _scale { goto &PAC::Theme::Image::scale; }
 
 # TODO: This should validate for file existence, eval generates errors an warnings in verbose mode
-sub _pixBufFromFile {
-    my $file = shift;
-
-    my $gdkpixbuf;
-    eval {
-        $gdkpixbuf = Gtk3::Gdk::Pixbuf->new_from_file($file)
-    };
-
-    if ($@) {
-        print STDERR "WARN: Error while loading pixBuf from file '$file': $@";
-        return 0;
-    }
-    return $gdkpixbuf;
-}
+sub _pixBufFromFile { goto &PAC::Theme::Image::pixbuf_from_file; }
 
 # Method registry lives in PAC::Methods. PACUtils keeps a 1-line proxy.
 require PAC::Methods;
@@ -766,29 +724,7 @@ sub _vteFeedChildBinary {
     }
 }
 
-sub _createBanner {
-    my $icon_filename = shift;
-    my $text_label = shift;
-    my $banner;
-    my $icon;
-    my $text;
-
-    $icon = Gtk3::Image->new_from_file("${THEME_DIR}/${icon_filename}");
-    $icon->set_margin_left(10);
-    $icon->set_margin_right(10);
-    $text = Gtk3::Label->new();
-    $text->set_margin_left(10);
-    $text->set_margin_right(10);
-    $text->set_text($text_label);
-    $text->get_style_context->add_class('banner-text');
-    $banner = Gtk3::Box->new('horizontal', 0);
-    $banner->set_size_request(-1, 50);
-    $banner->get_style_context->add_class('banner-fill');
-    $banner->pack_start($icon, 0, 1, 0);
-    $banner->pack_start($text, 0, 1, 0);
-
-    return $banner;
-}
+sub _createBanner { goto &PAC::Theme::Image::banner; }
 
 sub _copyPass {
     my $uuid = shift;
