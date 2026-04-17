@@ -93,11 +93,16 @@ sub toggle {
     $$self{_THEME} = $PACMain::THEME_DIR;
     $self->_setCFGChanged(1);
 
-    # Persist to disk so next launch is consistent.
+    # Persist to disk so next launch is consistent. Only refresh the
+    # HMAC sidecar when nstore actually succeeded — otherwise the
+    # sidecar would validate stale-or-missing primary content and the
+    # next launch would silently accept stale config as authentic
+    # (master-password users) or, worse, lose the theme choice.
     eval {
         PAC::Vault::cipher_cfg($$self{_CFG});
-        nstore($$self{_CFG}, $PACMain::CFG_FILE_NFREEZE);
-        PAC::Crypto::HMAC::write_for($PACMain::CFG_FILE_NFREEZE);
+        if (nstore($$self{_CFG}, $PACMain::CFG_FILE_NFREEZE)) {
+            PAC::Crypto::HMAC::write_for($PACMain::CFG_FILE_NFREEZE);
+        }
         PAC::Vault::decipher_cfg($$self{_CFG});
     };
 

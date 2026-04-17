@@ -25,6 +25,12 @@ like($src, qr/PAC::Vault::cipher_cfg/,    'persists via PAC::Vault::cipher_cfg')
 like($src, qr/PAC::Vault::decipher_cfg/,  'restores after persist');
 like($src, qr/PAC::Crypto::HMAC::write_for/, 'updates HMAC sidecar after save');
 like($src, qr/nstore/,                    'uses nstore for save');
+# REGRESSION: HMAC sidecar must be inside `if (nstore(...))` so it's only
+# refreshed when the primary write succeeded — otherwise the sidecar
+# would validate stale-or-missing primary content.
+like($src,
+    qr/if \(nstore\([^)]*\$PACMain::CFG_FILE_NFREEZE\)\) \{\s*\n\s*PAC::Crypto::HMAC::write_for/s,
+    'HMAC sidecar gated on nstore success');
 
 # Theme switch state
 like($src, qr/asbru-dark/, 'mentions asbru-dark theme');
