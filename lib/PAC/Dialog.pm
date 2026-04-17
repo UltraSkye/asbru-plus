@@ -53,8 +53,9 @@ sub _wEnterValue {
     if (!defined $parent) {
         if (defined $PACMain::FUNCS{_MAIN}{_GUI}{main}) {
             $parent = $PACMain::FUNCS{_MAIN}{_GUI}{main};
-        } elsif (defined $PACUtils::WINDOWSPLASH{_GUI}) {
-            $parent = $PACUtils::WINDOWSPLASH{_GUI};
+        } elsif (eval { require PAC::Window::Splash; 1 }
+                 && defined PAC::Window::Splash::gui()) {
+            $parent = PAC::Window::Splash::gui();
         }
     }
     if (!$stock_icon) {

@@ -187,7 +187,9 @@ sub _migrateCipherCFG { goto &PAC::Vault::migrate_cipher_cfg; }
 # the active cipher, then legacy AES, then legacy Blowfish.
 sub _decrypt_hex_compat { goto &PAC::Crypto::Cipher::decrypt_hex; }
 
-my %WINDOWSPLASH;
+# WINDOWSPLASH state moved to PAC::Window::Splash; the old
+# my-lexical is no longer referenced — kept commented for diff readability.
+# my %WINDOWSPLASH;
 my %WINDOWPROGRESS;
 my $WIDGET_POPUP;
 my ($R,$G,$B,$A);
@@ -316,51 +318,9 @@ sub __text {
     return $str;
 };
 
-sub _splash {
-    my $show = shift;
-    my $txt = shift // "<b>Starting $APPNAME (v$APPVERSION)...</b>";
-    my $partial = shift // 0;
-    my $total = shift // 1;
-
-    if ($PACMain::_NO_SPLASH) {
-        return 1;
-    }
-
-    if (!defined $WINDOWSPLASH{_GUI}) {
-        $WINDOWSPLASH{_GUI} = Gtk3::Window->new();
-        $WINDOWSPLASH{_GUI}->set_type_hint('splashscreen');
-        $WINDOWSPLASH{_GUI}->set_position('center');
-        $WINDOWSPLASH{_GUI}->set_keep_above(1);
-        $WINDOWSPLASH{_GUI}->get_style_context->add_class('asbru-splash');
-
-        $WINDOWSPLASH{_VBOX} = Gtk3::Box->new('vertical', 8);
-        $WINDOWSPLASH{_VBOX}->set_border_width(12);
-        $WINDOWSPLASH{_GUI}->add($WINDOWSPLASH{_VBOX});
-
-        $WINDOWSPLASH{_IMG} = Gtk3::Image->new_from_file($SPLASH_IMG);
-        $WINDOWSPLASH{_VBOX}->pack_start($WINDOWSPLASH{_IMG}, 1, 1, 0);
-
-        $WINDOWSPLASH{_LBL} = Gtk3::ProgressBar->new();
-        $WINDOWSPLASH{_VBOX}->pack_start($WINDOWSPLASH{_LBL}, 1, 1, 5);
-    }
-
-    $WINDOWSPLASH{_LBL}->set_show_text(1);
-    $WINDOWSPLASH{_LBL}->set_text($txt);
-    $WINDOWSPLASH{_LBL}->set_fraction($partial / $total);
-
-    if ($show) {
-        $WINDOWSPLASH{_GUI}->show_all();
-        $WINDOWSPLASH{_GUI}->present();
-        while (Gtk3::events_pending) {
-            Gtk3::main_iteration();
-        }
-    } else {
-        $WINDOWSPLASH{_GUI}->hide();
-        $WINDOWSPLASH{_GUI}->destroy();
-    }
-
-    return 1;
-}
+# Splash window lives in PAC::Window::Splash.
+require PAC::Window::Splash;
+sub _splash { goto &PAC::Window::Splash::show; }
 
 # Image helpers live in PAC::Theme::Image.
 require PAC::Theme::Image;
