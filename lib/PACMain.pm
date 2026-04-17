@@ -30,7 +30,6 @@ $|++;
 # Import Modules
 
 use FindBin qw ($RealBin $Bin $Script);
-my $REALBIN = $RealBin;
 use lib "$RealBin/lib", "$RealBin/lib/ex";
 
 # Standard
@@ -41,14 +40,11 @@ $YAML::LoadBlessed = 0;  # SECURITY: Prevent arbitrary object instantiation via 
 use Storable qw (thaw dclone nstore retrieve);
 use Scalar::Util qw (blessed);
 use Fcntl qw(:flock);
-use Encode;
 use File::Copy;
 use Net::Ping;
 use UUID::Tiny ':std';
 use POSIX ":sys_wait_h";
 use POSIX qw (strftime);
-use Crypt::CBC;
-use Digest::SHA qw(hmac_sha256_hex);
 use SortedTreeStore;
 use Vte;
 
@@ -80,7 +76,6 @@ use PACScripts;
 
 my $APPNAME = $PACUtils::APPNAME;
 my $APPVERSION = $PACUtils::APPVERSION;
-my $AUTOSTART_FILE = "$RealBin/res/asbru_start.desktop";
 # Promoted to 'our' so PAC::Theme::Switch can mutate $THEME_DIR and
 # read $RES_DIR / $CFG_FILE_NFREEZE during theme reload.
 our $RES_DIR = "$RealBin/res";
@@ -89,7 +84,6 @@ our $RES_DIR = "$RealBin/res";
 #&_registerPACIcons;
 
 my $VENDOR_CFG_FILE = "$RealBin/vendor/asbru-conf-default-overrides.yml";
-my $INIT_CFG_FILE = "$RealBin/res/asbru.yml";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
 our $CFG_FILE = "$CFG_DIR/asbru.yml";
 our $THEME_DIR = "$RES_DIR/themes/default";
@@ -111,9 +105,6 @@ our $GROUPICON;
 our $GROUPICONOPEN;
 our $GROUPICONCLOSED;
 
-my $CHECK_VERSION = 0;
-my $NEW_VERSION = 0;
-my $NEW_CHANGES = '';
 our $_NO_SPLASH = 0;
 # Encryption is centralized in PACUtils — use _decrypt_hex_compat, _initMasterCipher etc.
 
