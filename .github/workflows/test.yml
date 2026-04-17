@@ -8,12 +8,28 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test against the system Perl + system GTK/Crypt packages on every
+        # Ubuntu LTS we ship .deb packages for. Adding more Perl versions
+        # via shogo82148/actions-setup-perl doesn't buy us much — our actual
+        # users get the system Perl, not a CPAN-built one.
+        include:
+          - runner: ubuntu-22.04
+            perl: '5.34'
+          - runner: ubuntu-24.04
+            perl: '5.38'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Show Perl version
+        run: perl -v | head -2
 
       - name: Install system dependencies
         run: |
