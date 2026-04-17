@@ -81,7 +81,9 @@ use PACScripts;
 my $APPNAME = $PACUtils::APPNAME;
 my $APPVERSION = $PACUtils::APPVERSION;
 my $AUTOSTART_FILE = "$RealBin/res/asbru_start.desktop";
-my $RES_DIR = "$RealBin/res";
+# Promoted to 'our' so PAC::Theme::Switch can mutate $THEME_DIR and
+# read $RES_DIR / $CFG_FILE_NFREEZE during theme reload.
+our $RES_DIR = "$RealBin/res";
 
 # Register icons on Gtk
 #&_registerPACIcons;
@@ -90,22 +92,24 @@ my $VENDOR_CFG_FILE = "$RealBin/vendor/asbru-conf-default-overrides.yml";
 my $INIT_CFG_FILE = "$RealBin/res/asbru.yml";
 my $CFG_DIR = $ENV{"ASBRU_CFG"};
 my $CFG_FILE = "$CFG_DIR/asbru.yml";
-my $THEME_DIR = "$RES_DIR/themes/default";
+our $THEME_DIR = "$RES_DIR/themes/default";
 our $R_CFG_FILE = '';
 my $CFG_FILE_FREEZE = "$CFG_DIR/asbru.freeze";
-my $CFG_FILE_NFREEZE = "$CFG_DIR/asbru.nfreeze";
+our $CFG_FILE_NFREEZE = "$CFG_DIR/asbru.nfreeze";
 my $CFG_FILE_DUMPER = "$CFG_DIR/asbru.dumper";
 
 my $PAC_START_PROGRESS = 0;
 my $PAC_START_TOTAL = 6;
 
 my $APPICON = "$RES_DIR/asbru-logo-64.png";
-my $AUTOCLUSTERICON;
-my $CLUSTERICON;
-my $GROUPICON_ROOT;
-my $GROUPICON;
-my $GROUPICONOPEN;
-my $GROUPICONCLOSED;
+# Promoted to 'our' so PAC::Theme::Switch can refresh these on theme
+# change. They're shared with PACTree which reads them by package name.
+our $AUTOCLUSTERICON;
+our $CLUSTERICON;
+our $GROUPICON_ROOT;
+our $GROUPICON;
+our $GROUPICONOPEN;
+our $GROUPICONCLOSED;
 
 my $CHECK_VERSION = 0;
 my $NEW_VERSION = 0;
@@ -3346,145 +3350,15 @@ sub _checkForUpdates {
     return 1;
 }
 
-sub _resetStyleRecursively {
-    my $widget = shift;
-    return unless $widget;
-    eval {
-        $widget->reset_style if $widget->can('reset_style');
-        if ($widget->can('get_children')) {
-            for my $c ($widget->get_children) {
-                _resetStyleRecursively($c);
-            }
-        }
-    };
-}
+# Theme switching lives in PAC::Theme::Switch.
+require PAC::Theme::Switch;
+sub _resetStyleRecursively { goto &PAC::Theme::Switch::reset_style; }
 
-sub _refreshImagesRecursively {
-    my $widget = shift;
-    return unless $widget;
-    eval {
-        if ($widget->isa('Gtk3::Image')) {
-            my $stype = $widget->get_storage_type;
-            if (defined $stype && "$stype" eq 'stock') {
-                my @stk = $widget->get_stock;
-                my $id = $stk[0];
-                my $size = $stk[1] // 'small_toolbar';
-                if ($id) {
-                    $widget->set_from_stock($id, $size);
-                }
-            }
-        }
-        if ($widget->isa('Gtk3::Button') && $widget->get_image) {
-            _refreshImagesRecursively($widget->get_image);
-        }
-        if ($widget->can('get_children')) {
-            for my $c ($widget->get_children) {
-                _refreshImagesRecursively($c);
-            }
-        }
-    };
-}
+sub _refreshImagesRecursively { goto &PAC::Theme::Switch::refresh_images; }
 
 sub _toggleTheme {
     my $self = shift;
-    my $cur = $$self{_CFG}{'defaults'}{'theme'} // 'default';
-    my $next = ($cur eq 'asbru-dark') ? 'default' : 'asbru-dark';
-    $$self{_CFG}{'defaults'}{'theme'} = $next;
-    $THEME_DIR = "$RES_DIR/themes/$next";
-    $$self{_THEME} = $THEME_DIR;
-    $self->_setCFGChanged(1);
-
-    # Persist to disk so next launch is consistent.
-    eval {
-        _cipherCFG($$self{_CFG});
-        nstore($$self{_CFG}, $CFG_FILE_NFREEZE);
-        _writeConfigHMAC($CFG_FILE_NFREEZE);
-        _decipherCFG($$self{_CFG});
-    };
-
-    my $screen = Gtk3::Gdk::Screen::get_default;
-
-    # Architectural approach: keep BOTH theme providers loaded at the same
-    # priority. Toggling means *enabling* one and *disabling* the other by
-    # switching their priority — the higher one wins. We never touch
-    # gtk-theme-name (which is unreliable to change at runtime); we only
-    # toggle prefer-dark which is harmless and actually works.
-    $$self{_THEME_PROVIDERS_BY_NAME} //= {};
-
-    for my $tname ('asbru-dark', 'default') {
-        next if $$self{_THEME_PROVIDERS_BY_NAME}{$tname};
-        my $cp = Gtk3::CssProvider->new();
-        eval { $cp->load_from_path("$RES_DIR/themes/$tname/asbru.css"); };
-        # Load both at low priority initially.
-        Gtk3::StyleContext::add_provider_for_screen($screen, $cp, 600);
-        $$self{_THEME_PROVIDERS_BY_NAME}{$tname} = $cp;
-    }
-
-    # Now demote the previous theme to LOW (590, below base.css) and
-    # promote the next one to HIGH (800 = USER priority). Priorities can
-    # only be set at add-time, so we re-add: remove + add with new prio.
-    for my $tname (keys %{ $$self{_THEME_PROVIDERS_BY_NAME} }) {
-        my $p = $$self{_THEME_PROVIDERS_BY_NAME}{$tname};
-        eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
-        my $prio = ($tname eq $next) ? 800 : 590;
-        Gtk3::StyleContext::add_provider_for_screen($screen, $p, $prio);
-    }
-
-    # Drop any older single-provider tracking from previous code paths.
-    if ($$self{_THEME_PROVIDERS}) {
-        for my $p (@{ $$self{_THEME_PROVIDERS} }) {
-            next if grep { $_ == $p } values %{ $$self{_THEME_PROVIDERS_BY_NAME} };
-            eval { Gtk3::StyleContext::remove_provider_for_screen($screen, $p); };
-        }
-        @{ $$self{_THEME_PROVIDERS} } = ();
-    }
-    $$self{_THEME_PROVIDER} = $$self{_THEME_PROVIDERS_BY_NAME}{$next};
-
-    # Adwaita variant — only flip prefer-dark, don't touch gtk-theme-name
-    # (which doesn't take effect reliably mid-session).
-    eval {
-        my $s = Gtk3::Settings::get_default();
-        $s->set_property('gtk-application-prefer-dark-theme', $next eq 'asbru-dark' ? 1 : 0) if $s;
-    };
-
-    # Re-register icon factory to swap stroke colors.
-    eval { _registerPACIcons($THEME_DIR); };
-
-    # Globally invalidate cached resolved styles.
-    eval { Gtk3::StyleContext::reset_widgets($screen); };
-
-    # Walk all open windows: refresh GtkImage widgets, recursively reset
-    # widget style cache, queue redraw.
-    eval {
-        for my $win ($$self{_GUI}{main},
-                     $$self{_CONFIG} ? $$self{_CONFIG}{_WINDOWCONFIG} : undef,
-                     $$self{_EDIT}   ? $$self{_EDIT}{_WINDOWEDIT}     : undef) {
-            next unless $win;
-            _refreshImagesRecursively($win);
-            _resetStyleRecursively($win);
-            $win->queue_draw;
-        }
-    };
-
-    # Reload tree group pixbufs AND connection-method icons (these are
-    # stored as GdkPixbuf inside the TreeStore and aren't refreshed by
-    # the GtkImage walker), then rebuild the connection tree.
-    eval {
-        $GROUPICON_ROOT  = _pixBufFromFile("$THEME_DIR/asbru_group.svg");
-        $GROUPICON       = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
-        $GROUPICONOPEN   = _pixBufFromFile("$THEME_DIR/asbru_group_open_16x16.svg");
-        $GROUPICONCLOSED = _pixBufFromFile("$THEME_DIR/asbru_group_closed_16x16.svg");
-        $AUTOCLUSTERICON = _pixBufFromFile("$THEME_DIR/asbru_cluster_auto.svg");
-        $CLUSTERICON     = _pixBufFromFile("$THEME_DIR/asbru_cluster_connection.svg");
-        # Rebuild method icon cache from the new theme dir.
-        %{ $$self{_METHODS} } = PACUtils::_getMethods($self, $THEME_DIR);
-        $FUNCS{_METHODS}      = $$self{_METHODS};
-        $self->_loadTreeConfiguration('__PAC__ROOT__') if $self->can('_loadTreeConfiguration');
-        $$self{_GUI}{treeConnections}->queue_draw if $$self{_GUI}{treeConnections};
-    };
-
-    print STDERR "INFO: Theme switched to '$next'\n";
-    return 1;
+    return PAC::Theme::Switch::toggle($self);
 }
 
 # About dialog lives in PAC::Window::About.
