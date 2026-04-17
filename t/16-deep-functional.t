@@ -945,8 +945,9 @@ subtest 'critical functions have error handling' => sub {
     my $main = read_file("$RealBin/../lib/PACMain.pm");
     my $conn = read_file("$RealBin/../lib/asbru_conn");
 
-    # _deleteOldestSessionLog dies on errors
-    like($utils, qr/_deleteOldestSessionLog.*die/s, 'log deletion has die on error');
+    # _deleteOldestSessionLog dies on errors (moved to PAC::SessionLog in P3/14)
+    my $sl = read_file("$RealBin/../lib/PAC/SessionLog.pm");
+    like($sl, qr/delete_oldest.*die/s, 'log deletion has die on error');
 
     # Config save checks for errors
     like($main, qr/nstore.*or|eval.*nstore/s, 'nstore has error handling');

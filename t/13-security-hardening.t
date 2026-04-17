@@ -40,12 +40,12 @@ my $pac_utils_all      = $pac_utils . $pac_crypto_cipher . $pac_crypto_hmac
 # ── Shell escape function ─────────────────────────────────────────────────────
 
 subtest '_doShellEscape covers all dangerous chars' => sub {
-    like($pac_utils, qr/_doShellEscape.*\$.*\\.*`.*".*!/s,
-        '_doShellEscape escapes $, \\, `, ", !');
-    like($pac_utils, qr/_doShellEscape.*\\n/s,
-        '_doShellEscape handles newlines');
-    like($pac_utils, qr/_doShellEscape.*\\r/s,
-        '_doShellEscape handles carriage returns');
+    # Moved to PAC::Util::ShellEscape in P3/20.
+    my $shell_pm = read_file('lib/PAC/Util/ShellEscape.pm');
+    like($shell_pm, qr/escape.*\$.*\\.*`.*".*!/s,
+        'escape() escapes $, \\, `, ", !');
+    like($shell_pm, qr/escape.*\\n/s,    'escape() handles newlines');
+    like($shell_pm, qr/escape.*\\r/s,    'escape() handles carriage returns');
 };
 
 # ── UUID validation ──────────────────────────────────────────────────────────

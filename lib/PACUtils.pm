@@ -192,7 +192,7 @@ sub _decrypt_hex_compat { goto &PAC::Crypto::Cipher::decrypt_hex; }
 # my %WINDOWSPLASH;
 my %WINDOWPROGRESS;
 # WIDGET_POPUP state moved to PAC::Dialog::PopupMenu (P3/18).
-my ($R,$G,$B,$A);
+# RGBA paint state moved to PAC::Theme::Widget (P3/21).
 
 our @DONATORS_LIST = (
     'Angelo Maria Lambiasi',
@@ -428,27 +428,9 @@ sub _removeEscapeSeqs { goto &PAC::SessionLog::remove_escape_seqs; }
 
 sub _purgeUnusedOrMissingScreenshots { goto &PAC::SessionLog::purge_screenshots; }
 
-sub _getXWindowsList {
-    my %list;
-
-    my $s = Wnck::Screen::get_default() or die print $!;
-    $s->force_update();
-
-    foreach my $w (@{$s->get_windows}) {
-        my $xid = $w->get_xid() or next;
-        my $data_name = $w->get_name();
-
-        $list{'by_xid'}{$xid}{'title'} = $data_name;
-        $list{'by_xid'}{$xid}{'window'} = $w;
-
-        if (defined $data_name) {
-            $list{'by_name'}{$data_name}{'xid'} = $xid;
-            $list{'by_name'}{$data_name}{'window'} = $w;
-        }
-    }
-
-    return \%list;
-}
+# X11 window list lives in PAC::Net::WindowList.
+require PAC::Net::WindowList;
+sub _getXWindowsList { goto &PAC::Net::WindowList::all; }
 
 sub _checkREADME {
     my $readme_file = "$CFG_DIR/tmp/latest_README";
@@ -479,19 +461,9 @@ sub _getEncodings { goto &PAC::Terminal::Encodings::all; }
 require PAC::Theme::DesktopFile;
 sub _makeDesktopFile { goto &PAC::Theme::DesktopFile::generate; }
 
-sub _updateWidgetColor {
-    my $self = shift;
-    my $cfg = shift;
-    my $widget = shift;
-    my $cfgName = shift;
-    my $defaultColor = shift;
-    # If we don't have an object yet, get it from self
-    if (ref($widget) eq '') {
-        $widget = _($self, $widget);
-    }
-    my $tmpColor = Gtk3::Gdk::RGBA::parse($$cfg{$cfgName} // $defaultColor);
-    $widget->set_rgba($tmpColor);
-}
+# Widget styling helpers live in PAC::Theme::Widget.
+require PAC::Theme::Widget;
+sub _updateWidgetColor { goto &PAC::Theme::Widget::update_color; }
 
 sub _getSelectedRows {
     my $treeSelection = shift;
@@ -523,41 +495,15 @@ sub _appName {
     return "$APPNAME $APPVERSION";
 }
 
-sub _setDefaultRGBA {
-    ($R,$G,$B,$A) = ($_[0]/255,$_[1]/255,$_[2]/255,$_[3]);
-}
+sub _setDefaultRGBA { goto &PAC::Theme::Widget::set_default_rgba; }
 
-sub _setWindowPaintable {
-    my $win = shift;
+sub _setWindowPaintable { goto &PAC::Theme::Widget::set_window_paintable; }
 
-    $win->signal_connect("draw" => \&mydraw);
-    my $screen = $win->get_screen();
-    my $visual = $screen->get_rgba_visual();
-    if (($visual) && ($screen->is_composited())) {
-        $win->set_visual($visual);
-    }
-    $win->set_app_paintable(1);
-}
+sub mydraw { goto &PAC::Theme::Widget::draw_callback; }
 
-sub mydraw {
-    my ($w,$c) = @_;
-
-    $c->set_source_rgba($R,$G,$B,$A);
-    $c->set_operator('source');
-    $c->paint();
-    $c->set_operator('over');
-    return 0;
-}
-
-sub _doShellEscape {
-    my $str = shift;
-
-    $str =~ s/([\$\\`"!])/\\$1/g;
-    $str =~ s/\n/\\n/g;
-    $str =~ s/\r/\\r/g;
-
-    return $str;
-}
+# Shell escape lives in PAC::Util::ShellEscape.
+require PAC::Util::ShellEscape;
+sub _doShellEscape { goto &PAC::Util::ShellEscape::escape; }
 
 1;
 
