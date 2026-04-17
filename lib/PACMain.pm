@@ -5785,121 +5785,15 @@ sub _doFocusPage {
     }
 }
 
-# SECURITY: HMAC integrity functions for config files.
-# Writes/verifies HMAC-SHA256 of config files to detect tampering.
-# Backward compatible: missing HMAC files are treated as valid (pre-HMAC configs).
-# Key is derived from per-installation salt when available for uniqueness.
-my $_HMAC_KEY;
-{
-    my $_salt_file = "$CFG_DIR/.salt";
-    if (-f $_salt_file && open(my $_sfh, '<:raw', $_salt_file)) {
-        my $_salt;
-        read($_sfh, $_salt, 16);
-        close $_sfh;
-        if (defined $_salt && length($_salt) >= 8) {
-            $_HMAC_KEY = hmac_sha256_hex('asbru-config-integrity-v1', $_salt);
-        }
-    }
-    $_HMAC_KEY //= 'asbru-config-integrity-v1';
-}
+# Config-integrity functions live in PAC::Crypto::HMAC. PACMain keeps
+# 1-line proxies so the existing _writeConfigHMAC / _verifyConfigHMAC
+# / _ct_eq callsites in this file continue to work unchanged.
+require PAC::Crypto::HMAC;
+PAC::Crypto::HMAC::init({ cfg_dir => $CFG_DIR });
 
-sub _writeConfigHMAC {
-    my $config_path = shift;
-    return unless -f $config_path;
-    return if -l $config_path;   # never compute HMAC over a symlinked file
-    my $hmac_path = "${config_path}.hmac";
-
-    if (open(my $fh, '<:raw', $config_path)) {
-        local $/;
-        my $data = <$fh>;
-        close $fh;
-        my $hmac = hmac_sha256_hex($data, $_HMAC_KEY);
-
-        # SECURITY: write through O_NOFOLLOW so a symlink planted at
-        # $hmac_path can't redirect us to /etc/passwd or similar.
-        # O_EXCL would be too aggressive (we overwrite on every save),
-        # but we unlink first to avoid TOCTOU on existing symlinks.
-        if (-l $hmac_path) {
-            unlink $hmac_path or warn "WARNING: could not unlink stale symlink at '$hmac_path': $!\n";
-        }
-        require Fcntl;
-        my $flags = Fcntl::O_WRONLY() | Fcntl::O_CREAT() | Fcntl::O_TRUNC();
-        $flags |= Fcntl::O_NOFOLLOW() if defined &Fcntl::O_NOFOLLOW;
-        if (sysopen(my $hfh, $hmac_path, $flags, 0600)) {
-            print $hfh $hmac;
-            close $hfh;
-            chmod 0600, $hmac_path;
-        } else {
-            warn "WARNING: could not write HMAC sidecar '$hmac_path': $!\n";
-        }
-    }
-}
-
-sub _verifyConfigHMAC {
-    my $config_path = shift;
-    my $hmac_path = "${config_path}.hmac";
-
-    return 0 unless -f $config_path;
-
-    # SECURITY: A missing HMAC sidecar used to be treated as "legacy, accept".
-    # That made the HMAC trivially bypassable by any attacker who could just
-    # delete the .hmac. Now: if the user has ever set a master password OR
-    # the config has been written by a recent version (which always writes
-    # HMAC), missing sidecar = REJECT. Pre-HMAC configs from a brand-new
-    # install are silently accepted only when there is genuinely nothing to
-    # protect (no master_password_verifier yet).
-    if (!-f $hmac_path) {
-        # Read just enough to check if a master password is set. We can't
-        # trust the file's body yet — but a missing HMAC plus a verifier
-        # field is the suspicious combination.
-        my $has_verifier = 0;
-        eval {
-            local $Storable::Eval = 0;
-            local $Storable::Deparse = 0;
-            local $Storable::forgive_me = 0;
-            my $cfg = retrieve($config_path);
-            $has_verifier = 1 if $cfg && ref($cfg) eq 'HASH'
-                && defined $cfg->{defaults}{master_password_verifier}
-                && $cfg->{defaults}{master_password_verifier} ne '';
-        };
-        if ($has_verifier) {
-            print STDERR "SECURITY: '$config_path' has a master password set but no HMAC sidecar — refusing to load\n";
-            return 0;
-        }
-        return 1;
-    }
-
-    my ($stored_hmac, $data);
-    if (open(my $hfh, '<:raw', $hmac_path)) {
-        $stored_hmac = <$hfh>;
-        chomp $stored_hmac if defined $stored_hmac;
-        close $hfh;
-    } else {
-        return 0;
-    }
-    if (open(my $fh, '<:raw', $config_path)) {
-        local $/;
-        $data = <$fh>;
-        close $fh;
-    } else {
-        return 0;
-    }
-    my $computed = hmac_sha256_hex($data, $_HMAC_KEY);
-    # Constant-time compare to avoid timing oracle.
-    return _ct_eq($computed, $stored_hmac // '');
-}
-
-# Constant-time string compare: equal length and equal bytes only.
-sub _ct_eq {
-    my ($a, $b) = @_;
-    return 0 unless defined $a && defined $b;
-    return 0 unless length($a) == length($b);
-    my $diff = 0;
-    for my $i (0 .. length($a) - 1) {
-        $diff |= ord(substr($a, $i, 1)) ^ ord(substr($b, $i, 1));
-    }
-    return $diff == 0;
-}
+sub _writeConfigHMAC  { goto &PAC::Crypto::HMAC::write_for; }
+sub _verifyConfigHMAC { goto &PAC::Crypto::HMAC::verify_for; }
+sub _ct_eq            { goto &PAC::Crypto::HMAC::ct_eq; }
 
 # SECURITY: thin wrapper that disables Storable code execution paths
 # *before* every retrieve. Use this everywhere instead of bare retrieve().
