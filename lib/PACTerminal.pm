@@ -1488,7 +1488,10 @@ sub _watchConnectionData {
 
         if ($data eq 'CONNECTED') {
             $$self{_GUI}{statusIcon}->set_from_stock('asbru-terminal-ok-small', 'button');
-            $$self{_GUI}{statusIcon}->set_tooltip_text('Connected');
+            my $tooltip = 'Connected';
+            my $fwd_summary = _summarizeForwards($$self{_CFG}{'environments'}{$$self{_UUID}}{'options'} // '');
+            $tooltip .= "\n\nActive forwards:\n$fwd_summary" if $fwd_summary;
+            $$self{_GUI}{statusIcon}->set_tooltip_text($tooltip);
             $$self{_GUI}{statusExpect}->clear();
             $$self{CONNECTED} = 1;
             $$self{CONNECTING} = 0;
@@ -4671,6 +4674,26 @@ sub _stopEmbedKidnapTimeout {
         Glib::Source->remove($$self{_EMBED_KIDNAP});
         $$self{_EMBED_KIDNAP} = undef;
     }
+}
+
+# #742: parse a stored SSH options string and return a human-readable summary
+# of -L/-R/-D forward declarations, one per line, or '' if none present.
+sub _summarizeForwards {
+    my $opts = shift // '';
+    my @lines;
+    while ($opts =~ /-L\s+(?:([^\/:\s]+)[\/:])?(\d+)[\/:]([^\/:\s]+)[\/:](\d+)/g) {
+        my $bind = $1 ? "$1:" : '';
+        push @lines, "  -L  ${bind}$2 → $3:$4";
+    }
+    while ($opts =~ /-R\s+(?:([^\/:\s]+)[\/:])?(\d+)[\/:]([^\/:\s]+)[\/:](\d+)/g) {
+        my $bind = $1 ? "$1:" : '';
+        push @lines, "  -R  ${bind}$2 ← $3:$4";
+    }
+    while ($opts =~ /-D\s+(?:([^\/:\s]+)[\/:])?(\d+)/g) {
+        my $bind = $1 ? "$1:" : '';
+        push @lines, "  -D  SOCKS on ${bind}$2";
+    }
+    return join("\n", @lines);
 }
 
 # END: Private functions definitions
