@@ -3669,9 +3669,17 @@ sub _readConfiguration {
     }
 
     if ($continue && -f $CFG_FILE) {
-        if (! ($$self{_CFG} = YAML::LoadFile($CFG_FILE))) {
+        # YAML::LoadFile dies (not returns false) on malformed YAML.
+        # Wrap in eval so a corrupted user-edited asbru.yml doesn't
+        # crash startup — fall through to the next migration path.
+        my $loaded;
+        eval { $loaded = YAML::LoadFile($CFG_FILE); };
+        if ($@) {
+            print STDERR "WARNING: Could not parse config file '$CFG_FILE': $@\n";
+        } elsif (! $loaded) {
             print STDERR "WARNING: Could not load config file '$CFG_FILE': $!\n";
         } else {
+            $$self{_CFG} = $loaded;
             print STDERR "INFO: Used config file '$CFG_FILE'\n";
             if ($R_CFG_FILE) {
                 nstore($$self{_CFG}, $R_CFG_FILE) or die "ERROR: Could not save remote config file '$R_CFG_FILE': $!\n";
@@ -3765,7 +3773,13 @@ sub _readConfiguration {
     # Default partial vendor config, but since it is partial, do not set $continue to 0.
     if ($continue && -f "${VENDOR_CFG_FILE}") {
         my $temp_cfg;
-        if (! ($temp_cfg = YAML::LoadFile($VENDOR_CFG_FILE))) {
+        # YAML::LoadFile dies on malformed YAML — eval-wrap so a broken
+        # vendor file doesn't crash startup; fall through to creating a
+        # fresh config below.
+        eval { $temp_cfg = YAML::LoadFile($VENDOR_CFG_FILE); };
+        if ($@) {
+            print STDERR "WARNING: Could not parse vendor config file '$VENDOR_CFG_FILE': $@\n";
+        } elsif (! $temp_cfg) {
             print STDERR "WARNING: Could not load vendor config file '$VENDOR_CFG_FILE': $!\n";
         } else {
             print STDERR "INFO: Using vendor config file '$VENDOR_CFG_FILE'\n";
