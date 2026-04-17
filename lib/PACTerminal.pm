@@ -450,7 +450,18 @@ sub start {
         $PACMain::SOCKS5PORTS{$$self{_UUID_TMP}} = $SOCKS5PORT;
         $new_cfg{'tmp'}{'randomSocksTunnel'} = $SOCKS5PORT;
     }
-    nstore(\%new_cfg, $$self{_TMPCFG}) or die "ERROR: Could not save Ásbrú config file '$$self{_TMPCFG}': $!\n";
+    # SECURITY: %new_cfg contains plaintext passwords (the in-memory
+    # cfg is decrypted at runtime and we dclone() it straight into
+    # %new_cfg). Tighten umask to 0077 before nstore so the file is
+    # created mode 0600 atomically — the trailing chmod is now a
+    # belt-and-suspenders no-op rather than a TOCTOU race window
+    # during which a co-tenant on a shared $CFG_DIR could read it.
+    {
+        my $old_umask = umask(0077);
+        nstore(\%new_cfg, $$self{_TMPCFG})
+            or die "ERROR: Could not save Ásbrú config file '$$self{_TMPCFG}': $!\n";
+        umask($old_umask);
+    }
     chmod 0600, $$self{_TMPCFG};
     undef %new_cfg;
 

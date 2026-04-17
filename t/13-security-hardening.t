@@ -198,6 +198,11 @@ subtest 'Signal handlers protect against re-entrancy' => sub {
 subtest 'Temp config files get chmod 0600' => sub {
     like($pac_terminal, qr/chmod\s+0600.*TMPCFG/s,
         'PACTerminal: nstore temp file gets chmod 0600');
+    # REGRESSION: temp file contains plaintext passwords; the trailing
+    # chmod is a TOCTOU race window. Tighten umask BEFORE nstore so the
+    # file is created mode 0600 atomically, no race.
+    like($pac_terminal, qr/umask\(0077\)\s*;\s*\n\s*nstore\([^)]*\$\$self\{_TMPCFG\}\)/,
+        'PACTerminal: umask(0077) tightened before nstore (no TOCTOU)');
 };
 
 # ── mkdir uses explicit mode ─────────────────────────────────────────────────
