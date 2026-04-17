@@ -167,56 +167,12 @@ sub _initMasterCipher {
 
 sub _isMasterPasswordActive { return PAC::Crypto::Cipher::is_master_active(); }
 
-sub _createMasterVerifier {
-    my $master_pass = shift;
-    $master_pass = encode_utf8($master_pass) if defined $master_pass;
-    my $cipher = Crypt::CBC->new(
-        -key    => $master_pass,
-        -cipher => 'Crypt::Rijndael',
-        -salt   => $SALT,
-        -pbkdf  => 'opensslv2',
-    ) or return undef;
-    return $cipher->encrypt_hex('ASBRU_MASTER_VERIFY_TOKEN_V1');
-}
-
-# Constant-time string compare to avoid timing oracles on the verifier check.
-sub _ctEq {
-    my ($a, $b) = @_;
-    return 0 unless defined $a && defined $b;
-    return 0 unless length($a) == length($b);
-    my $diff = 0;
-    for my $i (0 .. length($a) - 1) {
-        $diff |= ord(substr($a, $i, 1)) ^ ord(substr($b, $i, 1));
-    }
-    return $diff == 0;
-}
-
-# Verify a master password against a stored verifier.
-# SECURITY: uses constant-time comparison on the decrypted token.
-sub _verifyMasterPassword {
-    my ($master_pass, $verifier) = @_;
-    return 0 unless defined $verifier && $verifier ne '';
-    $master_pass = encode_utf8($master_pass) if defined $master_pass;
-    my $expected = 'ASBRU_MASTER_VERIFY_TOKEN_V1';
-
-    # Try with current installation salt first
-    my $cipher = Crypt::CBC->new(
-        -key => $master_pass, -cipher => 'Crypt::Rijndael',
-        -salt => $SALT, -pbkdf => 'opensslv2',
-    ) or return 0;
-    my $result;
-    eval { $result = $cipher->decrypt_hex($verifier); };
-    if (!$@ && defined $result && _ctEq($result, $expected)) {
-        return 1;
-    }
-    # Backward compat: try with legacy static salt
-    $cipher = Crypt::CBC->new(
-        -key => $master_pass, -cipher => 'Crypt::Rijndael',
-        -salt => pack('Q', $_SALT_LEGACY), -pbkdf => 'opensslv2',
-    ) or return 0;
-    eval { $result = $cipher->decrypt_hex($verifier); };
-    return (!$@ && defined $result && _ctEq($result, $expected));
-}
+# Master-password verifier flow lives in PAC::Vault. PACUtils keeps
+# proxies so the existing _createMasterVerifier / _verifyMasterPassword
+# callsites in PACMain (master-password setup and prompt) work unchanged.
+require PAC::Vault;
+sub _createMasterVerifier { goto &PAC::Vault::_create_verifier; }
+sub _verifyMasterPassword { goto &PAC::Vault::_verify; }
 
 # Re-encrypt all password fields from old cipher to new cipher
 sub _migrateCipherCFG {
