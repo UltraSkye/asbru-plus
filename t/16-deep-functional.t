@@ -551,22 +551,29 @@ subtest 'PACPipe — key functions present' => sub {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 subtest '_makeDesktopFile — source code verification' => sub {
-    my $utils = read_file("$RealBin/../lib/PACUtils.pm");
+    # After P3/13, the implementation moved to PAC::Theme::DesktopFile;
+    # PACUtils retains a goto-proxy.
+    my $desktop = read_file("$RealBin/../lib/PAC/Theme/DesktopFile.pm");
 
     # Verify desktop file format
-    like($utils, qr/\[Desktop Entry\]/, 'Desktop Entry header');
-    like($utils, qr/Type=Application/, 'Type=Application');
-    like($utils, qr/Terminal=false/, 'Terminal=false');
-    like($utils, qr/Categories=.*Network/, 'Network category');
+    like($desktop, qr/\[Desktop Entry\]/, 'Desktop Entry header');
+    like($desktop, qr/Type=Application/, 'Type=Application');
+    like($desktop, qr/Terminal=false/, 'Terminal=false');
+    like($desktop, qr/Categories=.*Network/, 'Network category');
 
     # Desktop actions
-    like($utils, qr/Desktop Action Shell/, 'Shell action defined');
-    like($utils, qr/Desktop Action Quick/, 'Quick connect action');
-    like($utils, qr/Desktop Action Preferences/, 'Preferences action');
+    like($desktop, qr/Desktop Action Shell/, 'Shell action defined');
+    like($desktop, qr/Desktop Action Quick/, 'Quick connect action');
+    like($desktop, qr/Desktop Action Preferences/, 'Preferences action');
 
     # Security: uses fork+exec not system() for xdg-desktop-menu
-    like($utils, qr/fork\(\).*exec\('xdg-desktop-menu'/s,
+    like($desktop, qr/fork\(\).*exec\('xdg-desktop-menu'/s,
         'xdg-desktop-menu via fork+exec');
+
+    # PACUtils proxy still wired
+    my $utils = read_file("$RealBin/../lib/PACUtils.pm");
+    like($utils, qr/sub _makeDesktopFile\s*\{\s*goto\s*&PAC::Theme::DesktopFile::generate/,
+        'PACUtils._makeDesktopFile is goto-proxy');
 };
 
 # ═══════════════════════════════════════════════════════════════════════════════

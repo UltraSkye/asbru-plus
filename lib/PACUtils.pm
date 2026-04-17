@@ -808,64 +808,9 @@ sub _checkREADME {
 require PAC::Terminal::Encodings;
 sub _getEncodings { goto &PAC::Terminal::Encodings::all; }
 
-sub _makeDesktopFile {
-    my $cfg = shift;
-
-    if (! $$cfg{'defaults'}{'show favourites in unity'}) {
-        unlink "$ENV{HOME}/.local/share/applications/asbru.desktop";
-        system("$ENV{'ASBRU_ENV_FOR_EXTERNAL'} /usr/bin/xdg-desktop-menu forceupdate &");
-        return 1;
-    }
-
-    my $d = "[Desktop Entry]\n";
-    $d .= "Name=Ásbrú Connection Manager\n";
-    $d .= "Comment=A user interface that helps organizing remote terminal sessions and automating repetitive tasks\n";
-    $d .= "Terminal=false\n";
-    $d .= "Icon=pac\n";
-    $d .= "Type=Application\n";
-    $d .= "Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm\n";
-    $d .= "StartupNotify=true\n";
-    $d .= "Name[en_US]=Ásbrú Connection Manager\n";
-    $d .= "Comment[en_US]=A user interface that helps organizing remote terminal sessions and automating repetitive tasks\n";
-    $d .= "Categories=Applications;Network;\n";
-    $d .= "X-GNOME-Autostart-enabled=false\n";
-    my $dal = 'Actions=Shell;Quick;Preferences;';
-    my $da = "\n[Desktop Action Shell]\n";
-    $da .= "Name=<Start local shell>\n";
-    $da .= "Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm --start-shell\n";
-    $da .= "\n[Desktop Action Quick]\n";
-    $da .= "Name=<Quick connect...>\n";
-    $da .= "Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm --quick-conn\n";
-    $da .= "\n[Desktop Action Preferences]\n";
-    $da .= "Name=<Open Preferences...>\n";
-    $da .= "Exec=env GDK_BACKEND=x11 /usr/bin/asbru-cm --preferences\n";
-#    my $action = 0;
-#    foreach my $uuid (keys %{$$cfg{environments}}) {
-#        if (($uuid eq '__PAC__ROOT__') || (! $$cfg{'environments'}{$uuid}{'favourite'})) {
-#            next;
-#        }
-
-#        $dal .= "$action;";
-#        $da .= "\n[Desktop Action " . $action++ . "]\n";
-#        $da .= "Name=" . ($$cfg{'environments'}{$uuid}{'name'} =~ s/_/__/go) . "\n";
-#        $da .= "Exec=asbru-cm --start-uuid=$uuid\n";
-#    }
-
-    open(my $fh, '>:utf8', "$ENV{HOME}/.local/share/applications/asbru.desktop") or return 0;
-    print $fh "$d\n$dal\n$da\n";
-    close $fh;
-    # Double-fork the xdg-desktop-menu refresh so the grandchild is
-    # reaped by init and we never leave a zombie on the parent.
-    my $pid = fork();
-    if (defined $pid && $pid == 0) {
-        my $pid2 = fork();
-        POSIX::_exit(0) if !defined $pid2 || $pid2 > 0;
-        exec('xdg-desktop-menu', 'forceupdate') or POSIX::_exit(1);
-    }
-    waitpid($pid, 0) if defined $pid && $pid > 0;
-
-    return 1;
-}
+# .desktop generator lives in PAC::Theme::DesktopFile.
+require PAC::Theme::DesktopFile;
+sub _makeDesktopFile { goto &PAC::Theme::DesktopFile::generate; }
 
 sub _updateWidgetColor {
     my $self = shift;
