@@ -104,7 +104,66 @@ like($@, qr/not yet implemented/, 'rotate_kdf throws');
 eval { $vault->zero_memory };
 like($@, qr/not yet implemented/, 'zero_memory throws');
 
+# ── 8b. Bulk config crypto: cipher_cfg / decipher_cfg round-trip ────
+PAC::Crypto::Cipher::init({ cfg_dir => $dir });
+my %cfg = (
+    defaults => {
+        'global variables' => {
+            secret => { hidden => '1', value => 'hidden-secret' },
+            visible => { hidden => '0', value => 'plain-value' },
+        },
+        'sudo password' => 'sudo-pwd',
+        'keepass'       => { password => 'kp-pwd' },
+    },
+    environments => {
+        'uuid-1' => {
+            _is_group  => 0,
+            pass       => 'login-pwd',
+            passphrase => 'ssh-passphrase',
+            expect     => [ { hidden => '1', send => 'expected-secret' } ],
+            variables  => [ { hide => '1', txt => 'hidden-var' } ],
+        },
+    },
+);
+
+# Snapshot plaintext for round-trip comparison
+my %before = %{ Storable::dclone(\%cfg) };
+
+PAC::Vault::cipher_cfg(\%cfg);
+isnt($cfg{defaults}{'sudo password'}, 'sudo-pwd',
+    'cipher_cfg: sudo password is encrypted (not plain)');
+isnt($cfg{environments}{'uuid-1'}{pass}, 'login-pwd',
+    'cipher_cfg: per-connection pass encrypted');
+is($cfg{defaults}{'global variables'}{visible}{value}, 'plain-value',
+    'cipher_cfg: visible global var NOT encrypted');
+
+PAC::Vault::decipher_cfg(\%cfg);
+is($cfg{defaults}{'sudo password'}, 'sudo-pwd',
+    'decipher_cfg: sudo password round-trips');
+is($cfg{environments}{'uuid-1'}{pass}, 'login-pwd',
+    'decipher_cfg: per-connection pass round-trips');
+is($cfg{defaults}{'global variables'}{secret}{value}, 'hidden-secret',
+    'decipher_cfg: hidden global var round-trips');
+is($cfg{environments}{'uuid-1'}{expect}[0]{send}, 'expected-secret',
+    'decipher_cfg: hidden expect send round-trips');
+
+# Single-uuid mode only touches the named environment
+PAC::Vault::cipher_cfg(\%cfg);
+my $cipher_only_one = {
+    defaults => { 'global variables' => {}, 'sudo password' => '' },
+    environments => {
+        'uuid-A' => { _is_group => 0, pass => $cfg{environments}{'uuid-1'}{pass} },
+        'uuid-B' => { _is_group => 0, pass => 'plain-but-listed' },
+    },
+};
+PAC::Vault::decipher_cfg($cipher_only_one, 'uuid-A');
+isnt($cipher_only_one->{environments}{'uuid-A'}{pass}, undef,
+    'single_uuid mode: target uuid is processed');
+is($cipher_only_one->{environments}{'uuid-B'}{pass}, 'plain-but-listed',
+    'single_uuid mode: other uuids untouched');
+
 # ── 9. POD coverage ─────────────────────────────────────────────────
+use Storable;
 my $src = do {
     open my $f, '<', "$RealBin/../lib/PAC/Vault.pm" or die "open: $!";
     local $/; <$f>;
@@ -113,7 +172,8 @@ like($src, qr/^=head1 NAME/m, 'POD: NAME');
 like($src, qr/^=head1 PUBLIC API/m, 'POD: PUBLIC API');
 for my $sub (qw(instance is_unlocked unlock verify create_verifier
                 encrypt_field decrypt_field kdf_strength
-                get_secret put_secret rotate_kdf zero_memory)) {
+                get_secret put_secret rotate_kdf zero_memory
+                cipher_cfg decipher_cfg migrate_cipher_cfg)) {
     like($src, qr/^=item \Q$sub\E\b/m, "POD =item for $sub");
 }
 

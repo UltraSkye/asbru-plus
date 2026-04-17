@@ -179,55 +179,8 @@ sub _createMasterVerifier { goto &PAC::Vault::_create_verifier; }
 sub _verifyMasterPassword { goto &PAC::Vault::_verify; }
 
 # Re-encrypt all password fields from old cipher to new cipher
-sub _migrateCipherCFG {
-    my ($cfg, $old_cipher, $new_cipher) = @_;
-
-    # Helper to re-encrypt a single value
-    my $reencrypt = sub {
-        my $hex = shift;
-        return '' unless defined $hex && $hex ne '';
-        my $plain;
-        eval { $plain = $old_cipher->decrypt_hex($hex); };
-        return $hex if $@;  # Can't decrypt — leave as-is
-        return $new_cipher->encrypt_hex($plain);
-    };
-
-    # Global variables
-    foreach my $var (keys %{$$cfg{'defaults'}{'global variables'} // {}}) {
-        if (($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} // '') eq '1') {
-            $$cfg{'defaults'}{'global variables'}{$var}{'value'} = $reencrypt->($$cfg{'defaults'}{'global variables'}{$var}{'value'});
-        }
-    }
-    # KeePass password
-    if (defined $$cfg{'defaults'}{'keepass'}) {
-        $$cfg{'defaults'}{'keepass'}{'password'} = $reencrypt->($$cfg{'defaults'}{'keepass'}{'password'});
-    }
-    # Sudo password
-    $$cfg{'defaults'}{'sudo password'} = $reencrypt->($$cfg{'defaults'}{'sudo password'}) if defined $$cfg{'defaults'}{'sudo password'};
-    # GUI password
-    $$cfg{'defaults'}{'gui password'} = $reencrypt->($$cfg{'defaults'}{'gui password'}) if defined $$cfg{'defaults'}{'gui password'};
-
-    # Per-connection passwords
-    foreach my $uuid (keys %{$$cfg{'environments'} // {}}) {
-        next if $uuid =~ /^HASH/;
-        next if $$cfg{'environments'}{$uuid}{'_is_group'};
-
-        $$cfg{'environments'}{$uuid}{'pass'} = $reencrypt->($$cfg{'environments'}{$uuid}{'pass'}) if defined $$cfg{'environments'}{$uuid}{'pass'};
-        $$cfg{'environments'}{$uuid}{'passphrase'} = $reencrypt->($$cfg{'environments'}{$uuid}{'passphrase'}) if defined $$cfg{'environments'}{$uuid}{'passphrase'};
-
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'} // []}) {
-            if (($$hash{'hidden'} // '') eq '1') {
-                $$hash{'send'} = $reencrypt->($$hash{'send'});
-            }
-        }
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'} // []}) {
-            if (($$hash{'hide'} // '') eq '1') {
-                $$hash{'txt'} = $reencrypt->($$hash{'txt'});
-            }
-        }
-    }
-    return 1;
-}
+# Bulk config crypto lives in PAC::Vault. PACUtils retains proxies.
+sub _migrateCipherCFG { goto &PAC::Vault::migrate_cipher_cfg; }
 
 # Backward-compat alias for the legacy decrypt-with-fallback helper.
 # Implementation now lives in PAC::Crypto::Cipher::decrypt_hex which tries
@@ -773,101 +726,9 @@ sub _updateSSHToIPv6 {
     return $txt;
 }
 
-sub _cipherCFG {
-    my $cfg = shift;
+sub _cipherCFG { goto &PAC::Vault::cipher_cfg; }
 
-    foreach my $var (keys %{$$cfg{'defaults'}{'global variables'}}) {
-        if ($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} eq '1') {
-            $$cfg{'defaults'}{'global variables'}{$var}{'value'} = $CIPHER->encrypt_hex(encode('UTF-8',$$cfg{'defaults'}{'global variables'}{$var}{'value'}));
-        }
-    }
-    if (defined $$cfg{'defaults'}{'keepass'}) {
-        $$cfg{'defaults'}{'keepass'}{'password'} = $CIPHER->encrypt_hex(encode('UTF-8',$$cfg{'defaults'}{'keepass'}{'password'}));
-    }
-    $$cfg{'defaults'}{'sudo password'} = $CIPHER->encrypt_hex(encode('UTF-8',$$cfg{'defaults'}{'sudo password'}));
-
-    foreach my $uuid (keys %{$$cfg{'environments'}}) {
-        if ($uuid =~ /^HASH/go) {
-            delete $$cfg{'environments'}{$uuid};
-            next
-        }
-        elsif ($$cfg{'environments'}{$uuid}{'_is_group'}) {
-            delete $$cfg{'environments'}{$uuid}{'pass'};
-            next;
-        }
-        $$cfg{'environments'}{$uuid}{'pass'} = $CIPHER->encrypt_hex(encode('UTF-8',$$cfg{'environments'}{$uuid}{'pass'}));
-        $$cfg{'environments'}{$uuid}{'passphrase'} = $CIPHER->encrypt_hex(encode('UTF-8',$$cfg{'environments'}{$uuid}{'passphrase'}));
-
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'}}) {
-            if ($$hash{'hidden'} eq '1') {
-                $$hash{'send'} = $CIPHER->encrypt_hex(encode('UTF-8',$$hash{'send'}));
-            }
-        }
-
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
-            if ($$hash{'hide'} eq '1') {
-                $$hash{'txt'} = $CIPHER->encrypt_hex(encode('UTF-8',$$hash{'txt'}));
-            }
-        }
-    }
-
-    return 1;
-}
-
-sub _decipherCFG {
-    my $cfg = shift;
-    my $single_uuid = shift // 0;
-
-    if (! $single_uuid) {
-        foreach my $var (keys %{$$cfg{'defaults'}{'global variables'}}) {
-            if ($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} eq '1') {
-                eval {
-                    $$cfg{'defaults'}{'global variables'}{$var}{'value'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'global variables'}{$var}{'value'}));
-                };
-            }
-        }
-    }
-
-    if (defined $$cfg{'defaults'}{'keepass'}) {
-        eval {
-            $$cfg{'defaults'}{'keepass'}{'password'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'keepass'}{'password'}));
-        };
-    }
-    eval {
-        $$cfg{'defaults'}{'sudo password'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'defaults'}{'sudo password'}));
-    };
-
-    foreach my $uuid (keys %{$$cfg{'environments'}}) {
-        if (($single_uuid) && ($single_uuid ne $uuid)) {
-            next;
-        }
-
-        if ($$cfg{'environments'}{$uuid}{'_is_group'}) {
-            delete $$cfg{'environments'}{$uuid}{'pass'};
-            next;
-        }
-        eval {$$cfg{'environments'}{$uuid}{'pass'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'environments'}{$uuid}{'pass'}));};
-        eval {$$cfg{'environments'}{$uuid}{'passphrase'} = decode('UTF-8',_decrypt_hex_compat($$cfg{'environments'}{$uuid}{'passphrase'}));};
-
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'}}) {
-            if ($$hash{'hidden'} eq '1') {
-                eval {
-                    $$hash{'send'} = _decrypt_hex_compat(encode('UTF-8',$$hash{'send'}));
-                };
-            }
-        }
-
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
-            if ($$hash{'hide'} eq '1') {
-                eval {
-                    $$hash{'txt'} = _decrypt_hex_compat(encode('UTF-8',$$hash{'txt'}));
-                };
-            }
-        }
-    }
-
-    return 1;
-}
+sub _decipherCFG { goto &PAC::Vault::decipher_cfg; }
 
 # Substitution engine lives in PAC::Subst. PACUtils keeps `_subst` and
 # `_substCFG` proxies so the 30+ legacy callsites in PACMain/PACTerminal/

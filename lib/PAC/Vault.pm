@@ -190,6 +190,197 @@ sub _verify {
     return (!$@ && defined $plain && PAC::Crypto::HMAC::ct_eq($plain, $VERIFY_TOKEN));
 }
 
+#-------------------------------------------------------------------------
+# Bulk config-level crypto (moved from PACUtils in P3/11).
+#
+# These walk the entire config hash and encrypt/decrypt every secret-
+# bearing field in one pass. Used at config save (cipher), config load
+# (decipher), and master-password rotation (migrate).
+#-------------------------------------------------------------------------
+
+use Encode qw(encode decode);
+
+# cipher_cfg($cfg) — encrypts every secret field in $cfg in place using
+# the active PAC::Crypto::Cipher. Mutates the cfg hash. Returns 1.
+sub cipher_cfg {
+    my $cfg = shift;
+
+    foreach my $var (keys %{$$cfg{'defaults'}{'global variables'}}) {
+        if ($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} eq '1') {
+            $$cfg{'defaults'}{'global variables'}{$var}{'value'}
+                = PAC::Crypto::Cipher::encrypt_hex(
+                    encode('UTF-8', $$cfg{'defaults'}{'global variables'}{$var}{'value'}));
+        }
+    }
+    if (defined $$cfg{'defaults'}{'keepass'}) {
+        $$cfg{'defaults'}{'keepass'}{'password'}
+            = PAC::Crypto::Cipher::encrypt_hex(
+                encode('UTF-8', $$cfg{'defaults'}{'keepass'}{'password'}));
+    }
+    $$cfg{'defaults'}{'sudo password'}
+        = PAC::Crypto::Cipher::encrypt_hex(
+            encode('UTF-8', $$cfg{'defaults'}{'sudo password'}));
+
+    foreach my $uuid (keys %{$$cfg{'environments'}}) {
+        if ($uuid =~ /^HASH/o) {
+            delete $$cfg{'environments'}{$uuid};
+            next;
+        }
+        elsif ($$cfg{'environments'}{$uuid}{'_is_group'}) {
+            delete $$cfg{'environments'}{$uuid}{'pass'};
+            next;
+        }
+        $$cfg{'environments'}{$uuid}{'pass'}
+            = PAC::Crypto::Cipher::encrypt_hex(
+                encode('UTF-8', $$cfg{'environments'}{$uuid}{'pass'}));
+        $$cfg{'environments'}{$uuid}{'passphrase'}
+            = PAC::Crypto::Cipher::encrypt_hex(
+                encode('UTF-8', $$cfg{'environments'}{$uuid}{'passphrase'}));
+
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'}}) {
+            if ($$hash{'hidden'} eq '1') {
+                $$hash{'send'} = PAC::Crypto::Cipher::encrypt_hex(
+                    encode('UTF-8', $$hash{'send'}));
+            }
+        }
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
+            if ($$hash{'hide'} eq '1') {
+                $$hash{'txt'} = PAC::Crypto::Cipher::encrypt_hex(
+                    encode('UTF-8', $$hash{'txt'}));
+            }
+        }
+    }
+    return 1;
+}
+
+# decipher_cfg($cfg, $single_uuid?) — decrypts every secret field in
+# $cfg in place. With $single_uuid, only that environment is processed
+# (used during partial load). Mutates the cfg hash. Returns 1.
+sub decipher_cfg {
+    my $cfg = shift;
+    my $single_uuid = shift // 0;
+
+    if (!$single_uuid) {
+        foreach my $var (keys %{$$cfg{'defaults'}{'global variables'}}) {
+            if ($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} eq '1') {
+                eval {
+                    $$cfg{'defaults'}{'global variables'}{$var}{'value'}
+                        = decode('UTF-8',
+                            PAC::Crypto::Cipher::decrypt_hex(
+                                $$cfg{'defaults'}{'global variables'}{$var}{'value'}));
+                };
+            }
+        }
+    }
+
+    if (defined $$cfg{'defaults'}{'keepass'}) {
+        eval {
+            $$cfg{'defaults'}{'keepass'}{'password'}
+                = decode('UTF-8',
+                    PAC::Crypto::Cipher::decrypt_hex(
+                        $$cfg{'defaults'}{'keepass'}{'password'}));
+        };
+    }
+    eval {
+        $$cfg{'defaults'}{'sudo password'}
+            = decode('UTF-8',
+                PAC::Crypto::Cipher::decrypt_hex(
+                    $$cfg{'defaults'}{'sudo password'}));
+    };
+
+    foreach my $uuid (keys %{$$cfg{'environments'}}) {
+        next if $single_uuid && $single_uuid ne $uuid;
+
+        if ($$cfg{'environments'}{$uuid}{'_is_group'}) {
+            delete $$cfg{'environments'}{$uuid}{'pass'};
+            next;
+        }
+        eval {
+            $$cfg{'environments'}{$uuid}{'pass'} = decode('UTF-8',
+                PAC::Crypto::Cipher::decrypt_hex($$cfg{'environments'}{$uuid}{'pass'}));
+        };
+        eval {
+            $$cfg{'environments'}{$uuid}{'passphrase'} = decode('UTF-8',
+                PAC::Crypto::Cipher::decrypt_hex($$cfg{'environments'}{$uuid}{'passphrase'}));
+        };
+
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'}}) {
+            if ($$hash{'hidden'} eq '1') {
+                eval {
+                    $$hash{'send'} = PAC::Crypto::Cipher::decrypt_hex(
+                        encode('UTF-8', $$hash{'send'}));
+                };
+            }
+        }
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
+            if ($$hash{'hide'} eq '1') {
+                eval {
+                    $$hash{'txt'} = PAC::Crypto::Cipher::decrypt_hex(
+                        encode('UTF-8', $$hash{'txt'}));
+                };
+            }
+        }
+    }
+    return 1;
+}
+
+# migrate_cipher_cfg($cfg, $old_cipher, $new_cipher) — re-encrypts
+# every secret field from $old_cipher to $new_cipher. Used when the
+# user rotates their master password.
+sub migrate_cipher_cfg {
+    my ($cfg, $old_cipher, $new_cipher) = @_;
+
+    my $reencrypt = sub {
+        my $hex = shift;
+        return '' unless defined $hex && $hex ne '';
+        my $plain;
+        eval { $plain = $old_cipher->decrypt_hex($hex); };
+        return $hex if $@;        # can't decrypt — leave as-is
+        return $new_cipher->encrypt_hex($plain);
+    };
+
+    foreach my $var (keys %{$$cfg{'defaults'}{'global variables'} // {}}) {
+        if (($$cfg{'defaults'}{'global variables'}{$var}{'hidden'} // '') eq '1') {
+            $$cfg{'defaults'}{'global variables'}{$var}{'value'}
+                = $reencrypt->($$cfg{'defaults'}{'global variables'}{$var}{'value'});
+        }
+    }
+    if (defined $$cfg{'defaults'}{'keepass'}) {
+        $$cfg{'defaults'}{'keepass'}{'password'}
+            = $reencrypt->($$cfg{'defaults'}{'keepass'}{'password'});
+    }
+    $$cfg{'defaults'}{'sudo password'}
+        = $reencrypt->($$cfg{'defaults'}{'sudo password'})
+        if defined $$cfg{'defaults'}{'sudo password'};
+    $$cfg{'defaults'}{'gui password'}
+        = $reencrypt->($$cfg{'defaults'}{'gui password'})
+        if defined $$cfg{'defaults'}{'gui password'};
+
+    foreach my $uuid (keys %{$$cfg{'environments'} // {}}) {
+        next if $uuid =~ /^HASH/;
+        next if $$cfg{'environments'}{$uuid}{'_is_group'};
+
+        $$cfg{'environments'}{$uuid}{'pass'}
+            = $reencrypt->($$cfg{'environments'}{$uuid}{'pass'})
+            if defined $$cfg{'environments'}{$uuid}{'pass'};
+        $$cfg{'environments'}{$uuid}{'passphrase'}
+            = $reencrypt->($$cfg{'environments'}{$uuid}{'passphrase'})
+            if defined $$cfg{'environments'}{$uuid}{'passphrase'};
+
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'expect'} // []}) {
+            if (($$hash{'hidden'} // '') eq '1') {
+                $$hash{'send'} = $reencrypt->($$hash{'send'});
+            }
+        }
+        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'} // []}) {
+            if (($$hash{'hide'} // '') eq '1') {
+                $$hash{'txt'} = $reencrypt->($$hash{'txt'});
+            }
+        }
+    }
+    return 1;
+}
+
 1;
 
 __END__
@@ -306,6 +497,27 @@ throws.
 
 Future API: scrub decrypted secrets from process memory. Currently
 throws.
+
+=item cipher_cfg($cfg)
+
+Walks the entire config hash and encrypts every secret field
+(global hidden vars, KeePass password, sudo password, per-connection
+pass/passphrase, hidden expect "send" values, hidden session
+variables) in place using the active cipher. Returns 1.
+
+=item decipher_cfg($cfg, $single_uuid?)
+
+Inverse of C<cipher_cfg>. Decrypts every secret field in place.
+With C<$single_uuid>, only that environment is decrypted (used by
+partial-load paths to avoid decrypting everything when only one
+connection is needed).
+
+=item migrate_cipher_cfg($cfg, $old_cipher, $new_cipher)
+
+Re-encrypts every secret field from C<$old_cipher> to C<$new_cipher>.
+Used when the user rotates their master password — invoked from
+C<PACMain::_lockAsbru> / master-password change flow. Unrecoverable
+fields (decrypt fails) are left as-is rather than zeroed.
 
 =back
 
