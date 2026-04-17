@@ -263,8 +263,12 @@ subtest 'Local commands use explicit shell invocation' => sub {
 subtest 'YAML import scans for suspicious patterns' => sub {
     like($pac_main, qr/Security Warning.*suspicious pattern/s,
         'PACMain: YAML import warns about suspicious patterns');
-    like($pac_main, qr/scan_value/,
-        'PACMain: recursive value scanner for imports');
+    # Recursive value scanner moved to PAC::Util::ImportScan in P4/9
+    my $scan_pm = read_file("$RealBin/../lib/PAC/Util/ImportScan.pm");
+    like($scan_pm, qr/walk\s*=\s*sub|sub scan/,
+        'PAC::Util::ImportScan: recursive value scanner present');
+    like($pac_main, qr/PAC::Util::ImportScan::scan/,
+        'PACMain calls PAC::Util::ImportScan::scan');
 };
 
 # ── HIGH-04: SSH auto-accept-key defaults to OFF ────────────────────────────
@@ -534,10 +538,12 @@ subtest 'ASBRU_ENV_FOR_EXTERNAL validated in CMD execution' => sub {
 # ── Import scan_value expanded ───────────────────────────────────────────────
 
 subtest 'Import scan detects expanded attack patterns' => sub {
-    like($pac_main, qr/mkfifo|socat|\/dev\/tcp/,
-        'PACMain: import scan detects reverse shell patterns');
-    like($pac_main, qr/python.*perl.*ruby.*php/s,
-        'PACMain: import scan detects alternative interpreters');
+    # Patterns moved to PAC::Util::ImportScan in P4/9
+    my $scan_pm = read_file("$RealBin/../lib/PAC/Util/ImportScan.pm");
+    like($scan_pm, qr/mkfifo|socat|\/dev\/tcp/,
+        'PAC::Util::ImportScan detects reverse shell patterns');
+    like($scan_pm, qr/python.*perl.*ruby.*php/s,
+        'PAC::Util::ImportScan detects alternative interpreters');
 };
 
 # ── Vendor config scanned ────────────────────────────────────────────────────

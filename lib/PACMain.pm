@@ -4667,30 +4667,10 @@ sub __importNodes {
         return 1;
     }
     {
-        my $suspicious = 0;
-        my $suspicious_detail = '';
-        my $scan_value;
-        $scan_value = sub {
-            my ($val, $path) = @_;
-            if (ref($val) eq 'HASH') {
-                for my $k (keys %$val) { $scan_value->($$val{$k}, "$path/$k"); }
-            } elsif (ref($val) eq 'ARRAY') {
-                for my $i (0..$#$val) { $scan_value->($$val[$i], "$path/[$i]"); }
-            } elsif (!ref($val) && defined($val)) {
-                # SECURITY: Expanded pattern to catch more injection vectors:
-                # - pipe operators (cmd | nc), redirections (> /etc/), heredocs (<<)
-                # - alternative interpreters (python -c, perl -e, ruby -e, php -r)
-                # - reverse shells (/dev/tcp, mkfifo, socat)
-                # - command substitution ($(), backticks)
-                # - dangerous builtins (eval, exec, sys-calls, forced recursive removal)
-                # - common exfiltration tools (curl, wget, nc, ncat, bash, sh)
-                if ($val =~ /(?:\$\(|`[^`]+`|\beval\b|\bexec\b|\bsystem\b|\brm\s+-rf\b|;\s*(?:curl|wget|bash|sh|nc|ncat)\b|\|\s*(?:bash|sh|nc|ncat|python|perl|ruby|php)\b|\/dev\/tcp\/|\bmkfifo\b|\bsocat\b|(?:python|perl|ruby|php)\d*\s+-[cerpw]|>\s*\/|<<\s*\bEOF\b)/) {
-                    $suspicious++;
-                    $suspicious_detail = "at $path: $val" if $suspicious == 1;
-                }
-            }
-        };
-        $scan_value->($$self{_COPY}{'data'}, 'root');
+        # Recursive shell-injection-pattern scan lives in PAC::Util::ImportScan.
+        require PAC::Util::ImportScan;
+        my ($suspicious, $suspicious_detail)
+            = PAC::Util::ImportScan::scan($$self{_COPY}{'data'});
         if ($suspicious > 0) {
             my $proceed = _wConfirm($$self{_GUI}{main},
                 "<b>Security Warning</b>\n\n" .
