@@ -59,7 +59,7 @@ use Gtk3 -init;
 
 # PAC modules
 use PACUtils;
-use PACSshConfig;
+use PAC::Net::SshConfig;
 use PACWayland;
 use PACTray;
 use PACTerminal;
@@ -5158,7 +5158,7 @@ sub __importSshConfig {
         return 1;
     }
 
-    my $hosts = PACSshConfig::parse($file);
+    my $hosts = PAC::Net::SshConfig::parse($file);
     if (!@$hosts) {
         _wMessage($$self{_WINDOWCONFIG}, "No importable Host blocks found in <b>$file</b>.\n(Wildcard hosts and Match blocks are skipped.)");
         return 1;

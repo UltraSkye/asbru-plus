@@ -7,7 +7,7 @@ use Test::More;
 use FindBin qw($RealBin);
 use File::Temp qw(tempfile);
 use lib "$RealBin/../lib";
-use PACSshConfig;
+use PAC::Net::SshConfig;
 
 # 1. Parser handles a typical config and skips wildcards/Match/Include.
 my ($fh, $cfg) = tempfile(UNLINK => 1);
@@ -40,7 +40,7 @@ Include ~/.ssh/extra_config
 CFG
 close $fh;
 
-my $hosts = PACSshConfig::parse($cfg);
+my $hosts = PAC::Net::SshConfig::parse($cfg);
 isa_ok($hosts, 'ARRAY', 'parse returns arrayref');
 is(scalar @$hosts, 3, 'three importable Host entries (wildcards + Match dropped)');
 
@@ -63,13 +63,13 @@ ok(!exists $by_alias{'*'}, 'wildcard host * skipped');
 ok(!exists $by_alias{'*.staging'}, 'wildcard *.staging skipped');
 
 # 2. importable() rejects empty/wildcard aliases
-ok(!PACSshConfig::importable({alias => ''}), 'empty alias not importable');
-ok(!PACSshConfig::importable({alias => '*'}), 'asterisk alias not importable');
-ok(!PACSshConfig::importable({alias => 'foo?'}), 'question-mark alias not importable');
-ok( PACSshConfig::importable({alias => 'host.example.com'}), 'plain alias importable');
+ok(!PAC::Net::SshConfig::importable({alias => ''}), 'empty alias not importable');
+ok(!PAC::Net::SshConfig::importable({alias => '*'}), 'asterisk alias not importable');
+ok(!PAC::Net::SshConfig::importable({alias => 'foo?'}), 'question-mark alias not importable');
+ok( PAC::Net::SshConfig::importable({alias => 'host.example.com'}), 'plain alias importable');
 
 # 3. parse() returns empty arrayref for missing file (no exception)
-my $empty = PACSshConfig::parse('/nonexistent/path/' . $$ . '/config');
+my $empty = PAC::Net::SshConfig::parse('/nonexistent/path/' . $$ . '/config');
 is_deeply($empty, [], 'missing file returns empty arrayref');
 
 # 4. Tilde expansion in IdentityFile uses $ENV{HOME}
@@ -77,7 +77,7 @@ local $ENV{HOME} = '/tmp/fakehome';
 my ($fh2, $cfg2) = tempfile(UNLINK => 1);
 print $fh2 "Host h\n  IdentityFile ~/key\n";
 close $fh2;
-my $h2 = PACSshConfig::parse($cfg2);
+my $h2 = PAC::Net::SshConfig::parse($cfg2);
 is($h2->[0]{identity_file}, '/tmp/fakehome/key', 'tilde expanded against $ENV{HOME}');
 
 done_testing();

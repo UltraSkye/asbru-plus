@@ -1,60 +1,24 @@
 package PACSshConfig;
 
 ###############################################################################
-# Parse OpenSSH client config (~/.ssh/config) into a list of importable Host
-# entries. Pure-Perl, no GTK / no Asbrú deps — keep it that way so it stays
-# testable in isolation.
+# COMPATIBILITY SHIM. The real implementation lives at
+# lib/PAC/Net/SshConfig.pm (PAC::Net::SshConfig). This file is kept so
+# existing `use PACSshConfig;` callers continue to work; new code MUST
+# `use PAC::Net::SshConfig;`.
+#
+# Will be removed in a future release once all callers migrate.
 ###############################################################################
 
 use strict;
 use warnings;
+use utf8;
 
-# parse($path) -> arrayref of { alias, hostname, port, user, identity_file }
-# Skips wildcard hosts (Host * / *.example.com), Match blocks, Include lines.
-sub parse {
-    my $file = shift;
-    open(my $fh, '<', $file) or return [];
-    my @hosts;
-    my $current;
-    while (my $line = <$fh>) {
-        chomp $line;
-        $line =~ s/^\s+//;
-        $line =~ s/\s+$//;
-        next if $line eq '' || $line =~ /^#/;
-        if ($line =~ /^Host\s+(.+)$/i) {
-            push @hosts, $current if $current && importable($current);
-            my @aliases = split /\s+/, $1;
-            $current = { alias => $aliases[0] };
-        } elsif ($line =~ /^Match\b/i) {
-            push @hosts, $current if $current && importable($current);
-            $current = undef;
-        } elsif ($line =~ /^Include\b/i) {
-            next;
-        } elsif ($current) {
-            if ($line =~ /^HostName\s+(.+)$/i) {
-                $current->{hostname} = $1;
-            } elsif ($line =~ /^Port\s+(\d+)/i) {
-                $current->{port} = $1;
-            } elsif ($line =~ /^User\s+(.+)$/i) {
-                $current->{user} = $1;
-            } elsif ($line =~ /^IdentityFile\s+(.+)$/i) {
-                (my $key = $1) =~ s{^~}{$ENV{HOME} // '~'}e;
-                $current->{identity_file} = $key;
-            }
-        }
-    }
-    push @hosts, $current if $current && importable($current);
-    close $fh;
-    return \@hosts;
-}
+use PAC::Net::SshConfig;
 
-sub importable {
-    my $h = shift;
-    return 0 unless $h && defined $h->{alias};
-    return 0 if $h->{alias} =~ /[*?]/;
-    return 0 if $h->{alias} eq '';
-    return 1;
-}
+our $VERSION = '0.2.0';
+
+sub parse      { goto &PAC::Net::SshConfig::parse; }
+sub importable { goto &PAC::Net::SshConfig::importable; }
 
 1;
 
@@ -64,54 +28,28 @@ __END__
 
 =head1 NAME
 
-PACSshConfig — Parse OpenSSH client config (~/.ssh/config) for bulk import
+PACSshConfig — backward-compat shim for L<PAC::Net::SshConfig>
 
-=head1 SYNOPSIS
+=head1 STATUS
 
-    use PACSshConfig;
+Deprecated. New code MUST use L<PAC::Net::SshConfig>.
 
-    my $hosts = PACSshConfig::parse("$ENV{HOME}/.ssh/config");
-    for my $h (@$hosts) {
-        printf "%-20s %s:%d as %s\n",
-            $h->{alias}, $h->{hostname} // '?', $h->{port} // 22,
-            $h->{user} // '?';
-    }
-
-=head1 DESCRIPTION
-
-Pure-Perl SSH client config parser used by the
-C<Import from ~/.ssh/config> menu entry. No Gtk, no network, no asbru
-internal state — kept small and isolated so it stays testable.
-
-=head2 Public functions
+=head1 PUBLIC API
 
 =over
 
 =item parse($path)
 
-Returns an arrayref of importable host entries, each a hash with keys
-C<alias>, C<hostname>, C<port>, C<user>, C<identity_file>. Returns an
-empty arrayref if the file cannot be opened.
-
-Skipped: wildcard hosts (C<Host *>), C<Match> blocks, C<Include>
-directives. For C<Host alias1 alias2>, only the first alias becomes
-the importable entry.
+Forwards to L<PAC::Net::SshConfig/parse>.
 
 =item importable($host)
 
-Returns true iff C<$host> is a valid importable entry: has a non-empty
-C<alias> with no C<*> or C<?> wildcards.
+Forwards to L<PAC::Net::SshConfig/importable>.
 
 =back
 
-=head1 NOTES
-
-This module lives at C<lib/PACSshConfig.pm> rather than
-C<lib/PAC/SshConfig.pm> for transitional reasons; it will move into
-C<PAC::> once we standardize the namespace migration.
-
 =head1 SEE ALSO
 
-L<ssh_config(5)>.
+L<PAC::Net::SshConfig>.
 
 =cut
