@@ -514,6 +514,7 @@ sub start {
     if ($PACMain::FUNCS{_MAIN}{_Vte}{has_bright}) {
         $$self{_GUI}{_VTE}->set_bold_is_bright($$self{_CFG}{'defaults'}{'bold is brigth'});
     }
+    eval { $$self{_GUI}{_VTE}->set_allow_bold($$self{_CFG}{'defaults'}{'disable bold'} ? 0 : 1); };
     return 1;
 }
 
