@@ -49,6 +49,13 @@ tasks/
 CLAUDE.md
 *.claude
 
+# ── Browser automation scratch (Playwright MCP, etc) ─────────────────
+.playwright-mcp/
+# Loose PNGs at repo root from interactive screenshot capture; keep
+# project artwork in res/ / share/ / docs/ / screenshots/ — those are
+# whitelisted below.
+/*.png
+
 # ── IDE / editors ────────────────────────────────────────────────────
 .idea/
 .vscode/
