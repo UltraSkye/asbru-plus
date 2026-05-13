@@ -7,6 +7,11 @@ use Test::More;
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
+# Pull Gtk3 in at compile time so Glib::Object::Introspection wires up
+# its INIT block before any test code runs (avoids "Too late to run INIT
+# block" stderr noise from require_ok of a Gtk3-using module).
+use Gtk3;
+
 # 1. Module loads and has all four exported helpers.
 require_ok('PAC::Dialog');
 

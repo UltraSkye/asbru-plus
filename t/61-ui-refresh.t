@@ -7,6 +7,11 @@ use Test::More;
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
+# Pull Gtk3 in at compile time so Glib::Object::Introspection can wire up
+# its INIT block before any test code runs. Loading via require_ok further
+# down would trip "Too late to run INIT block" on stderr.
+use Gtk3;
+
 require_ok('PAC::UI::Refresh');
 can_ok('PAC::UI::Refresh', $_)
     for qw(with_uuid clear_tab_labels preferences favourites history clusters

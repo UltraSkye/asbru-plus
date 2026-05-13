@@ -7,6 +7,12 @@ use Test::More;
 use FindBin qw($RealBin);
 use lib "$RealBin/../lib";
 
+# Pull Gtk3 in at compile time so Glib::Object::Introspection can wire up
+# its INIT block before any test code runs. Loading via require_ok further
+# down would trip "Too late to run INIT block" on stderr (cosmetic, but
+# noisy in `prove -v`).
+use Gtk3;
+
 require_ok('PAC::Window::Layout');
 can_ok('PAC::Window::Layout', $_) for qw(set_safe_options apply);
 

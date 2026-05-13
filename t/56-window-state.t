@@ -27,7 +27,12 @@ like($src, qr/hpanepos/, 'tracks hpanepos');
 # load() short-circuits when file is missing
 like($src, qr/return 1 unless -f \$path/, 'load() no-op for missing file');
 
-# Mock save+load round-trip with a fake $self
+# Mock save+load round-trip with a fake $self.
+# `no warnings 'once'` — $PACMain::CFG_FILE is touched only here in test
+# scope; in production it's set + read inside PACMain.pm. Without the
+# pragma Perl warns "Name "PACMain::CFG_FILE" used only once" because
+# the test never reads it back through the package symbol.
+no warnings 'once';
 my $dir = tempdir(CLEANUP => 1);
 $PACMain::CFG_FILE = "$dir/asbru.yml";
 
