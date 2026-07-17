@@ -38,6 +38,10 @@ verbose  = 9
 [-ValuesAndExpressions::ProhibitQuotesAsQuotelikeOperatorDelimiters]
 [-ValuesAndExpressions::ProhibitConstantPragma]
 [-Subroutines::ProhibitManyArgs]
+# 0600-style octals are file-permission modes for sysopen; newer Perl::Critic
+# exempts these under chmod/sysopen, older (Ubuntu 22.04 / Perl 5.34) does not.
+# Exempt for matrix consistency.
+[-ValuesAndExpressions::ProhibitLeadingZeros]
 
 # Architectural, not accidental: the `_`-prefixed cross-package helpers and the
 # %PACMain::FUNCS-style package globals are the deliberate goto-proxy API this
