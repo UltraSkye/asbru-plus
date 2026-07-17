@@ -16,7 +16,7 @@ A community-maintained fork of [Ásbrú Connection Manager](https://github.com/a
 It lets you organize, launch, and automate SSH, RDP, VNC, Telnet, and SFTP sessions from a single interface. You store all your servers, credentials, tunnels, and scripts in one place, and connect with a double-click.
 
 **Platform:** Linux only. Requires a GTK3 desktop environment (GNOME, XFCE, KDE with GTK support, etc.).
-Tested on Ubuntu 20.04–24.04, Debian 11/12/13, Fedora 39+, RHEL 8/9, AlmaLinux 9. **Does not run on Windows or macOS natively.**
+Tested on Ubuntu 20.04–26.04, Debian 11/12/13, Fedora 39+, RHEL 8/9, AlmaLinux 9. **Does not run on Windows or macOS natively.**
 
 > **Security note:** Ásbrú Plus stores credentials locally in `~/.config/asbru/`. If you manage access to sensitive production servers, consider running it inside a **dedicated VM or Docker container** rather than directly on your daily-use machine. This limits the blast radius if your desktop is ever compromised. See [Running in Docker](#running-in-docker) below.
 
@@ -69,7 +69,7 @@ Drops a single `asbru-plus.AppImage` into `~/.local/bin/`. Works on any glibc-ba
 
 Released `.deb`, `.rpm`, and `.AppImage` artifacts are on the [Releases page](https://github.com/UltraSkye/asbru-plus/releases):
 
-- `.deb` for Debian 11/12/13, Ubuntu 22.04/24.04
+- `.deb` for Debian 11/12/13, Ubuntu 22.04/24.04/26.04
 - `.rpm` for RHEL 8, AlmaLinux 9, Fedora 39
 - `.AppImage` (universal Linux x86_64)
 
@@ -189,6 +189,7 @@ Bug fixes specific to this fork (not in upstream):
 - **Read-only config** — no crash when started with `--readonly`
 - **Regex group edit** — replaced dangerous double-eval (`/eeeg`) with safe `/g`
 - **Ubuntu 24.04 Noble** — updated package dependencies (`freerdp3`, `dbus-broker`)
+- **Ubuntu 26.04 / Perl 5.40** — fixed crash on start (`Undefined subroutine &PACUtils::_`); the glade getter is now installed via typeglob since modern Perl silently drops `sub _`
 - **chmod** — was applied to filehandle instead of filename (no-op), now fixed
 - **Wayland detection** — automatic fallback to Xwayland for problematic widgets
 - **Dark mode** — auto-detect GNOME `color-scheme` setting
