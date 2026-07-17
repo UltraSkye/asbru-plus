@@ -36,10 +36,7 @@ sub delete_oldest {
 
     my @total;
     foreach my $file (readdir $F) {
-        if ($file !~ /^PAC_\[(.+)_Name_(.+)\]_\[(\d{8})_(\d{6})\]\.txt$/g) {
-            next;
-        }
-        my ($fenv, $fconn, $fdate, $ftime) = ($1, $2, $3, $4);
+        next if $file !~ /^PAC_\[.+_Name_.+\]_\[\d{8}_\d{6}\]\.txt$/;
         push(@total, "$folder/$file");
     }
 

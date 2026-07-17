@@ -143,7 +143,7 @@ sub zero_memory { croak 'PAC::Vault::zero_memory not yet implemented'; }
 
 sub _create_verifier {
     my $master_pass = shift;
-    return undef unless defined $master_pass;
+    return unless defined $master_pass;
     $master_pass = encode_utf8($master_pass);
 
     PAC::Crypto::Cipher::init() unless defined PAC::Crypto::Cipher::salt();
@@ -153,7 +153,7 @@ sub _create_verifier {
         -cipher => 'Crypt::Rijndael',
         -salt   => PAC::Crypto::Cipher::salt(),
         -pbkdf  => 'opensslv2',
-    ) or return undef;
+    ) or return;
 
     return $cipher->encrypt_hex($VERIFY_TOKEN);
 }

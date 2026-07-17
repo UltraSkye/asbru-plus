@@ -93,7 +93,7 @@ my %SCHEMA = (
 #-------------------------------------------------------------------------
 
 # all_keys() -> sorted list of declared dotted paths
-sub all_keys { return sort keys %SCHEMA; }
+sub all_keys { my @keys = sort keys %SCHEMA; return @keys; }
 
 # get($path) -> hashref of declared schema, or undef
 sub get { return $SCHEMA{$_[0]}; }
@@ -195,7 +195,7 @@ sub _lookup {
     my @parts = split /\./, $path;
     my $node = $cfg;
     for my $p (@parts) {
-        return undef unless ref $node eq 'HASH' && exists $node->{$p};
+        return unless ref $node eq 'HASH' && exists $node->{$p};
         $node = $node->{$p};
     }
     return $node;

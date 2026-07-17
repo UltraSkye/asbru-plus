@@ -15,6 +15,7 @@ use warnings;
 use utf8;
 
 use Wnck;
+use Carp;
 
 our $VERSION = '0.1.0';
 
@@ -25,7 +26,7 @@ our $VERSION = '0.1.0';
 sub all {
     my %list;
 
-    my $screen = Wnck::Screen::get_default() or die "Wnck::Screen unavailable: $!";
+    my $screen = Wnck::Screen::get_default() or croak "Wnck::Screen unavailable: $!";
     $screen->force_update();
 
     foreach my $w (@{$screen->get_windows}) {

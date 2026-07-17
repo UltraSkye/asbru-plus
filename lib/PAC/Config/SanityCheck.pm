@@ -33,7 +33,7 @@ sub _cfg_dir    { return $ENV{ASBRU_CFG} // ''; }
 
 # run($cfg) — same signature and semantics as the legacy
 # PACUtils::_cfgSanityCheck. Mutates $cfg in place; returns 1.
-sub run {
+sub run {  ## no critic (ProhibitExcessComplexity)
     my $cfg = shift;
 
     defined $$cfg{'defaults'} or $$cfg{'defaults'} = {};

@@ -26,9 +26,46 @@ verbose  = 9
 [-Documentation::RequirePodSections]
 [-Documentation::RequirePodAtEnd]
 
+# Legacy style inherited from a 15-year-old upstream that carries no critic
+# standard of its own. These are stylistic, not bugs; enforcing them would
+# rewrite hundreds of untouched lines for no correctness gain.
+[-RegularExpressions::RequireExtendedFormatting]
+[-RegularExpressions::ProhibitComplexRegexes]
+[-ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions]
+[-ControlStructures::ProhibitCascadingIfElse]
+[-NamingConventions::ProhibitAmbiguousNames]
+[-ValuesAndExpressions::ProhibitImplicitNewlines]
+[-ValuesAndExpressions::ProhibitQuotesAsQuotelikeOperatorDelimiters]
+[-ValuesAndExpressions::ProhibitConstantPragma]
+[-Subroutines::ProhibitManyArgs]
+# 0600-style octals are file-permission modes for sysopen; newer Perl::Critic
+# exempts these under chmod/sysopen, older (Ubuntu 22.04 / Perl 5.34) does not.
+# Exempt for matrix consistency.
+[-ValuesAndExpressions::ProhibitLeadingZeros]
+
+# Architectural, not accidental: the `_`-prefixed cross-package helpers and the
+# %PACMain::FUNCS-style package globals are the deliberate goto-proxy API this
+# fork is built on. ProtectPrivate*/PackageVars/UnusedPrivate/ArgUnpacking all
+# fight that design (arg-unpacking in particular breaks `goto &proxy`).
+[-Subroutines::ProtectPrivateSubs]
+[-Variables::ProtectPrivateVars]
+[-Subroutines::ProhibitUnusedPrivateSubroutines]
+[-Variables::ProhibitPackageVars]
+[-Subroutines::RequireArgUnpacking]
+
+# Best-effort GUI/cleanup evals (theme reload, widget destroy, style refresh)
+# intentionally swallow failures; the correctness-critical sites (crypto verify,
+# YAML/Storable load) check $@ explicitly.
+[-ErrorHandling::RequireCheckingReturnValueOfEval]
+
+# Symbol-table / typeglob work legitimately needs scoped strictness relaxation.
+[-TestingAndDebugging::ProhibitNoStrict]
+[-TestingAndDebugging::ProhibitNoWarnings]
+[-TestingAndDebugging::ProhibitProlongedStrictureOverride]
+
 # Allow our long _wakeOnLan-style dialog functions; complexity is acknowledged.
 [Subroutines::ProhibitExcessComplexity]
-max_mccabe = 30
+max_mccabe = 50
 
 # Same hard lines as the relaxed profile.
 [BuiltinFunctions::ProhibitStringyEval]

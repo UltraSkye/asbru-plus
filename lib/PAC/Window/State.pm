@@ -23,7 +23,7 @@ sub save {
     my $self = shift;
     my $path = "$PACMain::CFG_FILE.gui";
 
-    open(my $fh, '>:utf8', $path)
+    open(my $fh, '>:encoding(UTF-8)', $path)
         or die "ERROR: Could not save GUI Config file '$path': $!\n";
 
     if ($$self{_GUI}{maximized}) {
@@ -54,7 +54,7 @@ sub load {
     my $path = "$PACMain::CFG_FILE.gui";
     return 1 unless -f $path;
 
-    open(my $fh, '<:utf8', $path)
+    open(my $fh, '<:encoding(UTF-8)', $path)
         or die "ERROR: Could not read GUI Config file '$path': $!\n";
 
     my $win = <$fh>;

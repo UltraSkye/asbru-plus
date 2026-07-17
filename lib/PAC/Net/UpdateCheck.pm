@@ -33,11 +33,11 @@ sub fetch_latest {
         my $resp = HTTP::Tiny->new(timeout => 4)->get($url);
         $body = $resp->{content} if $resp->{success};
     };
-    return undef unless defined $body;
+    return unless defined $body;
 
     my ($tag)      = $body =~ /"tag_name"\s*:\s*"([^"]+)"/;
     my ($html_url) = $body =~ /"html_url"\s*:\s*"([^"]+)"/;
-    return undef unless defined $tag && length $tag;
+    return unless defined $tag && length $tag;
 
     return {
         tag      => $tag,

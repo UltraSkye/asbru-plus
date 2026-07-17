@@ -26,7 +26,7 @@ sub check {
     my $cfg_dir = shift // $ENV{ASBRU_CFG} // '';
     my $readme_file = "$cfg_dir/tmp/latest_README";
 
-    open(my $fh, '<:utf8', $readme_file) or return 0;
+    open(my $fh, '<:encoding(UTF-8)', $readme_file) or return 0;
     my @readme;
     while (my $line = <$fh>) {
         chomp $line;

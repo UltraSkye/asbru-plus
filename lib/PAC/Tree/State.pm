@@ -30,7 +30,7 @@ sub save {
     my $modelsort = $tree->get_model();
     my $path_file = "$PACMain::CFG_FILE.tree";
 
-    open(my $fh, '>:utf8', $path_file)
+    open(my $fh, '>:encoding(UTF-8)', $path_file)
         or die "ERROR: Could not save Tree Config file '$path_file': $!\n";
 
     $modelsort->foreach(sub {
@@ -72,7 +72,7 @@ sub load {
     return 1 unless -f $path_file;
 
     my %tabs;
-    open(my $fh, '<:utf8', $path_file)
+    open(my $fh, '<:encoding(UTF-8)', $path_file)
         or die "ERROR: Could not read Tree Config file '$path_file': $!\n";
     while (my $line = <$fh>) {
         chomp $line;

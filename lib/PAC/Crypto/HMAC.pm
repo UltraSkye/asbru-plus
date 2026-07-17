@@ -83,7 +83,7 @@ sub write_for {
     my $hmac_path = "${config_path}.hmac";
 
     open(my $fh, '<:raw', $config_path) or return;
-    local $/;
+    local $/ = undef;
     my $data = <$fh>;
     close $fh;
 
@@ -136,7 +136,7 @@ sub verify_for {
     chomp $stored if defined $stored;
 
     open(my $fh, '<:raw', $config_path) or return 0;
-    local $/;
+    local $/ = undef;
     my $data = <$fh>;
     close $fh;
 

@@ -160,7 +160,7 @@ sub subst {
             my $var = $1;
             my $val = PAC::Dialog::_wEnterValue(
                 undef, "<b>Variable substitution '$var'</b>", $string)
-                // return undef;
+                // return;
             $string =~ s/<ASK:$var>/$val/g;
             $ret = $string;
         }
@@ -182,7 +182,7 @@ sub subst {
             my $val = PAC::Dialog::_wEnterValue(
                 undef, '<b>Variable substitution</b>',
                 "Please, enter a value for:'$var'")
-                // return undef;
+                // return;
             $string =~ s/<ASK:\Q$var\E>/$val/g;
             $ret = $string;
         }
@@ -204,7 +204,7 @@ sub subst {
                 warn "WARNING: ASBRU_ENV_FOR_EXTERNAL contains suspicious content, ignoring\n";
                 $prefix = '';
             }
-            my $output = `$prefix $var 2>/dev/null`;
+            my $output = `$prefix $var 2>/dev/null`;  ## no critic (ProhibitBacktickOperators)
             chomp $output;
             if ($output =~ /\R/go) {
                 $string =~ s/<CMD:\Q$var\E>/echo "$output"/g;

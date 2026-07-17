@@ -65,7 +65,7 @@ sub generate {
 #        $da .= "Exec=asbru-cm --start-uuid=$uuid\n";
 #    }
 
-    open(my $fh, '>:utf8', "$ENV{HOME}/.local/share/applications/asbru.desktop") or return 0;
+    open(my $fh, '>:encoding(UTF-8)', "$ENV{HOME}/.local/share/applications/asbru.desktop") or return 0;
     print $fh "$d\n$dal\n$da\n";
     close $fh;
     # Double-fork the xdg-desktop-menu refresh so the grandchild is
