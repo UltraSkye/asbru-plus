@@ -97,7 +97,7 @@ continue to work unchanged via `goto`-proxies in PACUtils/PACMain.
     Legacy bareword `_($self, 'name')` sites bind at compile time and
     kept working, but the extracted `PAC::Theme::Widget` calls it
     fully-qualified as `PACUtils::_($self, $widget)`, which died with
-    "Undefined subroutine &PACUtils::_" during theme setup — killing
+    "Undefined subroutine &PACUtils::_" during theme setup - killing
     the app before the main window opened. Fixed by installing the
     getter via typeglob (`*PACUtils::_ = sub {...}`) so both call
     styles resolve. Regression-tested in t/65.

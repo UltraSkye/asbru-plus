@@ -1,11 +1,11 @@
 #!/usr/bin/perl
-# t/65-glade-getter.t — PACUtils::_ (the glade-object getter) must be a real,
+# t/65-glade-getter.t - PACUtils::_ (the glade-object getter) must be a real,
 # callable symbol.
 #
 # On Perl 5.38+, `sub _ { ... }` is silently NOT installed into the package
 # symbol table (the name `_` is reserved). Legacy bareword `_($self, 'name')`
 # call sites still bind at compile time, but a fully-qualified `PACUtils::_(...)`
-# call — as used by PAC::Theme::Widget — dies with "Undefined subroutine
+# call - as used by PAC::Theme::Widget - dies with "Undefined subroutine
 # &PACUtils::_". Installing the getter via typeglob (`*PACUtils::_ = sub {...}`)
 # lands it in the symbol table so both call styles work.
 use strict;
@@ -35,7 +35,7 @@ unlike($utils, qr/^\s*sub\s+_\s*[\{\(]/m,
     'PACUtils does not use the bare `sub _` form (silently dropped on 5.38+)');
 
 # 3. Functional guard: eval PACUtils' actual install statement (Gtk-free) and
-#    assert the resulting &PACUtils::_ is callable by fully-qualified name — the
+#    assert the resulting &PACUtils::_ is callable by fully-qualified name - the
 #    exact call style PAC::Theme::Widget uses. Loading the whole module here is
 #    avoided on purpose: it pulls `use Gtk3 '-init'`, which aborts the process
 #    when no display is present. End-to-end launch is covered by the QEMU

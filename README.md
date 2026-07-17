@@ -189,7 +189,7 @@ Bug fixes specific to this fork (not in upstream):
 - **Read-only config** — no crash when started with `--readonly`
 - **Regex group edit** — replaced dangerous double-eval (`/eeeg`) with safe `/g`
 - **Ubuntu 24.04 Noble** — updated package dependencies (`freerdp3`, `dbus-broker`)
-- **Ubuntu 26.04 / Perl 5.40** — fixed crash on start (`Undefined subroutine &PACUtils::_`); the glade getter is now installed via typeglob since modern Perl silently drops `sub _`
+- **Ubuntu 26.04 / Perl 5.40** - fixed crash on start (`Undefined subroutine &PACUtils::_`); the glade getter is now installed via typeglob since modern Perl silently drops `sub _`
 - **chmod** — was applied to filehandle instead of filename (no-op), now fixed
 - **Wayland detection** — automatic fallback to Xwayland for problematic widgets
 - **Dark mode** — auto-detect GNOME `color-scheme` setting
