@@ -15,11 +15,11 @@ RUN apk --no-cache add \
     # Perls
     perl perl-socket6 perl-yaml perl-crypt-cbc perl-glib perl-crypt-rijndael perl-xml-parser perl-io-tty perl-hash-merge-simple \
     # Libs
-    libffi pango gtk+3.0 libcanberra-gtk3 gdk-pixbuf librsvg libwnck3 libx11 libxt libxtst dbus-x11 libuuid gobject-introspection libappindicator \
+    libffi pango gtk+3.0 libcanberra-gtk3 gdk-pixbuf librsvg libwnck3 libx11 libxt libxtst dbus-x11 libuuid gobject-introspection libayatana-appindicator \
     # Binaries (with libs maybe)
     busybox-extras openssl openssh-client lftp vte3 expect bash \
     # Fonts
-    ttf-ubuntu-font-family \
+    font-ubuntu \
     # Icons
     adwaita-icon-theme \
     # Virtual
@@ -52,9 +52,9 @@ FROM perl-builder AS cpan-installer
 # Install dependencies from CPAN
 RUN apk --no-cache add perl-app-cpanminus --virtual cpanm-installer-packages-step
 # Pinned Dependencies with no tests (tests fail, at least on Alpine, even with all libs setup)
-RUN cpanm --notest --install RURBAN/Net-Ping-2.74.tar.gz
+RUN cpanm --from https://cpan.metacpan.org/ --notest --install RURBAN/Net-Ping-2.74.tar.gz
 # Pinned Dependencies with tests
-RUN cpanm --notest --install XAOC/Glib-Object-Introspection-0.049.tar.gz
+RUN cpanm --from https://cpan.metacpan.org/ --notest --install XAOC/Glib-Object-Introspection-0.049.tar.gz
 # No-test dependencies (tests fail, at least on Alpine, even with all libs setup)
 RUN cpanm --notest --install Net::Proxy
 # Testable dependencies
@@ -86,7 +86,7 @@ COPY --from=stripped-builder /etc/. /etc/
 FROM common AS appimage-tools
 # Install some needed stuff for AppImage packaging
 
-RUN wget "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage" && \
+RUN wget "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" && \
     chmod +x "appimagetool-x86_64.AppImage"
 
 RUN apk add fuse file appstream dos2unix patchelf
@@ -94,13 +94,13 @@ RUN apk add fuse file appstream dos2unix patchelf
 RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
 
 RUN wget "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.34-r0/glibc-2.34-r0.apk" && \
-    apk add glibc-2.34-r0.apk
+    apk add --force-overwrite glibc-2.34-r0.apk
 
 RUN wget "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.34-r0/glibc-bin-2.34-r0.apk" && \
-    apk add glibc-bin-2.34-r0.apk
+    apk add --force-overwrite glibc-bin-2.34-r0.apk
 
 RUN wget "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.34-r0/glibc-i18n-2.34-r0.apk" && \
-    apk add glibc-i18n-2.34-r0.apk
+    apk add --force-overwrite glibc-i18n-2.34-r0.apk
 
 RUN /usr/glibc-compat/bin/localedef -i en_US -f UTF-8 en_US.UTF-8
 
