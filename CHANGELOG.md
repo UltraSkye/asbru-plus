@@ -91,6 +91,16 @@ continue to work unchanged via `goto`-proxies in PACUtils/PACMain.
     since the P3/10 extraction.
 12. `_checkREADME` referenced inaccessible `$CFG_DIR` lexical —
     fixed by reading `$ENV{ASBRU_CFG}` directly.
+13. **CRITICAL** (issue #1, crash on start): the glade getter
+    `PACUtils::_` was defined with `sub _ {...}`, which Perl 5.38+
+    silently drops from the symbol table (the name `_` is reserved).
+    Legacy bareword `_($self, 'name')` sites bind at compile time and
+    kept working, but the extracted `PAC::Theme::Widget` calls it
+    fully-qualified as `PACUtils::_($self, $widget)`, which died with
+    "Undefined subroutine &PACUtils::_" during theme setup — killing
+    the app before the main window opened. Fixed by installing the
+    getter via typeglob (`*PACUtils::_ = sub {...}`) so both call
+    styles resolve. Regression-tested in t/65.
 
 ### Tests
 

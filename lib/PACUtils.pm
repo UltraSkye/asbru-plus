@@ -288,9 +288,15 @@ our $DEFAULT_REMOTEHOSTCHANGED_PROMPT = '.*ffending .*key in (.+?)\:(\d+).*';
 ######################################################
 # START: Private functions definitions
 
-sub _ {
-    return shift->{_GLADE}->get_object(shift);
-};
+# Perl 5.38+ silently discards `sub _ {...}` (the name `_` is reserved), so the
+# glade-object getter must be installed via typeglob assignment to land in the
+# PACUtils:: symbol table. `*PACUtils::_` is required over `*_`, which is forced
+# into main:: like $_/@_.
+BEGIN {
+    *PACUtils::_ = sub {
+        return shift->{_GLADE}->get_object(shift);
+    };
+}
 
 sub __ {
     my $str = shift // '';
