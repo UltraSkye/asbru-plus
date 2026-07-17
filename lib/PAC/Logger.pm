@@ -114,7 +114,7 @@ sub log_file { return $LOG_FILE_PATH; }
 
 sub fatal { _emit(LVL_FATAL, 'FATAL', @_); }
 sub error { _emit(LVL_ERROR, 'ERROR', @_); }
-sub warn  { _emit(LVL_WARN,  'WARN',  @_); }
+sub warn  { _emit(LVL_WARN,  'WARN',  @_); }  ## no critic (ProhibitBuiltinHomonyms)
 sub info  { _emit(LVL_INFO,  'INFO',  @_); }
 sub debug { _emit(LVL_DEBUG, 'DEBUG', @_); }
 

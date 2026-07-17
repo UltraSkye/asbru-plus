@@ -42,7 +42,7 @@ my $THEME_DIR;
 # registry($self, $theme_dir) -> %methods
 # $self is the PACEdit instance whose Glade widgets are accessed via
 # `_($self, 'widgetName')`. $theme_dir overrides the icon search path.
-sub registry {
+sub registry {  ## no critic (ProhibitExcessComplexity)
     my $self = shift;
     my $theme_dir = shift;
     my %methods;

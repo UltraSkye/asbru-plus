@@ -349,7 +349,7 @@ sub show {
     $groups or $w{gui}{frameAffect}->hide();
     if ($w{data}->run ne 'ok') {
         defined $w{data} and $w{data}->destroy();
-        return undef;
+        return;
     }
 
     # Get the GUI data
