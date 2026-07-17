@@ -34,26 +34,24 @@ like($utils, qr/\*PACUtils::_\s*=\s*sub/,
 unlike($utils, qr/^\s*sub\s+_\s*[\{\(]/m,
     'PACUtils does not use the bare `sub _` form (silently dropped on 5.38+)');
 
-# 3. Functional guard when the runtime deps are available (CI has Gtk3 etc.).
-SKIP: {
-    my $loaded = eval {
-        local @INC = ("$RealBin/../lib", @INC);
-        require PACUtils;
-        1;
-    };
-    skip "PACUtils runtime deps not installed: $@", 2 unless $loaded;
+# 3. Functional guard: eval PACUtils' actual install statement (Gtk-free) and
+#    assert the resulting &PACUtils::_ is callable by fully-qualified name — the
+#    exact call style PAC::Theme::Widget uses. Loading the whole module here is
+#    avoided on purpose: it pulls `use Gtk3 '-init'`, which aborts the process
+#    when no display is present. End-to-end launch is covered by the QEMU
+#    Ubuntu 26.04 run recorded on the fix PR.
+my ($install) = $utils =~ /(\*PACUtils::_\s*=\s*sub\s*\{.*?\};)/s;
+ok($install, 'found the typeglob install statement in PACUtils.pm');
+eval $install;                                          ## no critic (StringyEval)
+is($@, '', 'install statement evaluates cleanly');
+ok(defined &PACUtils::_, '&PACUtils::_ is a real, defined symbol');
 
-    ok(defined &PACUtils::_,
-        '&PACUtils::_ is defined after loading PACUtils');
-
-    my $glade = do {
-        package T::FakeGlade;
-        sub get_object { return "obj:$_[1]" }
-        bless {}, 'T::FakeGlade';
-    };
-    my $self = { _GLADE => $glade };
-    is(PACUtils::_($self, 'someWidget'), 'obj:someWidget',
-        'fully-qualified PACUtils::_ resolves a widget by name');
+{
+    package T::FakeGlade;
+    sub get_object { return "obj:$_[1]" }
 }
+my $self = { _GLADE => bless({}, 'T::FakeGlade') };
+is(PACUtils::_($self, 'someWidget'), 'obj:someWidget',
+    'fully-qualified PACUtils::_ resolves a widget by name');
 
 done_testing();
